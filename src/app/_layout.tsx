@@ -1,4 +1,5 @@
 import "@/global.css";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -11,10 +12,11 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
 import { Slot, SplashScreen } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect } from "react";
-import { useColorScheme } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,12 @@ SplashScreen.preventAutoHideAsync();
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 });
+
+const secureStorage = {
+  getItem: SecureStore.getItemAsync,
+  setItem: SecureStore.setItemAsync,
+  removeItem: SecureStore.deleteItemAsync,
+};
 
 const InitialLayout = () => {
   const [fontsLoaded] = useFonts({
@@ -48,7 +56,14 @@ function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ConvexProvider client={convex}>
+    <ConvexAuthProvider
+      client={convex}
+      storage={
+        Platform.OS === "android" || Platform.OS === "ios"
+          ? secureStorage
+          : undefined
+      }
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
@@ -56,7 +71,7 @@ function RootLayout() {
           <InitialLayout />
         </ThemeProvider>
       </GestureHandlerRootView>
-    </ConvexProvider>
+    </ConvexAuthProvider>
   );
 }
 
