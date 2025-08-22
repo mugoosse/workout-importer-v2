@@ -10,7 +10,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    bun install
    ```
 
-2. Start the app
+2. Run prebuild (if needed for native code)
+
+   ```bash
+   bun prebuild
+   ```
+
+3. Start the app
 
    ```bash
    bun start
