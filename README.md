@@ -16,7 +16,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    bun prebuild
    ```
 
-3. Start the app
+3. Start the backend (Convex)
+
+   ```bash
+   bun convex:dev
+   ```
+
+4. Start the app
 
    ```bash
    bun start
