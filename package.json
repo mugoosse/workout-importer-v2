@@ -13,6 +13,8 @@
     "convex:dev": "convex dev"
   },
   "dependencies": {
+    "@auth/core": "0.37.0",
+    "@convex-dev/auth": "^0.0.88",
     "@expo-google-fonts/poppins": "^0.4.0",
     "@expo/vector-icons": "^14.1.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
