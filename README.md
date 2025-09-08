@@ -10,19 +10,35 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    bun install
    ```
 
-2. Run prebuild (if needed for native code)
+2. Install mobile MCP for development
+
+   For macOS:
+
+   ```bash
+   claude mcp add mobile --env ANDROID_HOME=/Users/mgo/Library/Android/sdk -- npx -y @mobilenext/mobile-mcp@latest
+   ```
+
+   For Windows with WSL:
+
+   ```bash
+   claude mcp add mobile --env ANDROID_HOME=/mnt/c/Users/user/AppData/Local/Android/Sdk -- npx -y @mobilenext/mobile-mcp@latest
+   ```
+
+   More info: https://github.com/mobile-next/mobile-mcp
+
+3. Run prebuild (if needed for native code)
 
    ```bash
    bun prebuild
    ```
 
-3. Start the backend (Convex)
+4. Start the backend (Convex)
 
    ```bash
    bun convex:dev
    ```
 
-4. Start the app
+5. Start the app
 
    ```bash
    bun start

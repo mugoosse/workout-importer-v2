@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 > Think carefully and implement the most concise solution that changes as little code as possible.
 
 ## USE SUB-AGENTS FOR CONTEXT OPTIMIZATION
@@ -40,6 +38,7 @@ Using the test-runner agent ensures:
 - If the test fails, consider checking if the test is structured correctly before deciding we need to refactor the codebase.
 - Tests to be verbose so we can use them for debugging.
 
+
 ## Tone and Behavior
 
 - Criticism is welcome. Please tell me when I am wrong or mistaken, or even when you think I might be wrong or mistaken.
@@ -64,102 +63,3 @@ Using the test-runner agent ensures:
 - NO OVER-ENGINEERING - Don't add unnecessary abstractions, factory patterns, or middleware when simple functions would work. Don't think "enterprise" when you need "working"
 - NO MIXED CONCERNS - Don't put validation logic inside API handlers, database queries inside UI components, etc. instead of proper separation
 - NO RESOURCE LEAKS - Don't forget to close database connections, clear timeouts, remove event listeners, or clean up file handles
-
-## Development Commands
-
-### Package Manager
-This project uses **Bun** as the package manager, not npm or yarn.
-
-### Essential Commands
-```bash
-bun install                 # Install dependencies
-bun start                   # Start Expo development server
-bun convex:dev             # Start Convex backend in development mode
-bun prebuild               # Generate native code (when needed)
-bun android                # Run on Android emulator/device
-bun ios                    # Run on iOS simulator/device
-bun web                    # Run web version
-bun lint                   # Run ESLint
-bun reset-project          # Move starter code to app-example/, create blank app/
-```
-
-### Development Workflow
-1. Start Convex backend: `bun convex:dev`
-2. In separate terminal, start app: `bun start`
-3. For native development, run prebuild first if needed
-
-### Data Import
-```bash
-bun convex import --table tasks sampleData.jsonl
-```
-
-## Architecture
-
-### Tech Stack
-- **Frontend**: React Native 0.79.5 + Expo SDK 53
-- **Backend**: Convex (real-time database with auth)
-- **Routing**: Expo Router (file-based routing in `src/app/`)
-- **Styling**: NativeWind (Tailwind CSS for React Native)
-- **State Management**: Jotai
-- **Authentication**: Convex Auth with OAuth support
-- **TypeScript**: Strict mode enabled with path aliases
-
-### Project Structure
-```
-src/
-├── app/           # Expo Router pages (file-based routing)
-├── assets/        # Images, fonts, and other static assets
-└── global.css     # Global Tailwind styles
-
-convex/            # Backend schema, auth, and functions
-├── schema.ts      # Database schema with auth tables
-└── auth.ts        # Authentication configuration
-
-android/           # Native Android code
-ios/               # Native iOS code
-```
-
-### Key Architectural Patterns
-
-#### Routing
-- Uses Expo Router with file-based routing in `src/app/`
-- Typed routes enabled (`experiments.typedRoutes: true`)
-- Route protection for authenticated vs public pages
-
-#### Authentication
-- Convex Auth handles OAuth flows (GitHub, etc.)
-- Cross-platform redirect handling via custom URL scheme
-- Secure token storage using Expo SecureStore
-- Auth state management integrated with routing
-
-#### Styling
-- NativeWind for Tailwind CSS in React Native
-- Global styles in `src/global.css`
-- Platform-specific styling considerations for iOS/Android/Web
-
-#### Backend Integration
-- Real-time Convex backend with authentication tables
-- Environment variable: `EXPO_PUBLIC_CONVEX_URL`
-- Schema includes auth tables from `@convex-dev/auth`
-
-### Path Aliases
-- `@/*` → `src/*`
-- `@/convex/*` → `convex/*`
-- `~/*` → `./*`
-
-### Platform Support
-- **iOS**: Deployment target 16.0+, tablet support enabled
-- **Android**: Edge-to-edge display, AGP 8.12.1
-- **Web**: Metro bundler with static output
-- **Permissions**: Audio recording, media access, external storage
-
-### Development Notes
-- New React Native architecture enabled (`newArchEnabled: true`)
-- ESLint configured with Expo and Prettier
-- TypeScript strict mode with comprehensive type checking
-- Expo development build support for native debugging
-
-### Code Style
-- ESLint with Expo config and Prettier integration
-- Prettier plugin for Tailwind class sorting
-- Follow existing patterns for component structure and naming
