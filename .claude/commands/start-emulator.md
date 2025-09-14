@@ -17,14 +17,14 @@ Usage: `/start-emulator`
 ## Implementation
 
 ```bash
-# Start the emulator in the background
-/mnt/c/Users/user/AppData/Local/Android/Sdk/emulator/emulator.exe -avd Medium_Phone_API_36.0 &
+# Start the emulator in the background using the WSL path
+emulator -avd Medium_Phone_API_36.0 &
 
 # Wait for emulator to start
 sleep 30
 
-# Check devices and connect
-/mnt/c/Users/user/AppData/Local/Android/Sdk/platform-tools/adb.exe devices
+# Check devices and connect using the WSL path for adb
+adb devices
 
 # Connect using mobile tools
 # Use mcp__mobile__mobile_use_device with device="emulator-5554" and deviceType="android"
