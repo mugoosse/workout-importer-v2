@@ -52,12 +52,6 @@
           }
         }
       ],
-      [
-        "expo-custom-agp",
-        {
-          "version": "8.12.1"
-        }
-      ],
       "expo-video",
       "expo-audio",
       [
