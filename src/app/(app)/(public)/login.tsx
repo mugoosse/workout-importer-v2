@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Platform,
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState<
     "github" | "google" | "apple" | "email" | false
   >(false);
+  const [showTermsError, setShowTermsError] = useState(false);
 
   const handleSignWithGitHubSSO = async () => {
     const { redirect } = await signIn("github", { redirectTo });
@@ -53,6 +55,14 @@ export default function LoginScreen() {
   const handleSignInWithSSO = async (
     strategy: "oauth_github" | "oauth_google" | "oauth_apple"
   ) => {
+    if (!isTermsChecked) {
+      setShowTermsError(true);
+      setTimeout(() => setShowTermsError(false), 3000);
+      return;
+    }
+
+    setShowTermsError(false);
+
     if (
       strategy === "oauth_google" ||
       strategy === "oauth_apple" ||
@@ -101,21 +111,34 @@ export default function LoginScreen() {
         <View className="items-center mb-8 pt-8">
           <View className="flex-row">
             <Image
-              source={require("@/assets/images/convex.png")}
+              source={require("@/assets/images/muscle-trophy-logo.png")}
               className="w-40 h-40"
             />
           </View>
           <Text className="text-gray-400 text-md mt-2 font-Poppins_400Regular">
-            Personalized Workout Tracker
+            Muscle Trophy
           </Text>
         </View>
 
-        <View className="flex-row items-center">
+        <Pressable
+          className="flex-row items-center"
+          onPress={() => {
+            const newValue = !isTermsChecked;
+            console.log("Checkbox value changed:", newValue);
+            setTermsChecked(newValue);
+            if (showTermsError) {
+              setShowTermsError(false);
+            }
+          }}
+        >
           <Checkbox
             value={isTermsChecked}
             onValueChange={(newValue) => {
               console.log("Checkbox value changed:", newValue);
               setTermsChecked(newValue);
+              if (showTermsError) {
+                setShowTermsError(false);
+              }
             }}
             color={
               isTermsChecked
@@ -128,23 +151,39 @@ export default function LoginScreen() {
             I agree to the{" "}
             <Text
               className="text-white underline"
-              onPress={() => handleLinkPress("terms")}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleLinkPress("terms");
+              }}
             >
               Terms of Service
             </Text>{" "}
             and acknowledge the{" "}
             <Text
               className="text-white underline"
-              onPress={() => handleLinkPress("privacy")}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleLinkPress("privacy");
+              }}
             >
               Privacy Policy
             </Text>
           </Text>
-        </View>
+        </Pressable>
 
-        <View className="gap-4">
+        {showTermsError && (
+          <View className="bg-red-500 p-3 rounded-lg mt-4">
+            <Text className="text-white text-center font-Poppins_500Medium">
+              Please agree to the Terms of Service and Privacy Policy to continue
+            </Text>
+          </View>
+        )}
+
+        <View className="gap-4 mt-6">
           <Pressable
-            className="w-full flex-row justify-center items-center bg-gray-800 p-4 rounded-lg"
+            className={`w-full flex-row justify-center items-center p-4 rounded-lg ${
+              isTermsChecked ? "bg-gray-800" : "bg-gray-600 opacity-50"
+            }`}
             onPress={() => handleSignInWithSSO("oauth_github")}
             disabled={!!loading}
           >
