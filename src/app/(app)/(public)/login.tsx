@@ -161,9 +161,9 @@ export default function LoginScreen() {
           </Pressable>
 
           <Pressable
-            className="w-full flex-row justify-center items-center bg-gray-800 p-4 rounded-lg"
+            className="w-full flex-row justify-center items-center bg-gray-600 p-4 rounded-lg opacity-50"
             onPress={() => handleSignInWithSSO("oauth_apple")}
-            disabled={!!loading}
+            disabled={true}
           >
             {loading === "apple" ? (
               <ActivityIndicator color="white" />
@@ -178,9 +178,9 @@ export default function LoginScreen() {
           </Pressable>
 
           <Pressable
-            className="w-full flex-row justify-center items-center bg-gray-800 p-4 rounded-lg"
+            className="w-full flex-row justify-center items-center bg-gray-600 p-4 rounded-lg opacity-50"
             onPress={() => handleSignInWithSSO("oauth_google")}
-            disabled={!!loading}
+            disabled={true}
           >
             {loading === "google" ? (
               <ActivityIndicator color="white" />
