@@ -14,7 +14,7 @@ const Layout = () => {
   }
 
   if (isSignedIn && !inAuthGroup) {
-    return <Redirect href="/(app)/(authenticated)/logout" />;
+    return <Redirect href="/(app)/(authenticated)/(tabs)/home" />;
   }
 
   return <Slot />;

@@ -59,6 +59,12 @@ To import test todo list data into Convex:
 bun convex import --table tasks sampleData.jsonl
 ```
 
+To import muscles data into Convex:
+
+```bash
+bunx convex import --table muscles data/muscles_import.jsonl
+```
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project
