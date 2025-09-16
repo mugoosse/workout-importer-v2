@@ -53,7 +53,7 @@ export default function LoginScreen() {
   };
 
   const handleSignInWithSSO = async (
-    strategy: "oauth_github" | "oauth_google" | "oauth_apple"
+    strategy: "oauth_github" | "oauth_google" | "oauth_apple",
   ) => {
     if (!isTermsChecked) {
       setShowTermsError(true);
@@ -69,7 +69,7 @@ export default function LoginScreen() {
       strategy === "oauth_github"
     ) {
       setLoading(
-        strategy.replace("oauth_", "") as "github" | "google" | "apple"
+        strategy.replace("oauth_", "") as "github" | "google" | "apple",
       );
     } else {
       setLoading(false);
@@ -93,7 +93,7 @@ export default function LoginScreen() {
     Linking.openURL(
       linkType === "terms"
         ? "https://mgo.rodeo/terms"
-        : "https://mgo.rodeo/privacy"
+        : "https://mgo.rodeo/privacy",
     );
   };
 
@@ -174,7 +174,8 @@ export default function LoginScreen() {
         {showTermsError && (
           <View className="bg-red-500 p-3 rounded-lg mt-4">
             <Text className="text-white text-center font-Poppins_500Medium">
-              Please agree to the Terms of Service and Privacy Policy to continue
+              Please agree to the Terms of Service and Privacy Policy to
+              continue
             </Text>
           </View>
         )}

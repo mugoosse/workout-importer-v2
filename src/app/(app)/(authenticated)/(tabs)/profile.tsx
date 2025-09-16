@@ -21,7 +21,7 @@ const Page = () => {
   return (
     <View className="flex-1 bg-dark items-center justify-center">
       <Text className="text-white text-2xl font-Poppins_600SemiBold">
-        {user?.name}'s profile
+        {user?.name}&apos;s profile
       </Text>
       <Button title="Sign Out" onPress={handleSignOut} />
 

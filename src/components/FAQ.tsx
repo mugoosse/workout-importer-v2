@@ -1,20 +1,20 @@
-'use dom';
-import '@/global.css';
-import { useRouter } from 'expo-router';
-import React from 'react';
+"use dom";
+import "@/global.css";
+import { useRouter } from "expo-router";
+import React from "react";
 
 interface FAQProps {
-  dom: import('expo/dom').DOMProps; // Keeping dom prop for now, might remove later if unused
+  dom: import("expo/dom").DOMProps; // Keeping dom prop for now, might remove later if unused
 }
 
 // Hardcoded FAQ data based on the image
 const faqData = [
-  { icon: '📖', text: 'Help Center' },
-  { icon: '🔍', text: 'Search for an answer' },
-  { icon: '💳', text: 'Subscriptions & Plans' }, // Using credit card icon based on image
-  { icon: '👤', text: 'AI Creator' }, // Using person silhouette icon based on image
-  { icon: '✨', text: 'AI Edit' },
-  { icon: '💬', text: 'Caption & Dub' },
+  { icon: "📖", text: "Help Center" },
+  { icon: "🔍", text: "Search for an answer" },
+  { icon: "💳", text: "Subscriptions & Plans" }, // Using credit card icon based on image
+  { icon: "👤", text: "AI Creator" }, // Using person silhouette icon based on image
+  { icon: "✨", text: "AI Edit" },
+  { icon: "💬", text: "Caption & Dub" },
 ];
 
 export default function FAQ({ dom }: FAQProps) {
@@ -29,7 +29,10 @@ export default function FAQ({ dom }: FAQProps) {
       <div className="text-white p-4 pt-8">
         <div className="flex justify-end items-center mb-4">
           <div className="flex items-center space-x-1">
-            <button className="ml-2 text-2xl font-light" onClick={() => router.dismiss()}>
+            <button
+              className="ml-2 text-2xl font-light"
+              onClick={() => router.dismiss()}
+            >
               X
             </button>
           </div>
@@ -52,19 +55,24 @@ export default function FAQ({ dom }: FAQProps) {
               role="button"
               tabIndex={0}
               onKeyPress={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   handleItemClick(item);
                 }
-              }}>
+              }}
+            >
               <span className="mr-2.5 text-lg">{item.icon}</span>
-              <span className="flex-grow text-base text-gray-700">{item.text}</span>
+              <span className="flex-grow text-base text-gray-700">
+                {item.text}
+              </span>
               <span className="text-base text-gray-400">↗</span>
             </div>
           ))}
         </div>
       </div>
       <div className="bg-white rounded-md m-2.5 p-4 h-24 shadow-md border border-gray-200 flex flex-col items-center justify-center">
-        <span className="text-base text-gray-700 mb-2">Have a feature request?</span>
+        <span className="text-base text-gray-700 mb-2">
+          Have a feature request?
+        </span>
         <button className="bg-black text-white text-sm font-semibold py-1.5 px-4 rounded-lg w-full">
           Submit Feature Request
         </button>
