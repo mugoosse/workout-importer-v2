@@ -1,22 +1,58 @@
 import React from "react";
-import { Svg, Path, G, SvgProps } from "react-native-svg";
+import { G, Path, Svg, SvgProps } from "react-native-svg";
 
 // Front-visible muscles from the schema
 export type FrontMuscleId =
-  | "biceps_brachii"
-  | "deltoids"
-  | "external_obliques"
-  | "gastrocnemius"
+  | "triceps_brachii"
   | "pectoralis_major"
-  | "peroneus_longus"
-  | "rectus_abdominis"
-  | "rectus_femoris"
-  | "sartorius"
+  | "deltoids"
+  | "biceps_brachii"
+  | "trapezius"
+  | "sternocleidomastoid"
+  | "omohyoid"
+  | "brachialis"
+  | "external_obliques"
   | "serratus_anterior"
-  | "soleus"
-  | "tensor_fasciae_latae"
+  | "rectus_abdominis"
+  | "brachioradialis"
+  | "flexor_carpi_radialis"
+  | "extensor_carpi_radialis"
+  | "adductor_longus_and_pectineus"
+  | "sartorius"
+  | "rectus_femoris"
+  | "vastus_medialis"
   | "vastus_lateralis"
-  | "vastus_medialis";
+  | "gastrocnemius"
+  | "soleus"
+  | "peroneus_longus"
+  | "tensor_fasciae_latae";
+
+// All front muscle IDs as an array for iteration
+export const FRONT_MUSCLE_IDS: FrontMuscleId[] = [
+  "triceps_brachii",
+  "pectoralis_major",
+  "deltoids",
+  "biceps_brachii",
+  "trapezius",
+  "sternocleidomastoid",
+  "omohyoid",
+  "brachialis",
+  "external_obliques",
+  "serratus_anterior",
+  "rectus_abdominis",
+  "brachioradialis",
+  "flexor_carpi_radialis",
+  "extensor_carpi_radialis",
+  "adductor_longus_and_pectineus",
+  "sartorius",
+  "rectus_femoris",
+  "vastus_medialis",
+  "vastus_lateralis",
+  "gastrocnemius",
+  "soleus",
+  "peroneus_longus",
+  "tensor_fasciae_latae",
+];
 
 // Body contour path
 export const FRONT_BODY_CONTOUR =
@@ -24,47 +60,74 @@ export const FRONT_BODY_CONTOUR =
 
 // Simplified muscle paths - in a real implementation, you'd extract all paths from the SVG
 export const frontBodyData: Record<FrontMuscleId, string[]> = {
-  biceps_brachii: [
-    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
-  ],
-  deltoids: [
-    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
-  ],
-  external_obliques: [
-    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
-  ],
-  gastrocnemius: [
+  triceps_brachii: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
   pectoralis_major: [
     "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
-  peroneus_longus: [
-    "M45.806 415.735C45.8879 402.839 46.0311 390.888 46.1129 377.992C44.3638 374.783 41.9294 369.754 40.9475 366.675Z",
+  deltoids: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
-  rectus_abdominis: [
+  biceps_brachii: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  rectus_femoris: [
+  trapezius: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  ],
+  sternocleidomastoid: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  ],
+  omohyoid: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  ],
+  brachialis: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  sartorius: [
+  external_obliques: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
   serratus_anterior: [
     "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
-  soleus: [
-    "M119.523 435.27C121.293 443.107 122.786 450.4 122.275 453.066C122.203 453.458 122.336 454.997 122.04 455.248Z",
+  rectus_abdominis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  tensor_fasciae_latae: [
-    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  brachioradialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  vastus_lateralis: [
+  flexor_carpi_radialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  extensor_carpi_radialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  adductor_longus_and_pectineus: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  sartorius: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  rectus_femoris: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
   vastus_medialis: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  vastus_lateralis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  gastrocnemius: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  soleus: [
+    "M119.523 435.27C121.293 443.107 122.786 450.4 122.275 453.066C122.203 453.458 122.336 454.997 122.04 455.248Z",
+  ],
+  peroneus_longus: [
+    "M45.806 415.735C45.8879 402.839 46.0311 390.888 46.1129 377.992C44.3638 374.783 41.9294 369.754 40.9475 366.675Z",
+  ],
+  tensor_fasciae_latae: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
 };
 

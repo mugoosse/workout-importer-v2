@@ -1,10 +1,11 @@
+import { BodyVisualization } from "@/components/BodyVisualization";
+import { MuscleBody, type MuscleId } from "@/components/MuscleBody";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Text, View, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { MuscleBody, type MuscleId } from "@/components/MuscleBody";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,6 +40,14 @@ const Page = () => {
         return "fitness-outline";
     }
   };
+
+  const muscleNameToId = () => muscle.svgId;
+
+  const getMuscleColor = (muscleName: string) => {
+    return "#6F2DBD";
+  };
+
+  const getAllActiveMuscles = () => new Set([muscle.name]);
 
   return (
     <View className="flex-1 bg-dark">
@@ -79,6 +88,22 @@ const Page = () => {
           </View>
         </View>
 
+        <View className="mx-4 mb-6">
+          <View className="bg-[#1c1c1e] rounded-2xl p-6">
+            <Text className="text-white text-xl font-Poppins_600SemiBold mb-4 text-center">
+              Muscle Location
+            </Text>
+            <BodyVisualization
+              view="front"
+              getMuscleColor={getMuscleColor}
+              getAllActiveMuscles={getAllActiveMuscles}
+              muscleNameToId={muscleNameToId}
+              progressionMode={true}
+              progressionColor={"#6F2DBD"}
+            />
+          </View>
+        </View>
+
         {/* Body Visualization Card */}
         <View className="mx-4 mb-6">
           <View className="bg-[#1c1c1e] rounded-2xl p-6">
@@ -96,7 +121,7 @@ const Page = () => {
         </View>
 
         {/* Muscle Information Cards */}
-        <View className="px-4 space-y-4">
+        <View className="px-4 space-y-6">
           {/* Anatomical Group Card */}
           {muscle.anatomicalGroup && (
             <View className="bg-[#1c1c1e] rounded-2xl p-4">

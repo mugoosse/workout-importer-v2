@@ -3,18 +3,58 @@ import { Svg, Path, G, SvgProps } from "react-native-svg";
 
 // Back-visible muscles from the schema
 export type BackMuscleId =
-  | "biceps_femoris"
-  | "erector_spinae"
-  | "gluteus_maximus"
-  | "gluteus_medius"
-  | "infraspinatus"
-  | "latissimus_dorsi"
-  | "lower_trapezius"
   | "rhomboid_muscles"
-  | "semitendinosus"
-  | "teres_major"
   | "trapezius"
-  | "triceps_brachii";
+  | "gracilis"
+  | "tensor_fasciae_latae"
+  | "erector_spinae"
+  | "flexor_carpi_radialis"
+  | "biceps_femoris"
+  | "adductor_magnus"
+  | "semitendinosus"
+  | "gluteus_medius"
+  | "gluteus_maximus"
+  | "flexor_carpi_ulnaris"
+  | "extensor_carpi_radialis"
+  | "brachioradialis"
+  | "serratus_anterior"
+  | "external_obliques"
+  | "triceps_brachii"
+  | "latissimus_dorsi"
+  | "teres_major"
+  | "infraspinatus"
+  | "lower_trapezius"
+  | "deltoids"
+  | "gastrocnemius"
+  | "soleus";
+
+// All back muscle IDs as an array for iteration
+export const BACK_MUSCLE_IDS: BackMuscleId[] = [
+  "rhomboid_muscles",
+  "trapezius",
+  "gracilis",
+  "tensor_fasciae_latae",
+  "erector_spinae",
+  "flexor_carpi_radialis",
+  "biceps_femoris",
+  "adductor_magnus",
+  "semitendinosus",
+  "gluteus_medius",
+  "gluteus_maximus",
+  "flexor_carpi_ulnaris",
+  "extensor_carpi_radialis",
+  "brachioradialis",
+  "serratus_anterior",
+  "external_obliques",
+  "triceps_brachii",
+  "latissimus_dorsi",
+  "teres_major",
+  "infraspinatus",
+  "lower_trapezius",
+  "deltoids",
+  "gastrocnemius",
+  "soleus",
+];
 
 // Body contour path for back view (simplified)
 export const BACK_BODY_CONTOUR =
@@ -22,40 +62,76 @@ export const BACK_BODY_CONTOUR =
 
 // Simplified muscle paths for back view
 export const backBodyData: Record<BackMuscleId, string[]> = {
-  biceps_femoris: [
+  rhomboid_muscles: [
+    "M89.973 130.123C89.973 125.234 92.345 120.876 95.234 117.891C97.123 115.432 99.567 112.789 101.234 109.876Z",
+  ],
+  trapezius: [
+    "M89.973 90.123C89.973 85.234 92.345 80.876 95.234 77.891C97.123 75.432 99.567 72.789 101.234 69.876Z",
+  ],
+  gracilis: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  tensor_fasciae_latae: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
   erector_spinae: [
     "M89.973 180.123C89.973 175.234 92.345 170.876 95.234 167.891C97.123 165.432 99.567 162.789 101.234 159.876Z",
   ],
-  gluteus_maximus: [
-    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  flexor_carpi_radialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  biceps_femoris: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  adductor_magnus: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  semitendinosus: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
   gluteus_medius: [
     "M45.806 415.735C45.8879 402.839 46.0311 390.888 46.1129 377.992C44.3638 374.783 41.9294 369.754 40.9475 366.675Z",
   ],
-  infraspinatus: [
-    "M89.973 120.123C89.973 115.234 92.345 110.876 95.234 107.891C97.123 105.432 99.567 102.789 101.234 99.876Z",
+  gluteus_maximus: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
   ],
-  latissimus_dorsi: [
+  flexor_carpi_ulnaris: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  lower_trapezius: [
-    "M89.973 140.123C89.973 135.234 92.345 130.876 95.234 127.891C97.123 125.432 99.567 122.789 101.234 119.876Z",
+  extensor_carpi_radialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  rhomboid_muscles: [
-    "M89.973 130.123C89.973 125.234 92.345 120.876 95.234 117.891C97.123 115.432 99.567 112.789 101.234 109.876Z",
+  brachioradialis: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
-  semitendinosus: [
+  serratus_anterior: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  ],
+  external_obliques: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  triceps_brachii: [
+    "M119.523 435.27C121.293 443.107 122.786 450.4 122.275 453.066C122.203 453.458 122.336 454.997 122.04 455.248Z",
+  ],
+  latissimus_dorsi: [
     "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
   ],
   teres_major: [
     "M89.973 110.123C89.973 105.234 92.345 100.876 95.234 97.891C97.123 95.432 99.567 92.789 101.234 89.876Z",
   ],
-  trapezius: [
-    "M89.973 90.123C89.973 85.234 92.345 80.876 95.234 77.891C97.123 75.432 99.567 72.789 101.234 69.876Z",
+  infraspinatus: [
+    "M89.973 120.123C89.973 115.234 92.345 110.876 95.234 107.891C97.123 105.432 99.567 102.789 101.234 99.876Z",
   ],
-  triceps_brachii: [
+  lower_trapezius: [
+    "M89.973 140.123C89.973 135.234 92.345 130.876 95.234 127.891C97.123 125.432 99.567 122.789 101.234 119.876Z",
+  ],
+  deltoids: [
+    "M52.3523 236.205C51.2988 243.357 49.8872 253.145 42.9625 256.877C43.0239 256.636 43.0852 256.394 43.1466 256.153Z",
+  ],
+  gastrocnemius: [
+    "M71.6843 398.966C69.8636 404.901 67.5827 409.609 65.7415 413.401C64.6368 415.685 63.6856 417.646 63.0105 419.477Z",
+  ],
+  soleus: [
     "M119.523 435.27C121.293 443.107 122.786 450.4 122.275 453.066C122.203 453.458 122.336 454.997 122.04 455.248Z",
   ],
 };

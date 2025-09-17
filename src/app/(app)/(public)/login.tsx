@@ -3,7 +3,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { makeRedirectUri } from "expo-auth-session";
-import Checkbox from "expo-checkbox";
+import { Checkbox } from "expo-checkbox";
 import { Link } from "expo-router";
 import {
   maybeCompleteAuthSession,
@@ -12,7 +12,6 @@ import {
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Linking,
   Platform,
