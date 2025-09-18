@@ -11,9 +11,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { useAtom } from "jotai";
+import {
+  individualMuscleProgressAtom,
+  getProgressColor,
+} from "@/store/weeklyProgress";
 
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
 
   const muscle = useQuery(api.muscles.get, {
     muscleId: id as Id<"muscles">,
@@ -41,6 +47,11 @@ const Page = () => {
       return "both"; // fallback
     }
   };
+
+  // Get muscle progress and color
+  const muscleProgressData = individualMuscleProgress[muscle.svgId];
+  const progressPercentage = muscleProgressData?.percentage || 0;
+  const muscleColor = getProgressColor(progressPercentage);
 
   const getMajorGroupIcon = (group: string) => {
     switch (group) {
@@ -110,7 +121,7 @@ const Page = () => {
             </Text>
             <MuscleBody
               highlightedMuscles={[
-                { muscleId: muscle.svgId as MuscleId, color: "#6F2DBD" },
+                { muscleId: muscle.svgId as MuscleId, color: muscleColor },
               ]}
               width={280}
               height={400}
