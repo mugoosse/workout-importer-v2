@@ -94,15 +94,3 @@ export function generateMuscleColorVariants(
 
   return result;
 }
-
-/**
- * Default muscle colors for different states
- */
-export const MUSCLE_COLORS = {
-  DEFAULT: "#E5E5E5",
-  PRIMARY: "#6F2DBD",
-  SECONDARY: "#E74C3C",
-  SUCCESS: "#27AE60",
-  WARNING: "#F39C12",
-  INFO: "#3498DB",
-} as const;
