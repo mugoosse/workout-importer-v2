@@ -1,4 +1,6 @@
-import { MuscleBody, type MuscleId } from "@/components/muscle-body/MuscleBody";
+import { MuscleBody, type MuscleId, type BodyView } from "@/components/muscle-body/MuscleBody";
+import { FRONT_MUSCLE_IDS } from "@/components/muscle-body/frontBodySvg";
+import { BACK_MUSCLE_IDS } from "@/components/muscle-body/backBodySvg";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +22,21 @@ const Page = () => {
       </View>
     );
   }
+
+  const determineBodyView = (muscleId: MuscleId): BodyView => {
+    const isInFront = FRONT_MUSCLE_IDS.includes(muscleId as any);
+    const isInBack = BACK_MUSCLE_IDS.includes(muscleId as any);
+
+    if (isInFront && isInBack) {
+      return "both";
+    } else if (isInFront) {
+      return "front";
+    } else if (isInBack) {
+      return "back";
+    } else {
+      return "both"; // fallback
+    }
+  };
 
   const getMajorGroupIcon = (group: string) => {
     switch (group) {
@@ -93,7 +110,7 @@ const Page = () => {
               ]}
               width={280}
               height={400}
-              view="both"
+              view={determineBodyView(muscle.svgId as MuscleId)}
             />
           </View>
         </View>
