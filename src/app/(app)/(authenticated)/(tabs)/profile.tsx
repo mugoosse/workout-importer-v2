@@ -20,11 +20,10 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark items-center justify-center">
-      <Text className="text-white text-2xl font-Poppins_600SemiBold">
+      <Text className="text-white text-2xl font-Poppins_600SemiBold mb-6">
         {user?.name}&apos;s profile
       </Text>
       <Button title="Sign Out" onPress={handleSignOut} />
-
       <Button title="Cause Error" onPress={causeError} />
     </View>
   );
