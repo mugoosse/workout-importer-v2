@@ -15,11 +15,11 @@ const levelProgress = [
 ];
 
 const getProgressColor = (progress: number) => {
-  if (progress >= 100) return '#6F2DBD';
-  if (progress >= 75) return '#A663CC';
-  if (progress >= 50) return '#B298DC';
-  if (progress >= 25) return '#B8D0EB';
-  return '#E9FF70';
+  if (progress >= 100) return '#1FD224';
+  if (progress >= 75) return '#98DA00';
+  if (progress >= 50) return '#FCD514';
+  if (progress >= 25) return '#FF8A1B';
+  return '#FF5C14';
 };
 
 const getStreakEmoji = (streak: number) => {
@@ -31,11 +31,11 @@ const getStreakEmoji = (streak: number) => {
 
 const ColorLegend = () => {
   const legendItems = [
-    { color: '#E9FF70', label: '0-24%' },
-    { color: '#B8D0EB', label: '25-49%' },
-    { color: '#B298DC', label: '50-74%' },
-    { color: '#A663CC', label: '75-99%' },
-    { color: '#6F2DBD', label: '100%+' },
+    { color: '#FF5C14', label: '0-24%' },
+    { color: '#FF8A1B', label: '25-49%' },
+    { color: '#FCD514', label: '50-74%' },
+    { color: '#98DA00', label: '75-99%' },
+    { color: '#1FD224', label: '100%' },
   ];
 
   return (
