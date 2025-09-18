@@ -1,10 +1,14 @@
 import {
   BackBodyMuscleMap,
-  type BackMuscleId,
+  BackMuscleId,
+  BACK_MUSCLE_IDS,
+  type BackMuscleColorPair,
 } from "@/components/muscle-body/backBodySvg";
 import {
   FrontBodyMuscleMap,
-  type FrontMuscleId,
+  FrontMuscleId,
+  FRONT_MUSCLE_IDS,
+  type FrontMuscleColorPair,
 } from "@/components/muscle-body/frontBodySvg";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
@@ -12,10 +16,14 @@ import { Text, TouchableOpacity, View } from "react-native";
 export type BodyView = "front" | "back" | "both";
 export type MuscleId = FrontMuscleId | BackMuscleId;
 
+export interface MuscleColorPair {
+  muscleId: MuscleId;
+  color: string;
+}
+
 export interface MuscleBodyProps {
   view?: BodyView;
-  highlightedMuscle?: MuscleId;
-  highlightColor?: string;
+  highlightedMuscles?: MuscleColorPair[];
   onMusclePress?: (muscleId: MuscleId) => void;
   width?: number;
   height?: number;
@@ -23,12 +31,27 @@ export interface MuscleBodyProps {
 
 export const MuscleBody: React.FC<MuscleBodyProps> = ({
   view = "both",
-  highlightedMuscle,
-  highlightColor = "#6F2DBD",
+  highlightedMuscles = [],
   onMusclePress,
   width = 300,
   height = 500,
 }) => {
+  const muscleColorPairs: MuscleColorPair[] = highlightedMuscles;
+
+  // Separate muscle-color pairs by body view
+  const frontMuscles: FrontMuscleColorPair[] = muscleColorPairs
+    .filter((pair) => FRONT_MUSCLE_IDS.includes(pair.muscleId as FrontMuscleId))
+    .map((pair) => ({
+      muscleId: pair.muscleId as FrontMuscleId,
+      color: pair.color,
+    }));
+
+  const backMuscles: BackMuscleColorPair[] = muscleColorPairs
+    .filter((pair) => BACK_MUSCLE_IDS.includes(pair.muscleId as BackMuscleId))
+    .map((pair) => ({
+      muscleId: pair.muscleId as BackMuscleId,
+      color: pair.color,
+    }));
   const [currentView, setCurrentView] = useState<BodyView>(
     view === "both" ? "front" : view,
   );
@@ -41,10 +64,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <FrontBodyMuscleMap
           width={width}
           height={height}
-          highlightedMuscles={
-            highlightedMuscle ? [highlightedMuscle as FrontMuscleId] : []
-          }
-          highlightColor={highlightColor}
+          highlightedMuscles={frontMuscles}
           onMusclePress={onMusclePress}
           style={{ backgroundColor: "transparent" }}
         />
@@ -54,10 +74,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <BackBodyMuscleMap
           width={width}
           height={height}
-          highlightedMuscles={
-            highlightedMuscle ? [highlightedMuscle as BackMuscleId] : []
-          }
-          muscleColor={highlightColor}
+          highlightedMuscles={backMuscles}
           onMusclePress={onMusclePress}
           style={{ backgroundColor: "transparent" }}
         />

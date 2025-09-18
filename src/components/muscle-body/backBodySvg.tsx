@@ -64,20 +64,29 @@ export const backBodyData: Record<BackMuscleId, BackMusclePaths> = {
   [BackMuscleId.SOLEUS]: [],
 };
 
+export interface BackMuscleColorPair {
+  muscleId: BackMuscleId;
+  color: string;
+}
+
 export interface BackBodyProps extends SvgProps {
-  highlightedMuscles?: BackMuscleId[];
-  muscleColor?: string;
+  highlightedMuscles?: BackMuscleColorPair[];
   defaultColor?: string;
   onMusclePress?: (muscleId: BackMuscleId) => void;
 }
 
 export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
   highlightedMuscles = [],
-  muscleColor = "#6F2DBD",
   defaultColor = "#E5E5E5",
   onMusclePress,
   ...svgProps
 }) => {
+  // Create a map of muscle IDs to colors for quick lookup
+  const muscleColorMap = new Map<BackMuscleId, string>();
+  highlightedMuscles.forEach((pair) => {
+    muscleColorMap.set(pair.muscleId, pair.color);
+  });
+
   return (
     <Svg width={179} height={508} viewBox="0 0 179 508" {...svgProps}>
       {/* Body contour */}
@@ -90,10 +99,9 @@ export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
 
       {/* Render muscles */}
       {Object.entries(backBodyData).map(([muscleId, paths]) => {
-        const isHighlighted = highlightedMuscles.includes(
-          muscleId as BackMuscleId,
-        );
-        const fillColor = isHighlighted ? muscleColor : defaultColor;
+        const muscleColorFromMap = muscleColorMap.get(muscleId as BackMuscleId);
+        const isHighlighted = muscleColorFromMap !== undefined;
+        const fillColor = isHighlighted ? muscleColorFromMap : defaultColor;
         const opacity = isHighlighted ? 0.8 : 0.6;
 
         return (

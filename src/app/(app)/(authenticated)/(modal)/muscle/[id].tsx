@@ -1,4 +1,4 @@
-import { MuscleBody, type MuscleId } from "@/components/MuscleBody";
+import { MuscleBody, type MuscleId } from "@/components/muscle-body/MuscleBody";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,8 +88,9 @@ const Page = () => {
               Muscle Location
             </Text>
             <MuscleBody
-              highlightedMuscle={muscle.svgId as MuscleId}
-              highlightColor="#6F2DBD"
+              highlightedMuscles={[
+                { muscleId: muscle.svgId as MuscleId, color: "#6F2DBD" },
+              ]}
               width={280}
               height={400}
               view="both"
