@@ -119,6 +119,37 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   };
 
   const renderContent = () => {
+    if (view === "both") {
+      // Both view - side by side, scale to fit half width each
+      const scaledWidth = width * 0.4; // 40% each to allow for more spacing
+      const scaledHeight = height; // Keep full height for better visibility
+
+      return (
+        <View className="flex-row justify-center">
+          <View className="items-center mr-8">
+            <Text className="text-gray-400 font-Poppins_500Medium">Front</Text>
+            <FrontBodyMuscleMap
+              width={scaledWidth}
+              height={scaledHeight}
+              defaultMuscleColor={fillColors.outline2}
+              highlightedMuscles={frontMuscles}
+              onMusclePress={onMusclePress}
+            />
+          </View>
+          <View className="items-center ml-8">
+            <Text className="text-gray-400 font-Poppins_500Medium">Back</Text>
+            <BackBodyMuscleMap
+              width={scaledWidth}
+              height={scaledHeight}
+              defaultMuscleColor={fillColors.outline2}
+              highlightedMuscles={backMuscles}
+              onMusclePress={onMusclePress}
+            />
+          </View>
+        </View>
+      );
+    }
+
     if (view === "front" || currentView === "front") {
       return <View className="items-center">{renderBodyView("front")}</View>;
     }
@@ -127,28 +158,12 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       return <View className="items-center">{renderBodyView("back")}</View>;
     }
 
-    // Both view - side by side
-    return (
-      <View className="flex-row justify-center space-x-4">
-        <View className="items-center">
-          <Text className="text-gray-400 font-Poppins_500Medium mb-2">
-            Front
-          </Text>
-          {renderBodyView("front")}
-        </View>
-        <View className="items-center">
-          <Text className="text-gray-400 font-Poppins_500Medium mb-2">
-            Back
-          </Text>
-          {renderBodyView("back")}
-        </View>
-      </View>
-    );
+    return null;
   };
 
   return (
     <View className="items-center">
-      {renderViewToggle()}
+      {view !== "both" && renderViewToggle()}
       {renderContent()}
     </View>
   );
