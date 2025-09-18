@@ -1,7 +1,7 @@
+import { BackBodyMuscleMap } from "@/components/muscle-body/backBodySvg";
+import { FrontBodyMuscleMap } from "@/components/muscle-body/frontBodySvg";
 import React from "react";
-import { View, Text } from "react-native";
-import { FrontBodyMuscleMap } from "@/data/frontBodySvg";
-import { BackBodyMuscleMap } from "@/data/backBodySvg";
+import { Text, View } from "react-native";
 // TODO: Import muscle IDs when implementing highlighting
 // import { FRONT_MUSCLE_IDS } from "@/data/frontBodySvg";
 // import { BACK_MUSCLE_IDS } from "@/data/backBodySvg";

@@ -1,7 +1,13 @@
+import {
+  BackBodyMuscleMap,
+  type BackMuscleId,
+} from "@/components/muscle-body/backBodySvg";
+import {
+  FrontBodyMuscleMap,
+  type FrontMuscleId,
+} from "@/components/muscle-body/frontBodySvg";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { FrontBodyMuscleMap, type FrontMuscleId } from "@/data/frontBodySvg";
-import { BackBodyMuscleMap, type BackMuscleId } from "@/data/backBodySvg";
+import { Text, TouchableOpacity, View } from "react-native";
 
 export type BodyView = "front" | "back" | "both";
 export type MuscleId = FrontMuscleId | BackMuscleId;
@@ -23,7 +29,9 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   width = 300,
   height = 500,
 }) => {
-  const [currentView, setCurrentView] = useState<BodyView>(view);
+  const [currentView, setCurrentView] = useState<BodyView>(
+    view === "both" ? "front" : view,
+  );
 
   const renderBodyView = (bodyView: "front" | "back") => {
     const isfront = bodyView === "front";
@@ -58,8 +66,6 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   };
 
   const renderViewToggle = () => {
-    if (view !== "both") return null;
-
     return (
       <View className="flex-row bg-[#2c2c2e] rounded-xl p-1 mb-4">
         <TouchableOpacity
