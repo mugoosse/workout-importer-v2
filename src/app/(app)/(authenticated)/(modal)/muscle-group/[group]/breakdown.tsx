@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { Link, Stack, useLocalSearchParams } from "expo-router";
+import { Link, Stack, useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -116,6 +116,14 @@ const Page = () => {
             fontFamily: "Poppins_600SemiBold",
             fontSize: 18,
           },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.push("/(app)/(authenticated)/(tabs)/")}
+              className="ml-2"
+            >
+              <Ionicons name="chevron-back" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ),
         }}
       />
 
