@@ -1,4 +1,8 @@
-import { MuscleBody, type MuscleId, type BodyView } from "@/components/muscle-body/MuscleBody";
+import {
+  MuscleBody,
+  type MuscleId,
+  type BodyView,
+} from "@/components/muscle-body/MuscleBody";
 import { FRONT_MUSCLE_IDS } from "@/components/muscle-body/frontBodySvg";
 import { BACK_MUSCLE_IDS } from "@/components/muscle-body/backBodySvg";
 import { api } from "@/convex/_generated/api";

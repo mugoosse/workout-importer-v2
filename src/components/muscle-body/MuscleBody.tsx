@@ -54,7 +54,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       color: pair.color,
     }));
   const [currentView, setCurrentView] = useState<BodyView>(
-    view === "both" ? "front" : view
+    view === "both" ? "front" : view,
   );
 
   const renderBodyView = (bodyView: "front" | "back") => {
