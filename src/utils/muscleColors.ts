@@ -94,3 +94,11 @@ export function generateMuscleColorVariants(
 
   return result;
 }
+
+export const fillColors = {
+  background: "#212121", // "#1A1A1A",
+  outline: "#757575",
+outline2: "#1A1A1A", //"#A89FA8";
+outline3: "#1A1A1A", // "#998F99";
+outline4 : "#1A1A1A", // "#E9E7E9";
+};

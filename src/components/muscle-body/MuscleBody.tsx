@@ -10,6 +10,7 @@ import {
   FrontMuscleId,
   type FrontMuscleColorPair,
 } from "@/components/muscle-body/frontBodySvg";
+import { fillColors } from "@/utils/muscleColors";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -64,7 +65,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <FrontBodyMuscleMap
           width={width}
           height={height}
-          defaultMuscleColor="#fff"
+          defaultMuscleColor={fillColors.outline2}
           highlightedMuscles={frontMuscles}
           onMusclePress={onMusclePress}
         />
@@ -74,7 +75,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <BackBodyMuscleMap
           width={width}
           height={height}
-          defaultMuscleColor="#fff"
+          defaultMuscleColor={fillColors.outline2}
           highlightedMuscles={backMuscles}
           onMusclePress={onMusclePress}
         />
