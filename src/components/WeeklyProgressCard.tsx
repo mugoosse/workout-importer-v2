@@ -1,9 +1,8 @@
 import { Text, View } from 'react-native';
-import { useState } from 'react';
 import { useQuery } from 'convex/react';
+import { router } from 'expo-router';
 import { api } from '@/convex/_generated/api';
 import { MuscleBody, type MuscleColorPair, type MuscleId } from '@/components/muscle-body/MuscleBody';
-import { MuscleGroupDetailOverlay } from '@/components/MuscleGroupDetailOverlay';
 import { getMajorGroupFromMuscle, type MajorMuscleGroup } from '@/utils/muscleMapping';
 
 const levelProgress = [
@@ -52,8 +51,6 @@ const ColorLegend = () => {
 
 export const WeeklyProgressCard = () => {
   const muscles = useQuery(api.muscles.list);
-  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MajorMuscleGroup | null>(null);
-  const [overlayVisible, setOverlayVisible] = useState(false);
 
   if (!muscles) {
     return null;
@@ -83,18 +80,8 @@ export const WeeklyProgressCard = () => {
 
   const handleMusclePress = (muscleId: MuscleId) => {
     const majorGroup = getMajorGroupFromMuscle(muscleId);
-    setSelectedMuscleGroup(majorGroup);
-    setOverlayVisible(true);
+    router.push(`/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}`);
   };
-
-  const handleCloseOverlay = () => {
-    setOverlayVisible(false);
-    setSelectedMuscleGroup(null);
-  };
-
-  const selectedMuscleData = selectedMuscleGroup
-    ? levelProgress.find(item => item.majorGroup === selectedMuscleGroup)
-    : null;
 
   return (
     <View className="mx-4 mb-6">
@@ -114,12 +101,6 @@ export const WeeklyProgressCard = () => {
           <ColorLegend />
         </View>
       </View>
-
-      <MuscleGroupDetailOverlay
-        visible={overlayVisible}
-        onClose={handleCloseOverlay}
-        muscleGroupData={selectedMuscleData}
-      />
     </View>
   );
 };

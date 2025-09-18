@@ -61,6 +61,21 @@ const Layout = () => {
           },
         }}
       />
+      <Stack.Screen
+        name="(modal)/muscle-group/[group]"
+        options={{
+          presentation: "formSheet",
+          animation: "slide_from_bottom",
+          sheetAllowedDetents: [0.5],
+          sheetInitialDetentIndex: 0,
+          sheetGrabberVisible: false,
+          sheetCornerRadius: 20,
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: (twFullConfig.theme.colors as any).dark,
+          },
+        }}
+      />
     </Stack>
   );
 };
