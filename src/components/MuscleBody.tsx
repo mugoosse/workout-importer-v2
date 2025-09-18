@@ -30,7 +30,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   height = 500,
 }) => {
   const [currentView, setCurrentView] = useState<BodyView>(
-    view === "both" ? "front" : view,
+    view === "both" ? "front" : view
   );
 
   const renderBodyView = (bodyView: "front" | "back") => {
@@ -44,7 +44,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
           highlightedMuscles={
             highlightedMuscle ? [highlightedMuscle as FrontMuscleId] : []
           }
-          muscleColor={highlightColor}
+          highlightColor={highlightColor}
           onMusclePress={onMusclePress}
           style={{ backgroundColor: "transparent" }}
         />
