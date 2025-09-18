@@ -1594,7 +1594,7 @@ export const FrontBodyMuscleMap: React.FC<FrontBodyProps> = ({
       <G id="muscles">
         {Object.entries(muscles).map(([muscleId, paths]) => {
           const isHighlighted = highlightedMuscles.includes(
-            muscleId as FrontMuscleId
+            muscleId as FrontMuscleId,
           );
           return (
             <G
