@@ -1492,13 +1492,13 @@ const outlines: Record<string, OutlinePath[]> = {
 
 export interface FrontBodyProps extends SvgProps {
   highlightedMuscles?: FrontMuscleColorPair[];
-  defaultColor?: string;
+  defaultMuscleColor?: string;
   onMusclePress?: (muscleId: FrontMuscleId) => void;
 }
 
 export const FrontBodyMuscleMap: React.FC<FrontBodyProps> = ({
   highlightedMuscles = [],
-  defaultColor = "#E5E5E5",
+  defaultMuscleColor = "#E5E5E5",
   onMusclePress,
   ...svgProps
 }) => {
@@ -1537,7 +1537,7 @@ export const FrontBodyMuscleMap: React.FC<FrontBodyProps> = ({
                   fill={
                     isHighlighted && colorVariants
                       ? colorVariants[path.variant]
-                      : defaultColor
+                      : defaultMuscleColor
                   }
                   opacity={isHighlighted ? 0.8 : 0.6}
                 />
@@ -1551,7 +1551,12 @@ export const FrontBodyMuscleMap: React.FC<FrontBodyProps> = ({
         {Object.entries(outlines).map(([id, paths]) => (
           <G key={id} id={id}>
             {paths.map((path, index) => (
-              <Path key={`${id}-${index}`} d={path.d} fill={path.fill} />
+              <Path
+                key={`${id}-${index}`}
+                d={path.d}
+                fill={path.fill}
+                opacity={0.6}
+              />
             ))}
           </G>
         ))}

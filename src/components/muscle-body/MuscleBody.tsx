@@ -1,13 +1,13 @@
 import {
+  BACK_MUSCLE_IDS,
   BackBodyMuscleMap,
   BackMuscleId,
-  BACK_MUSCLE_IDS,
   type BackMuscleColorPair,
 } from "@/components/muscle-body/backBodySvg";
 import {
+  FRONT_MUSCLE_IDS,
   FrontBodyMuscleMap,
   FrontMuscleId,
-  FRONT_MUSCLE_IDS,
   type FrontMuscleColorPair,
 } from "@/components/muscle-body/frontBodySvg";
 import React, { useState } from "react";
@@ -53,7 +53,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       color: pair.color,
     }));
   const [currentView, setCurrentView] = useState<BodyView>(
-    view === "both" ? "front" : view,
+    view === "both" ? "front" : view
   );
 
   const renderBodyView = (bodyView: "front" | "back") => {
@@ -64,9 +64,9 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <FrontBodyMuscleMap
           width={width}
           height={height}
+          defaultMuscleColor="#fff"
           highlightedMuscles={frontMuscles}
           onMusclePress={onMusclePress}
-          style={{ backgroundColor: "transparent" }}
         />
       );
     } else {
@@ -74,9 +74,9 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
         <BackBodyMuscleMap
           width={width}
           height={height}
+          defaultMuscleColor="#fff"
           highlightedMuscles={backMuscles}
           onMusclePress={onMusclePress}
-          style={{ backgroundColor: "transparent" }}
         />
       );
     }

@@ -1967,13 +1967,13 @@ const outlines: Record<string, OutlinePath[]> = {
 
 export interface BackBodyProps extends SvgProps {
   highlightedMuscles?: BackMuscleColorPair[];
-  defaultColor?: string;
+  defaultMuscleColor?: string;
   onMusclePress?: (muscleId: BackMuscleId) => void;
 }
 
 export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
   highlightedMuscles = [],
-  defaultColor = "#E5E5E5",
+  defaultMuscleColor = "#E5E5E5",
   onMusclePress,
   ...svgProps
 }) => {
@@ -2018,7 +2018,7 @@ export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
                   fill={
                     isHighlighted && colorVariants
                       ? colorVariants[path.variant]
-                      : defaultColor
+                      : defaultMuscleColor
                   }
                   opacity={isHighlighted ? 0.8 : 0.6}
                 />
@@ -2030,7 +2030,12 @@ export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
 
       <G id="body">
         {outlines.body.map((path, index) => (
-          <Path key={`body-${index}`} d={path.d} fill={path.fill} />
+          <Path
+            key={`body-${index}`}
+            d={path.d}
+            fill={path.fill}
+            opacity={0.6}
+          />
         ))}
       </G>
     </Svg>
