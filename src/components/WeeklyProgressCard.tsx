@@ -1,17 +1,18 @@
 import { Text, View } from 'react-native';
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { MuscleBody, type MuscleColorPair } from '@/components/muscle-body/MuscleBody';
-import { ProgressBar } from '@/components/ui/ProgressBar';
-import { Badge } from '@/components/ui/Badge';
+import { MuscleBody, type MuscleColorPair, type MuscleId } from '@/components/muscle-body/MuscleBody';
+import { MuscleGroupDetailOverlay } from '@/components/MuscleGroupDetailOverlay';
+import { getMajorGroupFromMuscle, type MajorMuscleGroup } from '@/utils/muscleMapping';
 
 const levelProgress = [
-  { majorGroup: 'chest', level: 8, xp: 12450, nextLevel: 15000, percentage: 15, streak: 3 },
-  { majorGroup: 'back', level: 9, xp: 16800, nextLevel: 20000, percentage: 35, streak: 2 },
-  { majorGroup: 'legs', level: 10, xp: 22100, nextLevel: 25000, percentage: 60, streak: 6 },
-  { majorGroup: 'shoulders', level: 6, xp: 8200, nextLevel: 10000, percentage: 85, streak: 1 },
-  { majorGroup: 'arms', level: 7, xp: 9800, nextLevel: 12000, percentage: 105, streak: 8 },
-  { majorGroup: 'core', level: 5, xp: 5900, nextLevel: 7500, percentage: 79, streak: 4 },
+  { majorGroup: 'chest' as MajorMuscleGroup, level: 8, xp: 12450, nextLevel: 15000, percentage: 15, streak: 3 },
+  { majorGroup: 'back' as MajorMuscleGroup, level: 9, xp: 16800, nextLevel: 20000, percentage: 35, streak: 2 },
+  { majorGroup: 'legs' as MajorMuscleGroup, level: 10, xp: 22100, nextLevel: 25000, percentage: 60, streak: 6 },
+  { majorGroup: 'shoulders' as MajorMuscleGroup, level: 6, xp: 8200, nextLevel: 10000, percentage: 85, streak: 1 },
+  { majorGroup: 'arms' as MajorMuscleGroup, level: 7, xp: 9800, nextLevel: 12000, percentage: 105, streak: 8 },
+  { majorGroup: 'core' as MajorMuscleGroup, level: 5, xp: 5900, nextLevel: 7500, percentage: 79, streak: 4 },
 ];
 
 const getProgressColor = (progress: number) => {
@@ -22,12 +23,6 @@ const getProgressColor = (progress: number) => {
   return '#FF5C14';
 };
 
-const getStreakEmoji = (streak: number) => {
-  if (streak >= 8) return '🔥';
-  if (streak >= 4) return '💪';
-  if (streak >= 2) return '⭐';
-  return '👍';
-};
 
 const ColorLegend = () => {
   const legendItems = [
@@ -57,6 +52,8 @@ const ColorLegend = () => {
 
 export const WeeklyProgressCard = () => {
   const muscles = useQuery(api.muscles.list);
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MajorMuscleGroup | null>(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
 
   if (!muscles) {
     return null;
@@ -84,6 +81,21 @@ export const WeeklyProgressCard = () => {
     });
   });
 
+  const handleMusclePress = (muscleId: MuscleId) => {
+    const majorGroup = getMajorGroupFromMuscle(muscleId);
+    setSelectedMuscleGroup(majorGroup);
+    setOverlayVisible(true);
+  };
+
+  const handleCloseOverlay = () => {
+    setOverlayVisible(false);
+    setSelectedMuscleGroup(null);
+  };
+
+  const selectedMuscleData = selectedMuscleGroup
+    ? levelProgress.find(item => item.majorGroup === selectedMuscleGroup)
+    : null;
+
   return (
     <View className="mx-4 mb-6">
       <View className="bg-[#1c1c1e] rounded-2xl p-4">
@@ -95,6 +107,7 @@ export const WeeklyProgressCard = () => {
           <MuscleBody
             view="both"
             highlightedMuscles={highlightedMuscles}
+            onMusclePress={handleMusclePress}
             width={250}
             height={400}
           />
@@ -102,48 +115,11 @@ export const WeeklyProgressCard = () => {
         </View>
       </View>
 
-      <View className="bg-[#1c1c1e] rounded-2xl p-4 mt-4">
-        <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
-          Major Muscle Groups
-        </Text>
-
-        <View>
-          {levelProgress.map((group, index) => (
-            <View key={group.majorGroup} className={`${index > 0 ? 'mt-6' : ''}`}>
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-row items-center gap-3">
-                  <Text className="text-white font-Poppins_500Medium capitalize">
-                    {group.majorGroup}
-                  </Text>
-                  <View className="flex-row items-center gap-1">
-                    <Badge variant="outline">
-                      <Text className="text-white">
-                        {getStreakEmoji(group.streak)} {group.streak} weeks
-                      </Text>
-                    </Badge>
-                  </View>
-                </View>
-                <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                  {group.xp} / {group.nextLevel} XP
-                </Text>
-              </View>
-
-              <ProgressBar value={group.percentage} className="my-2" />
-
-              <View className="flex-row justify-between">
-                <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                  {group.percentage}% of weekly goal
-                </Text>
-                {group.percentage >= 100 && (
-                  <Text className="text-emerald-500 text-xs font-Poppins_500Medium">
-                    Goal Met! 🎯
-                  </Text>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
+      <MuscleGroupDetailOverlay
+        visible={overlayVisible}
+        onClose={handleCloseOverlay}
+        muscleGroupData={selectedMuscleData}
+      />
     </View>
   );
 };
