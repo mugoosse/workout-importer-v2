@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
+import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -314,9 +315,17 @@ const Page = () => {
               </Text>
             </View>
           ) : (
-            <View>
-              {filteredExercises.map((exercise, index) => (
-                <View key={exercise._id} className={index > 0 ? "mt-4" : ""}>
+            <LegendList
+              data={filteredExercises}
+              keyExtractor={(item) => item._id}
+              showsVerticalScrollIndicator={false}
+              initialNumToRender={20}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              recycleItems={true}
+              style={{ flex: 1 }}
+              renderItem={({ item: exercise, index }) => (
+                <View className={index > 0 ? "mt-4" : ""}>
                   <Link
                     href={`/(app)/(authenticated)/(modal)/exercise/${exercise._id}`}
                     asChild
@@ -364,8 +373,8 @@ const Page = () => {
                     </TouchableOpacity>
                   </Link>
                 </View>
-              ))}
-            </View>
+              )}
+            />
           )}
         </View>
       </ScrollView>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import { Ionicons } from "@expo/vector-icons";
+import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
 import { Link, Stack, useLocalSearchParams, router } from "expo-router";
 import { useState } from "react";
@@ -169,8 +170,16 @@ const Page = () => {
             Muscles
           </Text>
 
-          <View>
-            {displayMuscles.map((muscle, index) => {
+          <LegendList
+            data={displayMuscles}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            recycleItems={true}
+            style={{ flex: 1 }}
+            renderItem={({ item: muscle, index }) => {
               const muscleProgress = individualMuscleProgress[muscle.svgId] || {
                 xp: 0,
                 goal: 500,
@@ -181,7 +190,7 @@ const Page = () => {
               const progressColor = getProgressColor(muscleProgress.percentage);
 
               return (
-                <View key={muscle._id} className={index > 0 ? "mt-4" : ""}>
+                <View className={index > 0 ? "mt-4" : ""}>
                   <Link
                     href={`/(app)/(authenticated)/(modal)/muscle/${muscle._id}`}
                     asChild
@@ -238,8 +247,8 @@ const Page = () => {
                   </Link>
                 </View>
               );
-            })}
-          </View>
+            }}
+          />
         </View>
       </ScrollView>
     </View>

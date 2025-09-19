@@ -36,7 +36,7 @@ const Layout = () => {
         }}
       />
       <Stack.Screen
-        name="(modal)/exercise/source-menu"
+        name="(modal)/exercise/menu"
         options={{
           presentation: "formSheet",
           animation: "slide_from_bottom",

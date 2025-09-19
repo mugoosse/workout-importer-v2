@@ -108,10 +108,7 @@ const Page = () => {
       return;
     }
 
-    const color =
-      selectedMuscleId === muscle.svgId
-        ? "#6F2DBD" // Purple when selected
-        : MUSCLE_ROLE_COLORS[role]; // Role color when not selected
+    const color = MUSCLE_ROLE_COLORS[role];
 
     highlightedMuscles.push({
       muscleId: muscle.svgId,
@@ -127,12 +124,10 @@ const Page = () => {
     }
   };
 
-  const handleOpenSourceMenu = () => {
-    if (exerciseDetails.url) {
-      router.push(
-        `/(app)/(authenticated)/(modal)/exercise/source-menu?url=${encodeURIComponent(exerciseDetails.url)}`,
-      );
-    }
+  const handleOpenMenu = () => {
+    router.push(
+      `/(app)/(authenticated)/(modal)/exercise/menu?exerciseId=${exerciseId}&exerciseName=${encodeURIComponent(exerciseDetails.title)}${exerciseDetails.url ? `&url=${encodeURIComponent(exerciseDetails.url)}` : ""}`,
+    );
   };
 
   const legendItems = [
@@ -160,12 +155,11 @@ const Page = () => {
               <Ionicons name="chevron-back" size={24} color="#ffffff" />
             </TouchableOpacity>
           ),
-          headerRight: () =>
-            exerciseDetails.url && (
-              <TouchableOpacity onPress={handleOpenSourceMenu} className="mr-2">
-                <Ionicons name="ellipsis-vertical" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            ),
+          headerRight: () => (
+            <TouchableOpacity onPress={handleOpenMenu} className="mr-2">
+              <Ionicons name="ellipsis-vertical" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ),
         }}
       />
 
@@ -229,8 +223,18 @@ const Page = () => {
               Muscle Involvement
             </Text>
 
+            <View className="items-center mb-4">
+              <MuscleBody
+                view="both"
+                highlightedMuscles={highlightedMuscles}
+                onMusclePress={handleMusclePress}
+                width={250}
+                height={400}
+              />
+            </View>
+
             {/* Legend */}
-            <View className="flex-row justify-center mb-4">
+            <View className="flex-row justify-center">
               <View className="flex-row flex-wrap gap-3">
                 {legendItems.map((item) => (
                   <View key={item.label} className="flex-row items-center">
@@ -244,16 +248,6 @@ const Page = () => {
                   </View>
                 ))}
               </View>
-            </View>
-
-            <View className="items-center">
-              <MuscleBody
-                view="both"
-                highlightedMuscles={highlightedMuscles}
-                onMusclePress={handleMusclePress}
-                width={250}
-                height={400}
-              />
             </View>
           </View>
         </View>

@@ -39,6 +39,11 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
 }) => {
   const muscleColorPairs: MuscleColorPair[] = highlightedMuscles;
 
+  // Create a set of highlighted muscle IDs for quick lookup
+  const highlightedMuscleIds = new Set(
+    muscleColorPairs.map((pair) => pair.muscleId),
+  );
+
   // Separate muscle-color pairs by body view
   const frontMuscles: FrontMuscleColorPair[] = muscleColorPairs
     .filter((pair) => FRONT_MUSCLE_IDS.includes(pair.muscleId as FrontMuscleId))
@@ -53,6 +58,14 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       muscleId: pair.muscleId as BackMuscleId,
       color: pair.color,
     }));
+
+  // Wrapper function to only allow presses on highlighted muscles
+  const handleMusclePress = (muscleId: MuscleId) => {
+    if (highlightedMuscleIds.has(muscleId) && onMusclePress) {
+      onMusclePress(muscleId);
+    }
+  };
+
   const [currentView, setCurrentView] = useState<BodyView>(
     view === "both" ? "front" : view,
   );
@@ -67,7 +80,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
           height={height}
           defaultMuscleColor={fillColors.outline2}
           highlightedMuscles={frontMuscles}
-          onMusclePress={onMusclePress}
+          onMusclePress={handleMusclePress}
         />
       );
     } else {
@@ -77,7 +90,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
           height={height}
           defaultMuscleColor={fillColors.outline2}
           highlightedMuscles={backMuscles}
-          onMusclePress={onMusclePress}
+          onMusclePress={handleMusclePress}
         />
       );
     }
@@ -121,27 +134,27 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   const renderContent = () => {
     if (view === "both") {
       // Both view - side by side, scale to fit half width each
-      const scaledWidth = width * 0.4; // 40% each to allow for more spacing
+      const scaledWidth = width * 0.6; // 60% each to allow for more spacing
       const scaledHeight = height; // Keep full height for better visibility
 
       return (
         <View className="flex-row justify-center">
-          <View className="items-center mr-8">
+          <View className="items-center mr-4">
             <FrontBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}
               defaultMuscleColor={fillColors.outline2}
               highlightedMuscles={frontMuscles}
-              onMusclePress={onMusclePress}
+              onMusclePress={handleMusclePress}
             />
           </View>
-          <View className="items-center ml-8">
+          <View className="items-center ml-4">
             <BackBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}
               defaultMuscleColor={fillColors.outline2}
               highlightedMuscles={backMuscles}
-              onMusclePress={onMusclePress}
+              onMusclePress={handleMusclePress}
             />
           </View>
         </View>

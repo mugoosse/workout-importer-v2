@@ -1,10 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
 import { Text, TouchableOpacity, View, Linking } from "react-native";
+import * as Clipboard from "expo-clipboard";
 
 const Page = () => {
-  const { url } = useLocalSearchParams<{ url: string }>();
+  const { exerciseName, url } = useLocalSearchParams<{
+    exerciseId: string;
+    exerciseName: string;
+    url?: string;
+  }>();
+
+  const handleCopyExerciseName = async () => {
+    if (exerciseName) {
+      await Clipboard.setStringAsync(decodeURIComponent(exerciseName));
+    }
+    router.back();
+  };
 
   const handleLinkToSource = async () => {
     if (url) {
@@ -20,20 +31,39 @@ const Page = () => {
   return (
     <View className="flex-1 bg-dark px-4 pt-4">
       <View className="flex-1 p-4 rounded-2xl">
+        {/* Copy Exercise Name */}
         <TouchableOpacity
-          onPress={handleLinkToSource}
+          onPress={handleCopyExerciseName}
           className="flex-row items-center justify-between py-4 px-4 bg-[#1c1c1e] rounded-2xl mb-3"
         >
           <View className="flex-row items-center">
             <View className="bg-[#6F2DBD] w-10 h-10 rounded-xl items-center justify-center mr-3">
-              <Ionicons name="link-outline" size={20} color="white" />
+              <Ionicons name="copy-outline" size={20} color="white" />
             </View>
             <Text className="text-white text-lg font-Poppins_600SemiBold">
-              Link to source
+              Copy Exercise Name
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
         </TouchableOpacity>
+
+        {/* Link to Source (only if URL exists) */}
+        {url && (
+          <TouchableOpacity
+            onPress={handleLinkToSource}
+            className="flex-row items-center justify-between py-4 px-4 bg-[#1c1c1e] rounded-2xl mb-3"
+          >
+            <View className="flex-row items-center">
+              <View className="bg-[#6F2DBD] w-10 h-10 rounded-xl items-center justify-center mr-3">
+                <Ionicons name="link-outline" size={20} color="white" />
+              </View>
+              <Text className="text-white text-lg font-Poppins_600SemiBold">
+                Link to source
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           onPress={handleCancel}

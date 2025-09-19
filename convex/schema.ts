@@ -69,6 +69,7 @@ const schema = defineSchema({
       v.literal("Distance & Duration"),
       v.literal("Weight & Distance")
     ),
+    thumbnailUrl: v.optional(v.string()),
   })
     .index("by_title", ["title"])
     .index("by_type", ["exerciseType"])
