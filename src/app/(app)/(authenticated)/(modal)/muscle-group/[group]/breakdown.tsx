@@ -23,6 +23,7 @@ import {
   individualMuscleProgressAtom,
   getProgressColor,
   getStreakEmoji,
+  getMuscleProgress,
 } from "@/store/weeklyProgress";
 
 const formatMuscleName = (svgId: string): string => {
@@ -37,10 +38,11 @@ const Page = () => {
   const { group } = useLocalSearchParams<{ group: string }>();
   const majorGroup = group as MajorMuscleGroup;
   const muscles = useQuery(api.muscles.list);
+  const exerciseCountsData = useQuery(api.muscles.getAllExerciseCounts);
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
 
-  if (!muscles) {
+  if (!muscles || !exerciseCountsData) {
     return (
       <View className="flex-1 bg-dark items-center justify-center">
         <ActivityIndicator size="large" />
@@ -60,36 +62,61 @@ const Page = () => {
 
   // Create highlighted muscles for visualization
   const highlightedMuscles: MuscleColorPair[] = [];
-  const seenMuscleIds = new Set<string>();
 
+  // Group muscles by svgId to handle cases where multiple muscles share the same visual representation
+  const musclesBySvgId = new Map<string, typeof filteredMuscles>();
   filteredMuscles.forEach((muscle) => {
-    if (seenMuscleIds.has(muscle.svgId)) {
-      return;
+    if (!musclesBySvgId.has(muscle.svgId)) {
+      musclesBySvgId.set(muscle.svgId, []);
     }
-    seenMuscleIds.add(muscle.svgId);
+    musclesBySvgId.get(muscle.svgId)!.push(muscle);
+  });
 
+  musclesBySvgId.forEach((muscles, svgId) => {
     // If a muscle is selected, only highlight that one
-    if (selectedMuscleId && muscle.svgId !== selectedMuscleId) {
+    if (selectedMuscleId && svgId !== selectedMuscleId) {
       return;
     }
 
-    const muscleProgress = individualMuscleProgress[muscle.svgId];
-    const progress = muscleProgress?.percentage || 0;
+    // Calculate aggregate data for all muscles sharing this svgId
+    let totalProgress = 0;
+    let musclesWithExercises = 0;
+    let hasAnyExercises = false;
+
+    muscles.forEach((muscle) => {
+      const exerciseCounts = exerciseCountsData[muscle._id];
+      const muscleHasExercises = exerciseCounts?.hasAnyExercises ?? false;
+
+      if (muscleHasExercises) {
+        hasAnyExercises = true;
+        const muscleProgress = getMuscleProgress(
+          muscle.svgId,
+          individualMuscleProgress,
+          true,
+        );
+        totalProgress += muscleProgress.percentage;
+        musclesWithExercises++;
+      }
+    });
+
+    // Calculate average progress for muscles with exercises
+    const averageProgress =
+      musclesWithExercises > 0 ? totalProgress / musclesWithExercises : 0;
 
     let color: string;
-    if (selectedMuscleId === muscle.svgId) {
+    if (selectedMuscleId === svgId) {
       // When filtered, show the original progress color (not bright purple)
-      color = getProgressColor(progress);
+      color = hasAnyExercises ? getProgressColor(averageProgress) : "#404040";
     } else if (selectedMuscleId) {
       // Don't show other muscles when filtered
       return;
     } else {
-      // Normal state - show progress color
-      color = getProgressColor(progress);
+      // Normal state - show progress color or gray for muscles without exercises
+      color = hasAnyExercises ? getProgressColor(averageProgress) : "#404040";
     }
 
     highlightedMuscles.push({
-      muscleId: muscle.svgId,
+      muscleId: svgId,
       color,
     });
   });
@@ -180,13 +207,14 @@ const Page = () => {
             recycleItems={true}
             style={{ flex: 1 }}
             renderItem={({ item: muscle, index }) => {
-              const muscleProgress = individualMuscleProgress[muscle.svgId] || {
-                xp: 0,
-                goal: 500,
-                percentage: 0,
-                streak: 0,
-                sets: 0,
-              };
+              const exerciseCounts = exerciseCountsData[muscle._id];
+              const hasExercises = exerciseCounts?.hasAnyExercises ?? false;
+
+              const muscleProgress = getMuscleProgress(
+                muscle.svgId,
+                individualMuscleProgress,
+                hasExercises,
+              );
               const progressColor = getProgressColor(muscleProgress.percentage);
 
               return (
@@ -196,22 +224,26 @@ const Page = () => {
                     asChild
                   >
                     <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
-                      <View className="flex-row items-center justify-between mb-3">
+                      <View
+                        className={`flex-row items-center justify-between ${muscleProgress.hasExercises ? "mb-3" : ""}`}
+                      >
                         <View className="flex-1">
                           <Text className="text-white text-lg font-Poppins_600SemiBold">
                             {muscle.name}
                           </Text>
-                          <View className="flex-row items-center gap-3 mt-2">
-                            <Badge variant="outline">
-                              <Text className="text-white text-xs">
-                                {getStreakEmoji(muscleProgress.streak)}{" "}
-                                {muscleProgress.streak} weeks
+                          {muscleProgress.hasExercises && (
+                            <View className="flex-row items-center gap-3 mt-2">
+                              <Badge variant="outline">
+                                <Text className="text-white text-xs">
+                                  {getStreakEmoji(muscleProgress.streak)}{" "}
+                                  {muscleProgress.streak} weeks
+                                </Text>
+                              </Badge>
+                              <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                                {muscleProgress.sets} sets
                               </Text>
-                            </Badge>
-                            <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                              {muscleProgress.sets} sets
-                            </Text>
-                          </View>
+                            </View>
+                          )}
                         </View>
                         <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
                           <Ionicons
@@ -222,27 +254,29 @@ const Page = () => {
                         </View>
                       </View>
 
-                      {/* Progress Bar */}
-                      <View className="mb-2">
-                        <View className="bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
-                          <View
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.min(100, muscleProgress.percentage)}%`,
-                              backgroundColor: progressColor,
-                            }}
-                          />
-                        </View>
+                      {/* Progress Bar - Only show for muscles with exercises */}
+                      {muscleProgress.hasExercises && (
+                        <View className="mb-2">
+                          <View className="bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
+                            <View
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(100, muscleProgress.percentage)}%`,
+                                backgroundColor: progressColor,
+                              }}
+                            />
+                          </View>
 
-                        <View className="flex-row justify-between items-center">
-                          <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                            {muscleProgress.xp} / {muscleProgress.goal} XP
-                          </Text>
-                          <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                            {muscleProgress.percentage}%
-                          </Text>
+                          <View className="flex-row justify-between items-center">
+                            <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                              {muscleProgress.xp} / {muscleProgress.goal} XP
+                            </Text>
+                            <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                              {muscleProgress.percentage}%
+                            </Text>
+                          </View>
                         </View>
-                      </View>
+                      )}
                     </TouchableOpacity>
                   </Link>
                 </View>

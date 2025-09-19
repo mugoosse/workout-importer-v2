@@ -147,13 +147,6 @@ const Page = () => {
     );
   };
 
-  const legendItems = [
-    { color: MUSCLE_ROLE_COLORS.target, label: "target" },
-    { color: MUSCLE_ROLE_COLORS.synergist, label: "synergist" },
-    { color: MUSCLE_ROLE_COLORS.stabilizer, label: "stabilizer" },
-    { color: MUSCLE_ROLE_COLORS.lengthening, label: "lengthening" },
-  ];
-
   return (
     <View className="flex-1 bg-dark">
       <Stack.Screen

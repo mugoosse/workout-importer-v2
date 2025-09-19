@@ -18,6 +18,61 @@ import {
   getProgressColor,
 } from "@/store/weeklyProgress";
 
+type ExerciseRoleCardProps = {
+  role: "target" | "synergist" | "stabilizer" | "lengthening";
+  title: string;
+  description: string;
+  color: string;
+  count: number;
+  muscleId: string;
+  onPress: () => void;
+};
+
+const ExerciseRoleCard = ({
+  title,
+  description,
+  color,
+  count,
+  onPress,
+}: ExerciseRoleCardProps) => {
+  const isDisabled = count === 0;
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={isDisabled}
+      className={`bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between mb-3 ${
+        isDisabled ? "opacity-50" : ""
+      }`}
+    >
+      <View className="flex-row items-center flex-1">
+        <View
+          className="w-3 h-3 rounded-full mr-3"
+          style={{ backgroundColor: color }}
+        />
+        <View className="flex-1">
+          <View className="flex-row items-center">
+            <Text className="text-white font-Poppins_500Medium mr-2">
+              {title}
+            </Text>
+            <View className="bg-[#3c3c3e] rounded-full px-2 py-1">
+              <Text className="text-gray-300 text-xs font-Poppins_500Medium">
+                {count}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-gray-400 text-xs font-Poppins_400Regular mt-1">
+            {description}
+          </Text>
+        </View>
+      </View>
+      {!isDisabled && (
+        <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
+      )}
+    </TouchableOpacity>
+  );
+};
+
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
@@ -26,7 +81,11 @@ const Page = () => {
     muscleId: id as Id<"muscles">,
   });
 
-  if (!muscle) {
+  const exerciseCounts = useQuery(api.muscles.getExerciseCounts, {
+    muscleId: id as Id<"muscles">,
+  });
+
+  if (!muscle || !exerciseCounts) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" />
@@ -126,109 +185,61 @@ const Page = () => {
             </View>
 
             <View>
-              {/* Target Exercises */}
-              <TouchableOpacity
+              <ExerciseRoleCard
+                role="target"
+                title="Target Exercises"
+                description="Exercises that primarily work this muscle"
+                color="#1FD224"
+                count={exerciseCounts.target}
+                muscleId={muscle._id}
                 onPress={() =>
                   router.push(
                     `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=target`,
                   )
                 }
-                className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between mb-3"
-              >
-                <View className="flex-row items-center">
-                  <View
-                    className="w-3 h-3 rounded-full mr-3"
-                    style={{ backgroundColor: "#1FD224" }}
-                  />
-                  <View>
-                    <Text className="text-white font-Poppins_500Medium">
-                      Target Exercises
-                    </Text>
-                    <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                      Exercises that primarily work this muscle
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
-              </TouchableOpacity>
+              />
 
-              {/* Synergist Exercises */}
-              <TouchableOpacity
+              <ExerciseRoleCard
+                role="synergist"
+                title="Synergist Exercises"
+                description="Exercises where this muscle assists"
+                color="#FF8A1B"
+                count={exerciseCounts.synergist}
+                muscleId={muscle._id}
                 onPress={() =>
                   router.push(
                     `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=synergist`,
                   )
                 }
-                className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between mb-3"
-              >
-                <View className="flex-row items-center">
-                  <View
-                    className="w-3 h-3 rounded-full mr-3"
-                    style={{ backgroundColor: "#FF8A1B" }}
-                  />
-                  <View>
-                    <Text className="text-white font-Poppins_500Medium">
-                      Synergist Exercises
-                    </Text>
-                    <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                      Exercises where this muscle assists
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
-              </TouchableOpacity>
+              />
 
-              {/* Stabilizer Exercises */}
-              <TouchableOpacity
+              <ExerciseRoleCard
+                role="stabilizer"
+                title="Stabilizer Exercises"
+                description="Exercises where this muscle stabilizes"
+                color="#FCD514"
+                count={exerciseCounts.stabilizer}
+                muscleId={muscle._id}
                 onPress={() =>
                   router.push(
                     `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=stabilizer`,
                   )
                 }
-                className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between mb-3"
-              >
-                <View className="flex-row items-center">
-                  <View
-                    className="w-3 h-3 rounded-full mr-3"
-                    style={{ backgroundColor: "#FCD514" }}
-                  />
-                  <View>
-                    <Text className="text-white font-Poppins_500Medium">
-                      Stabilizer Exercises
-                    </Text>
-                    <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                      Exercises where this muscle stabilizes
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
-              </TouchableOpacity>
+              />
 
-              {/* Lengthening Exercises */}
-              <TouchableOpacity
+              <ExerciseRoleCard
+                role="lengthening"
+                title="Lengthening Exercises"
+                description="Exercises that stretch this muscle"
+                color="#3498DB"
+                count={exerciseCounts.lengthening}
+                muscleId={muscle._id}
                 onPress={() =>
                   router.push(
                     `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=lengthening`,
                   )
                 }
-                className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center">
-                  <View
-                    className="w-3 h-3 rounded-full mr-3"
-                    style={{ backgroundColor: "#3498DB" }}
-                  />
-                  <View>
-                    <Text className="text-white font-Poppins_500Medium">
-                      Lengthening Exercises
-                    </Text>
-                    <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                      Exercises that stretch this muscle
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6F2DBD" />
-              </TouchableOpacity>
+              />
             </View>
           </View>
         </View>
