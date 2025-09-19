@@ -24,6 +24,39 @@ const MUSCLE_ROLE_LABELS: Record<MuscleRole, string> = {
   lengthening: "Lengthening",
 };
 
+const ExerciseSkeleton = () => (
+  <View className="bg-[#1c1c1e] rounded-2xl p-4 mb-4">
+    <View className="flex-row items-start justify-between mb-3">
+      <View className="flex-1 mr-3">
+        {/* Title skeleton */}
+        <View
+          className="bg-gray-600 h-5 rounded mb-2"
+          style={{ width: "70%" }}
+        />
+
+        {/* Badges skeleton */}
+        <View className="flex-row items-center flex-wrap gap-2">
+          <View
+            className="bg-gray-600 h-6 rounded px-3 py-1"
+            style={{ width: 80 }}
+          />
+          <View
+            className="bg-gray-600 h-6 rounded px-3 py-1"
+            style={{ width: 60 }}
+          />
+          <View
+            className="bg-gray-600 h-6 rounded px-3 py-1"
+            style={{ width: 70 }}
+          />
+        </View>
+      </View>
+
+      {/* Arrow skeleton */}
+      <View className="bg-gray-600 w-10 h-10 rounded-xl" />
+    </View>
+  </View>
+);
+
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -147,237 +180,234 @@ const Page = () => {
         }}
       />
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search Bar */}
-        <View className="mx-4 mt-4 mb-4">
-          <View className="flex-row items-center bg-[#2c2c2e] rounded-xl px-3 py-2">
-            <Ionicons name="search" size={20} color="white" />
-            <TextInput
-              className="flex-1 ml-3 text-white font-Poppins_400Regular"
-              placeholder="Search exercises..."
-              placeholderTextColor="#666"
-              value={searchText}
-              onChangeText={handleSearchChange}
-            />
-            {searchText && (
-              <TouchableOpacity onPress={() => setSearchText("")}>
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Filter Button and Active Filters Row */}
-        <View className="mx-4 mb-4">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-row"
-            contentContainerStyle={{ alignItems: "center", gap: 8 }}
-          >
-            {/* Filter Button */}
-            <TouchableOpacity
-              onPress={() => {
-                const filterParams = new URLSearchParams();
-
-                // Pass current filter values to filter page
-                if (params.majorGroups)
-                  filterParams.set("currentMajorGroups", params.majorGroups);
-                if (params.equipmentIds)
-                  filterParams.set("currentEquipmentIds", params.equipmentIds);
-                if (params.exerciseTypes)
-                  filterParams.set(
-                    "currentExerciseTypes",
-                    params.exerciseTypes,
-                  );
-
-                const queryString = filterParams.toString();
-                router.push(
-                  `/exercises/filter${queryString ? `?${queryString}` : ""}`,
-                );
-              }}
-              className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
-            >
-              <Ionicons name="filter" size={16} color="#6F2DBD" />
-              <Text className="text-white text-sm font-Poppins_500Medium ml-2">
-                Filters
-              </Text>
+      {/* Search Bar */}
+      <View className="mx-4 mt-4 mb-4">
+        <View className="flex-row items-center bg-[#2c2c2e] rounded-xl px-3 py-2">
+          <Ionicons name="search" size={20} color="white" />
+          <TextInput
+            className="flex-1 ml-3 text-white font-Poppins_400Regular"
+            placeholder="Search exercises..."
+            placeholderTextColor="#666"
+            value={searchText}
+            onChangeText={handleSearchChange}
+          />
+          {searchText && (
+            <TouchableOpacity onPress={() => setSearchText("")}>
+              <Ionicons name="close-circle" size={20} color="#666" />
             </TouchableOpacity>
-
-            {/* Active Filter Tags */}
-            {majorGroups && majorGroups.length > 0 && (
-              <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
-                <Text className="text-white text-sm font-Poppins_500Medium mr-2">
-                  {majorGroups.length === 1
-                    ? majorGroups[0].charAt(0).toUpperCase() +
-                      majorGroups[0].slice(1)
-                    : `${majorGroups.length} Muscle Groups`}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleClearFilter("majorGroups")}
-                >
-                  <Ionicons name="close" size={16} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {muscle && params.muscleRole && (
-              <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
-                <Text className="text-white text-sm font-Poppins_500Medium mr-2">
-                  {muscle.name} ({MUSCLE_ROLE_LABELS[params.muscleRole]})
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    handleClearFilter("muscleId");
-                    handleClearFilter("muscleRole");
-                  }}
-                >
-                  <Ionicons name="close" size={16} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {equipmentIds && equipmentIds.length > 0 && (
-              <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
-                <Text className="text-white text-sm font-Poppins_500Medium mr-2">
-                  {equipmentIds.length === 1
-                    ? equipment?.find((e) => e._id === equipmentIds[0])?.name ||
-                      "Equipment"
-                    : `${equipmentIds.length} Equipment`}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleClearFilter("equipmentIds")}
-                >
-                  <Ionicons name="close" size={16} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {exerciseTypes && exerciseTypes.length > 0 && (
-              <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
-                <Text className="text-white text-sm font-Poppins_500Medium mr-2">
-                  {exerciseTypes.length === 1
-                    ? exerciseTypes[0]
-                    : `${exerciseTypes.length} Exercise Types`}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleClearFilter("exerciseTypes")}
-                >
-                  <Ionicons name="close" size={16} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {searchText && (
-              <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
-                <Text className="text-white text-sm font-Poppins_500Medium mr-2">
-                  Search: &quot;{searchText}&quot;
-                </Text>
-                <TouchableOpacity onPress={() => setSearchText("")}>
-                  <Ionicons name="close" size={16} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Clear All Button (only when filters exist) */}
-            {hasActiveFilters && (
-              <TouchableOpacity onPress={handleClearAllFilters}>
-                <Text className="text-gray-400 font-Poppins_500Medium px-2">
-                  Clear All
-                </Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </View>
-
-        {/* Exercise List */}
-        <View className="px-4">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-xl font-Poppins_600SemiBold">
-              {filteredExercises.length} Exercise
-              {filteredExercises.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-
-          {filteredExercises.length === 0 ? (
-            <View className="bg-[#1c1c1e] rounded-2xl p-6 items-center">
-              <Ionicons name="barbell" size={48} color="#666" />
-              <Text className="text-white text-lg font-Poppins_600SemiBold mt-4 mb-2">
-                No exercises found
-              </Text>
-              <Text className="text-gray-400 text-sm font-Poppins_400Regular text-center">
-                Try adjusting your filters or search terms to find more
-                exercises.
-              </Text>
-            </View>
-          ) : (
-            <LegendList
-              data={filteredExercises}
-              keyExtractor={(item) => item._id}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={20}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              recycleItems={true}
-              style={{ flex: 1 }}
-              renderItem={({ item: exercise, index }) => (
-                <View className={index > 0 ? "mt-4" : ""}>
-                  <Link
-                    href={`/(app)/(authenticated)/(modal)/exercise/${exercise._id}`}
-                    asChild
-                  >
-                    <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
-                      <View className="flex-row items-start justify-between mb-3">
-                        <View className="flex-1 mr-3">
-                          <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
-                            {cleanExerciseTitle(exercise.title)}
-                          </Text>
-
-                          <View className="flex-row items-center flex-wrap gap-2">
-                            <Badge variant="outline">
-                              <Text className="text-white text-xs">
-                                {exercise.exerciseType}
-                              </Text>
-                            </Badge>
-
-                            {/* Equipment tags inline */}
-                            {exercise.equipment.slice(0, 2).map((equip) => (
-                              <Badge key={equip._id} variant="outline">
-                                <Text className="text-white text-xs">
-                                  {equip.name}
-                                </Text>
-                              </Badge>
-                            ))}
-                            {exercise.equipment.length > 2 && (
-                              <Badge variant="outline">
-                                <Text className="text-white text-xs">
-                                  +{exercise.equipment.length - 2}
-                                </Text>
-                              </Badge>
-                            )}
-                          </View>
-                        </View>
-
-                        <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
-                          <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color="#fff"
-                          />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </Link>
-                </View>
-              )}
-            />
           )}
         </View>
-      </ScrollView>
+      </View>
+
+      {/* Filter Button and Active Filters Row */}
+      <View className="mx-4 mb-4">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row"
+          contentContainerStyle={{ alignItems: "center", gap: 8 }}
+        >
+          {/* Filter Button */}
+          <TouchableOpacity
+            onPress={() => {
+              const filterParams = new URLSearchParams();
+
+              // Pass current filter values to filter page
+              if (params.majorGroups)
+                filterParams.set("currentMajorGroups", params.majorGroups);
+              if (params.equipmentIds)
+                filterParams.set("currentEquipmentIds", params.equipmentIds);
+              if (params.exerciseTypes)
+                filterParams.set("currentExerciseTypes", params.exerciseTypes);
+
+              const queryString = filterParams.toString();
+              router.push(
+                `/exercises/filter${queryString ? `?${queryString}` : ""}`,
+              );
+            }}
+            className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
+          >
+            <Ionicons name="filter" size={16} color="#6F2DBD" />
+            <Text className="text-white text-sm font-Poppins_500Medium ml-2">
+              Filters
+            </Text>
+          </TouchableOpacity>
+
+          {/* Active Filter Tags */}
+          {majorGroups && majorGroups.length > 0 && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {majorGroups.length === 1
+                  ? majorGroups[0].charAt(0).toUpperCase() +
+                    majorGroups[0].slice(1)
+                  : `${majorGroups.length} Muscle Groups`}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleClearFilter("majorGroups")}
+              >
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {muscle && params.muscleRole && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {muscle.name} ({MUSCLE_ROLE_LABELS[params.muscleRole]})
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  handleClearFilter("muscleId");
+                  handleClearFilter("muscleRole");
+                }}
+              >
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {equipmentIds && equipmentIds.length > 0 && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {equipmentIds.length === 1
+                  ? equipment?.find((e) => e._id === equipmentIds[0])?.name ||
+                    "Equipment"
+                  : `${equipmentIds.length} Equipment`}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleClearFilter("equipmentIds")}
+              >
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {exerciseTypes && exerciseTypes.length > 0 && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {exerciseTypes.length === 1
+                  ? exerciseTypes[0]
+                  : `${exerciseTypes.length} Exercise Types`}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleClearFilter("exerciseTypes")}
+              >
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {searchText && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                Search: &quot;{searchText}&quot;
+              </Text>
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Clear All Button (only when filters exist) */}
+          {hasActiveFilters && (
+            <TouchableOpacity onPress={handleClearAllFilters}>
+              <Text className="text-gray-400 font-Poppins_500Medium px-2">
+                Clear All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+
+      {/* Exercise List */}
+      <View className="px-4" style={{ flex: 1 }}>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-white text-xl font-Poppins_600SemiBold">
+            {exercises === undefined
+              ? "Loading..."
+              : `${filteredExercises.length} Exercise${filteredExercises.length !== 1 ? "s" : ""}`}
+          </Text>
+        </View>
+
+        {exercises === undefined ? (
+          <View>
+            {Array.from({ length: 8 }, (_, index) => (
+              <ExerciseSkeleton key={index} />
+            ))}
+          </View>
+        ) : filteredExercises.length === 0 ? (
+          <View className="bg-[#1c1c1e] rounded-2xl p-6 items-center">
+            <Ionicons name="barbell" size={48} color="#666" />
+            <Text className="text-white text-lg font-Poppins_600SemiBold mt-4 mb-2">
+              No exercises found
+            </Text>
+            <Text className="text-gray-400 text-sm font-Poppins_400Regular text-center">
+              Try adjusting your filters or search terms to find more exercises.
+            </Text>
+          </View>
+        ) : (
+          <LegendList
+            data={filteredExercises}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            recycleItems={true}
+            style={{ flex: 1 }}
+            renderItem={({ item: exercise, index }) => (
+              <View className={index > 0 ? "mt-4" : ""}>
+                <Link
+                  href={`/(app)/(authenticated)/(modal)/exercise/${exercise._id}`}
+                  asChild
+                >
+                  <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
+                    <View className="flex-row items-start justify-between mb-3">
+                      <View className="flex-1 mr-3">
+                        <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
+                          {cleanExerciseTitle(exercise.title)}
+                        </Text>
+
+                        <View className="flex-row items-center flex-wrap gap-2">
+                          <Badge variant="outline">
+                            <Text className="text-white text-xs">
+                              {exercise.exerciseType}
+                            </Text>
+                          </Badge>
+
+                          {/* Equipment tags inline */}
+                          {exercise.equipment.slice(0, 2).map((equip) => (
+                            <Badge key={equip._id} variant="outline">
+                              <Text className="text-white text-xs">
+                                {equip.name}
+                              </Text>
+                            </Badge>
+                          ))}
+                          {exercise.equipment.length > 2 && (
+                            <Badge variant="outline">
+                              <Text className="text-white text-xs">
+                                +{exercise.equipment.length - 2}
+                              </Text>
+                            </Badge>
+                          )}
+                        </View>
+                      </View>
+
+                      <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color="#fff"
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            )}
+          />
+        )}
+      </View>
     </View>
   );
 };

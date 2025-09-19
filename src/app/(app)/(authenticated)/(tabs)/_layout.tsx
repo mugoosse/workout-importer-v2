@@ -33,13 +33,13 @@ const CreateButton = () => {
       className="rounded-xl flex-1 items-center justify-center"
     >
       <LinearGradient
-        colors={["#F3B01C", "#F3B01C"]}
+        colors={["#6F2DBD", "#6F2DBD"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         className="rounded-xl items-center justify-center px-6 py-1"
       >
         <Text className="text-white text-lg font-Poppins_600SemiBold p-2">
-          Create
+          Workout
         </Text>
       </LinearGradient>
     </TouchableOpacity>
@@ -78,7 +78,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: "Muscle Trophy",
           tabBarLabel: "Home",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />

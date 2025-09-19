@@ -66,6 +66,23 @@ const Page = () => {
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
 
+  const [collapsedSections, setCollapsedSections] = useState<Set<MuscleRole>>(
+    () =>
+      new Set<MuscleRole>(["target", "synergist", "stabilizer", "lengthening"]),
+  );
+
+  const toggleSection = (role: MuscleRole) => {
+    setCollapsedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(role)) {
+        newSet.delete(role);
+      } else {
+        newSet.add(role);
+      }
+      return newSet;
+    });
+  };
+
   if (!exerciseDetails) {
     return (
       <View className="flex-1 bg-dark items-center justify-center">
@@ -232,23 +249,6 @@ const Page = () => {
                 height={400}
               />
             </View>
-
-            {/* Legend */}
-            <View className="flex-row justify-center">
-              <View className="flex-row flex-wrap gap-3">
-                {legendItems.map((item) => (
-                  <View key={item.label} className="flex-row items-center">
-                    <View
-                      className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                      {item.label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
           </View>
         </View>
 
@@ -273,7 +273,9 @@ const Page = () => {
 
         {/* Muscle Groups by Role */}
         <View className="px-4">
-          {(["target", "synergist", "stabilizer", "lengthening"] as MuscleRole[]).map((role) => {
+          {(
+            ["target", "synergist", "stabilizer", "lengthening"] as MuscleRole[]
+          ).map((role) => {
             const muscles = musclesByRole[role];
             if (!muscles || muscles.length === 0) return null;
 
@@ -284,9 +286,15 @@ const Page = () => {
 
             if (displayMuscles.length === 0) return null;
 
+            const isCollapsed = collapsedSections.has(role);
+
             return (
               <View key={role} className="mb-8">
-                <View className="flex-row items-center mb-2">
+                <TouchableOpacity
+                  className="flex-row items-center mb-2"
+                  onPress={() => toggleSection(role)}
+                  activeOpacity={0.7}
+                >
                   <View
                     className="w-4 h-4 rounded-full mr-3"
                     style={{ backgroundColor: MUSCLE_ROLE_COLORS[role] }}
@@ -299,86 +307,94 @@ const Page = () => {
                       {MUSCLE_ROLE_EXPLANATIONS[role]}
                     </Text>
                   </View>
-                </View>
+                  <Ionicons
+                    name={isCollapsed ? "chevron-down" : "chevron-up"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
 
-                <View>
-                  {displayMuscles.map((muscle, index) => {
-                    const muscleProgress = individualMuscleProgress[
-                      muscle.svgId
-                    ] || {
-                      xp: 0,
-                      goal: 500,
-                      percentage: 0,
-                      streak: 0,
-                      sets: 0,
-                    };
-                    const progressColor = getProgressColor(
-                      muscleProgress.percentage,
-                    );
+                {!isCollapsed && (
+                  <View>
+                    {displayMuscles.map((muscle, index) => {
+                      const muscleProgress = individualMuscleProgress[
+                        muscle.svgId
+                      ] || {
+                        xp: 0,
+                        goal: 500,
+                        percentage: 0,
+                        streak: 0,
+                        sets: 0,
+                      };
+                      const progressColor = getProgressColor(
+                        muscleProgress.percentage,
+                      );
 
-                    return (
-                      <View
-                        key={muscle._id}
-                        className={index > 0 ? "mt-4" : ""}
-                      >
-                        <Link
-                          href={`/(app)/(authenticated)/(modal)/muscle/${muscle._id}`}
-                          asChild
+                      return (
+                        <View
+                          key={muscle._id}
+                          className={index > 0 ? "mt-4" : ""}
                         >
-                          <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
-                            <View className="flex-row items-center justify-between mb-3">
-                              <View className="flex-1">
-                                <Text className="text-white text-lg font-Poppins_600SemiBold">
-                                  {muscle.name}
-                                </Text>
-                                <View className="flex-row items-center gap-3 mt-2">
-                                  <Badge variant="outline">
-                                    <Text className="text-white text-xs">
-                                      {getStreakEmoji(muscleProgress.streak)}{" "}
-                                      {muscleProgress.streak} weeks
+                          <Link
+                            href={`/(app)/(authenticated)/(modal)/muscle/${muscle._id}`}
+                            asChild
+                          >
+                            <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
+                              <View className="flex-row items-center justify-between mb-3">
+                                <View className="flex-1">
+                                  <Text className="text-white text-lg font-Poppins_600SemiBold">
+                                    {muscle.name}
+                                  </Text>
+                                  <View className="flex-row items-center gap-3 mt-2">
+                                    <Badge variant="outline">
+                                      <Text className="text-white text-xs">
+                                        {getStreakEmoji(muscleProgress.streak)}{" "}
+                                        {muscleProgress.streak} weeks
+                                      </Text>
+                                    </Badge>
+                                    <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                                      {muscleProgress.sets} sets
                                     </Text>
-                                  </Badge>
+                                  </View>
+                                </View>
+                                <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
+                                  <Ionicons
+                                    name="chevron-forward"
+                                    size={20}
+                                    color="#fff"
+                                  />
+                                </View>
+                              </View>
+
+                              {/* Progress Bar */}
+                              <View className="mb-2">
+                                <View className="bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
+                                  <View
+                                    className="h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, muscleProgress.percentage)}%`,
+                                      backgroundColor: progressColor,
+                                    }}
+                                  />
+                                </View>
+
+                                <View className="flex-row justify-between items-center">
                                   <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                                    {muscleProgress.sets} sets
+                                    {muscleProgress.xp} / {muscleProgress.goal}{" "}
+                                    XP
+                                  </Text>
+                                  <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                                    {muscleProgress.percentage}%
                                   </Text>
                                 </View>
                               </View>
-                              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
-                                <Ionicons
-                                  name="chevron-forward"
-                                  size={20}
-                                  color="#fff"
-                                />
-                              </View>
-                            </View>
-
-                            {/* Progress Bar */}
-                            <View className="mb-2">
-                              <View className="bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
-                                <View
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${Math.min(100, muscleProgress.percentage)}%`,
-                                    backgroundColor: progressColor,
-                                  }}
-                                />
-                              </View>
-
-                              <View className="flex-row justify-between items-center">
-                                <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                                  {muscleProgress.xp} / {muscleProgress.goal} XP
-                                </Text>
-                                <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                                  {muscleProgress.percentage}%
-                                </Text>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                        </Link>
-                      </View>
-                    );
-                  })}
-                </View>
+                            </TouchableOpacity>
+                          </Link>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             );
           })}
