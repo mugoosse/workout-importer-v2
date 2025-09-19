@@ -273,7 +273,7 @@ const Page = () => {
 
         {/* Muscle Groups by Role */}
         <View className="px-4">
-          {(Object.keys(musclesByRole) as MuscleRole[]).map((role) => {
+          {(["target", "synergist", "stabilizer", "lengthening"] as MuscleRole[]).map((role) => {
             const muscles = musclesByRole[role];
             if (!muscles || muscles.length === 0) return null;
 
