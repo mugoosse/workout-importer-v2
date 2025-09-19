@@ -1560,7 +1560,8 @@ export const FrontBodyMuscleMap: React.FC<FrontBodyProps> = ({
             <G
               key={muscleId}
               id={muscleId}
-              onPress={() => onMusclePress?.(muscleId as FrontMuscleId)}
+              onPressIn={() => onMusclePress?.(muscleId as FrontMuscleId)}
+              pointerEvents="box-only"
             >
               {paths.map((path, index) => (
                 <Path

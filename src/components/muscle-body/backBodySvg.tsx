@@ -2009,7 +2009,8 @@ export const BackBodyMuscleMap: React.FC<BackBodyProps> = ({
             <G
               key={muscleId}
               id={muscleId}
-              onPress={() => onMusclePress?.(muscleId as BackMuscleId)}
+              onPressIn={() => onMusclePress?.(muscleId as BackMuscleId)}
+              pointerEvents="box-only"
             >
               {paths.map((path, index) => (
                 <Path
