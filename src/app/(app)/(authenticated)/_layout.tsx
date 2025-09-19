@@ -35,6 +35,21 @@ const Layout = () => {
           },
         }}
       />
+      <Stack.Screen
+        name="(modal)/exercise/source-menu"
+        options={{
+          presentation: "formSheet",
+          animation: "slide_from_bottom",
+          sheetAllowedDetents: [0.3],
+          sheetInitialDetentIndex: 0,
+          sheetGrabberVisible: false,
+          sheetCornerRadius: 20,
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: (twFullConfig.theme.colors as any).dark,
+          },
+        }}
+      />
     </Stack>
   );
 };

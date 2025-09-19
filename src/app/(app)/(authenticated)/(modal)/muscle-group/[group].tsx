@@ -31,8 +31,9 @@ const Page = () => {
   const progressColor = getProgressColor(muscleGroupData.percentage);
 
   const handleSuggestExercises = () => {
-    // TODO: Navigate to exercise suggestions
-    console.log(`Suggest ${majorGroup} exercises`);
+    router.push(
+      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}`,
+    );
   };
 
   const handleShowBreakdown = () => {

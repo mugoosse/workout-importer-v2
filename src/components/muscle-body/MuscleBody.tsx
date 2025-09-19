@@ -127,7 +127,6 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       return (
         <View className="flex-row justify-center">
           <View className="items-center mr-8">
-            <Text className="text-gray-400 font-Poppins_500Medium">Front</Text>
             <FrontBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}
@@ -137,7 +136,6 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
             />
           </View>
           <View className="items-center ml-8">
-            <Text className="text-gray-400 font-Poppins_500Medium">Back</Text>
             <BackBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}
@@ -150,11 +148,12 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
       );
     }
 
-    if (view === "front" || currentView === "front") {
+    // For single views with toggles, prioritize currentView
+    if (currentView === "front") {
       return <View className="items-center">{renderBodyView("front")}</View>;
     }
 
-    if (view === "back" || currentView === "back") {
+    if (currentView === "back") {
       return <View className="items-center">{renderBodyView("back")}</View>;
     }
 

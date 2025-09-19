@@ -1,15 +1,15 @@
-import { Text, View } from "react-native";
-import { useQuery } from "convex/react";
-import { router } from "expo-router";
-import { useAtom } from "jotai";
-import { api } from "@/convex/_generated/api";
 import {
   MuscleBody,
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
+import { api } from "@/convex/_generated/api";
+import { getProgressColor, weeklyProgressAtom } from "@/store/weeklyProgress";
 import { getMajorGroupFromMuscle } from "@/utils/muscleMapping";
-import { weeklyProgressAtom, getProgressColor } from "@/store/weeklyProgress";
+import { useQuery } from "convex/react";
+import { router } from "expo-router";
+import { useAtom } from "jotai";
+import { Text, View } from "react-native";
 
 const ColorLegend = () => {
   const legendItems = [
@@ -17,7 +17,7 @@ const ColorLegend = () => {
     { color: "#FF8A1B", label: "25-49%" },
     { color: "#FCD514", label: "50-74%" },
     { color: "#98DA00", label: "75-99%" },
-    { color: "#1FD224", label: "100%" },
+    { color: "#1FD224", label: "100%+" },
   ];
 
   return (

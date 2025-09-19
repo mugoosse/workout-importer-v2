@@ -405,3 +405,163 @@ export const analyzeDuplicateRelationships = query({
     };
   }
 });
+
+export const getFilteredExercises = query({
+  args: {
+    majorGroups: v.optional(v.array(v.string())),
+    muscleId: v.optional(v.id("muscles")),
+    muscleRole: v.optional(v.union(
+      v.literal("target"),
+      v.literal("lengthening"),
+      v.literal("synergist"),
+      v.literal("stabilizer")
+    )),
+    equipmentIds: v.optional(v.array(v.id("equipment"))),
+    exerciseTypes: v.optional(v.array(v.union(
+      v.literal("Weight Reps"),
+      v.literal("Reps Only"),
+      v.literal("Weighted Bodyweight"),
+      v.literal("Assisted Bodyweight"),
+      v.literal("Duration"),
+      v.literal("Weight & Duration"),
+      v.literal("Distance & Duration"),
+      v.literal("Weight & Distance")
+    ))),
+    searchTerm: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    let exerciseIds = new Set<Id<"exercises">>();
+    let firstFilter = true;
+
+    // Filter by major muscle groups
+    if (args.majorGroups && args.majorGroups.length > 0) {
+      const allMajorGroupExerciseIds = new Set<Id<"exercises">>();
+
+      for (const majorGroup of args.majorGroups) {
+        const muscles = await ctx.db
+          .query("muscles")
+          .filter(q => q.eq(q.field("majorGroup"), majorGroup))
+          .collect();
+
+        const muscleIds = muscles.map(m => m._id);
+        const muscleRelationships = await ctx.db
+          .query("exerciseMuscles")
+          .filter(q => q.eq(q.field("role"), "target"))
+          .collect();
+
+        const majorGroupExerciseIds = muscleRelationships
+          .filter(rel => muscleIds.includes(rel.muscleId))
+          .map(rel => rel.exerciseId);
+
+        majorGroupExerciseIds.forEach(id => allMajorGroupExerciseIds.add(id));
+      }
+
+      if (firstFilter) {
+        exerciseIds = allMajorGroupExerciseIds;
+        firstFilter = false;
+      } else {
+        exerciseIds = new Set(Array.from(allMajorGroupExerciseIds).filter(id => exerciseIds.has(id)));
+      }
+    }
+
+    // Filter by specific muscle and role
+    if (args.muscleId && args.muscleRole) {
+      const muscleRelationships = await ctx.db
+        .query("exerciseMuscles")
+        .withIndex("by_muscle", q => q.eq("muscleId", args.muscleId!))
+        .filter(q => q.eq(q.field("role"), args.muscleRole!))
+        .collect();
+
+      const muscleExerciseIds = muscleRelationships.map(rel => rel.exerciseId);
+
+      if (firstFilter) {
+        muscleExerciseIds.forEach(id => exerciseIds.add(id));
+        firstFilter = false;
+      } else {
+        exerciseIds = new Set(muscleExerciseIds.filter(id => exerciseIds.has(id)));
+      }
+    }
+
+    // Filter by equipment
+    if (args.equipmentIds && args.equipmentIds.length > 0) {
+      const allEquipmentExerciseIds = new Set<Id<"exercises">>();
+
+      for (const equipmentId of args.equipmentIds) {
+        const equipmentRelationships = await ctx.db
+          .query("exerciseEquipment")
+          .withIndex("by_equipment", q => q.eq("equipmentId", equipmentId))
+          .collect();
+
+        const equipmentExerciseIds = equipmentRelationships.map(rel => rel.exerciseId);
+        equipmentExerciseIds.forEach(id => allEquipmentExerciseIds.add(id));
+      }
+
+      if (firstFilter) {
+        exerciseIds = allEquipmentExerciseIds;
+        firstFilter = false;
+      } else {
+        exerciseIds = new Set(Array.from(allEquipmentExerciseIds).filter(id => exerciseIds.has(id)));
+      }
+    }
+
+    // If no filters applied, get all exercises
+    let exercises;
+    if (firstFilter) {
+      exercises = await ctx.db.query("exercises").collect();
+    } else {
+      const exerciseResults = await Promise.all(
+        Array.from(exerciseIds).map(id => ctx.db.get(id))
+      );
+      exercises = exerciseResults.filter((ex): ex is NonNullable<typeof ex> => ex !== null);
+    }
+
+    // Apply exercise type filter
+    if (args.exerciseTypes && args.exerciseTypes.length > 0) {
+      exercises = exercises.filter(ex => args.exerciseTypes!.includes(ex.exerciseType));
+    }
+
+    // Apply search filter
+    if (args.searchTerm) {
+      const searchLower = args.searchTerm.toLowerCase();
+      exercises = exercises.filter(ex =>
+        ex.title.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Get exercise details with muscles and equipment
+    const exercisesWithDetails = await Promise.all(
+      exercises.map(async exercise => {
+        const [muscleRelationships, equipmentRelationships] = await Promise.all([
+          ctx.db
+            .query("exerciseMuscles")
+            .withIndex("by_exercise", q => q.eq("exerciseId", exercise._id))
+            .collect(),
+          ctx.db
+            .query("exerciseEquipment")
+            .withIndex("by_exercise", q => q.eq("exerciseId", exercise._id))
+            .collect()
+        ]);
+
+        const [muscles, equipment] = await Promise.all([
+          Promise.all(
+            muscleRelationships.map(async rel => ({
+              muscle: await ctx.db.get(rel.muscleId),
+              role: rel.role
+            }))
+          ),
+          Promise.all(
+            equipmentRelationships.map(rel => ctx.db.get(rel.equipmentId))
+          )
+        ]);
+
+        return {
+          ...exercise,
+          muscles: muscles.filter(m => m.muscle),
+          equipment: equipment.filter(Boolean)
+        };
+      })
+    );
+
+    return exercisesWithDetails;
+  }
+});

@@ -117,10 +117,7 @@ const Page = () => {
             fontSize: 18,
           },
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/(authenticated)/(tabs)/")}
-              className="ml-2"
-            >
+            <TouchableOpacity onPress={() => router.back()} className="ml-2">
               <Ionicons name="chevron-back" size={24} color="#ffffff" />
             </TouchableOpacity>
           ),
