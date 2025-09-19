@@ -1,92 +1,216 @@
-# Welcome to your Expo app 👋
+# Fitness Workout Tracker 💪
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A comprehensive React Native fitness application with an extensive exercise database, built with Expo and Convex.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **1,144+ Exercises**: Comprehensive exercise database with detailed metadata
+- **Smart Filtering**: Filter exercises by muscle groups, equipment, and exercise type
+- **Muscle Mapping**: Visual muscle selection with anatomical diagrams
+- **Equipment Management**: Track and filter by 34+ equipment types
+- **Real-time Backend**: Powered by Convex for instant data synchronization
+- **Cross-platform**: Works on iOS, Android, and Web
 
+## Exercise Database
+
+This project includes a production-ready exercise database featuring:
+- **1,144 unique exercises** with detailed instructions
+- **34 equipment types** (dumbbells, barbells, bodyweight, etc.)
+- **46+ muscle groups** with anatomical classifications
+- **4 muscle relationship types** (target, lengthening, synergist, stabilizer)
+- **8 exercise measurement types** (weight reps, duration, distance, etc.)
+
+## Quick Start
+
+### Prerequisites
+- [Bun](https://bun.sh) (recommended) or Node.js 18+
+- [Convex](https://www.convex.dev) account for backend
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
+
+### Installation
+
+1. **Clone and install dependencies**
    ```bash
+   git clone <repository-url>
+   cd workout-importer-v2
    bun install
    ```
 
-2. Install mobile MCP for development
-
-   For macOS:
-
+2. **Set up Convex backend**
    ```bash
-   claude mcp add mobile --env ANDROID_HOME=/Users/mgo/Library/Android/sdk -- npx -y @mobilenext/mobile-mcp@latest
+   bun convex dev
+   # Follow the prompts to set up your Convex deployment
    ```
 
-   For Windows with WSL:
-
+3. **Set up exercise database**
    ```bash
-   claude mcp add mobile --env ANDROID_HOME=/mnt/c/Users/user/AppData/Local/Android/Sdk -- npx -y @mobilenext/mobile-mcp@latest
+   # Seed equipment data
+   bun convex run seedEquipment:seedEquipment
+
+   # Import exercise data (optional - if you have the CSV file)
+   bun scripts/import-exercises.ts data/muscle_and_motion_exercices.csv
    ```
 
-   More info: https://github.com/mobile-next/mobile-mcp
-
-3. Run prebuild (if needed for native code)
-
-   ```bash
-   bun prebuild
-   ```
-
-4. Start the backend (Convex)
-
-   ```bash
-   bun convex:dev
-   ```
-
-5. Start the app
-
+4. **Start the development server**
    ```bash
    bun start
    ```
 
-In the output, you'll find options to open the app in a
+5. **Run on your device**
+   - Press `a` for Android emulator
+   - Press `i` for iOS simulator
+   - Press `w` for web
+   - Scan QR code for physical device
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-## Import test data
-
-To import test todo list data into Convex:
+## Development Commands
 
 ```bash
-bun convex import --table tasks sampleData.jsonl
+bun start                   # Start Expo development server
+bun convex:dev             # Start Convex backend in development mode
+bun android                # Run on Android emulator/device
+bun ios                    # Run on iOS simulator/device
+bun web                    # Run web version
+bun lint                   # Run ESLint
+bun prebuild               # Generate native code (when needed)
 ```
 
-To import muscles data into Convex:
+## Exercise Database API
+
+### Quick Examples
+
+```typescript
+// Get all exercises
+const exercises = await ctx.runQuery(api.exercises.getAllExercises);
+
+// Find chest exercises
+const chestExercises = await ctx.runQuery(api.exercises.getExercisesByMuscle, {
+  muscleId: pectoralisMajorId,
+  role: "target"
+});
+
+// Filter by equipment
+const dumbellExercises = await ctx.runQuery(api.exercises.getExercisesByEquipment, {
+  equipmentId: dumbellId
+});
+
+// Search exercises
+const searchResults = await ctx.runQuery(api.exercises.searchExercises, {
+  searchTerm: "bench press"
+});
+
+// Get exercise details with all relationships
+const exercise = await ctx.runQuery(api.exercises.getExerciseDetails, {
+  exerciseId: exerciseId
+});
+```
+
+## Documentation
+
+- **[📋 Exercise Setup Guide](./EXERCISE_SETUP.md)** - Complete production setup and deployment guide
+- **[🏗️ Architecture Documentation](./docs/EXERCISE_ARCHITECTURE.md)** - Technical architecture and database design
+- **[📚 API Reference](./docs/API_REFERENCE.md)** - Complete API documentation with examples
+
+## Tech Stack
+
+- **Frontend**: React Native 0.79.5 + Expo SDK 53
+- **Backend**: Convex (real-time database with authentication)
+- **Routing**: Expo Router (file-based routing in `src/app/`)
+- **Styling**: NativeWind (Tailwind CSS for React Native)
+- **State Management**: Jotai
+- **Authentication**: Convex Auth with OAuth support
+- **Package Manager**: Bun
+- **TypeScript**: Strict mode with path aliases
+
+## Project Structure
+
+```
+src/
+├── app/           # Expo Router pages (file-based routing)
+├── assets/        # Images, fonts, and static assets
+└── global.css     # Global Tailwind styles
+
+convex/            # Backend schema, functions, and auth
+├── schema.ts      # Database schema with exercise tables
+├── exercises.ts   # Exercise-related queries and mutations
+├── auth.ts        # Authentication configuration
+└── ...
+
+data/              # Exercise and muscle data files
+scripts/           # Import and maintenance scripts
+docs/              # Documentation
+```
+
+## Database Schema
+
+The exercise database uses a normalized relational structure:
+
+```
+exercises ──────┐
+│               │
+├── exerciseEquipment ── equipment
+│               │
+└── exerciseMuscles ──── muscles
+```
+
+- **exercises**: Core exercise data (title, description, type, etc.)
+- **equipment**: Normalized equipment types (34 predefined types)
+- **exerciseEquipment**: Many-to-many relationship between exercises and equipment
+- **exerciseMuscles**: Many-to-many relationship with role classification
+- **muscles**: Existing muscle data with anatomical classifications
+
+## Environment Setup
+
+### For Development
+
+Create a `.env.local` file:
+```bash
+CONVEX_DEPLOYMENT=<your-deployment-name>
+EXPO_PUBLIC_CONVEX_URL=<your-convex-url>
+```
+
+### For Production
+
+Set environment variables in your deployment platform:
+- `CONVEX_DEPLOYMENT`
+- `EXPO_PUBLIC_CONVEX_URL`
+
+## Import Exercise Data
+
+If you have exercise data in CSV format:
 
 ```bash
-bunx convex import --table muscles data/muscles_import.jsonl
+# Import from CSV file
+bun scripts/import-exercises.ts path/to/exercises.csv
+
+# Check import results
+bun convex run exercises:analyzeExerciseRelationships
 ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+CSV Format: `title;exercise_path;url;target_muscles;lengthening_muscles;synergist_muscles;stabilizer_muscles;description;equipment;exercise_type`
 
-## Get a fresh project
+## Contributing
 
-When you're ready, run:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-```bash
-bun reset-project
-```
+## Data Sources
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Exercise data sourced from:
+- Muscle & Motion (muscleandmotion.com)
+- Anatomical muscle classifications
+- Equipment categorization
 
-## Learn more
+## License
 
-To learn more about developing your project with Expo, look at the following resources:
+[Your License Here]
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Learn More
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Convex Documentation](https://docs.convex.dev) - Learn about the backend platform
+- [Expo Documentation](https://docs.expo.dev) - Learn about the mobile framework
+- [React Native Documentation](https://reactnative.dev/docs) - Learn about React Native
+- [NativeWind Documentation](https://www.nativewind.dev) - Learn about styling with Tailwind CSS

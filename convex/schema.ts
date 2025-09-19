@@ -53,7 +53,52 @@ const schema = defineSchema({
       v.literal('arms'),
       v.literal('core')
     ),
+  }),
+  exercises: defineTable({
+    title: v.string(),
+    url: v.optional(v.string()),
+    description: v.optional(v.string()),
+    source: v.string(),
+    exerciseType: v.union(
+      v.literal("Weight Reps"),
+      v.literal("Reps Only"),
+      v.literal("Weighted Bodyweight"),
+      v.literal("Assisted Bodyweight"),
+      v.literal("Duration"),
+      v.literal("Weight & Duration"),
+      v.literal("Distance & Duration"),
+      v.literal("Weight & Distance")
+    ),
   })
+    .index("by_title", ["title"])
+    .index("by_type", ["exerciseType"])
+    .searchIndex("search_exercises", {
+      searchField: "title",
+      filterFields: ["source", "exerciseType"]
+    }),
+  equipment: defineTable({
+    name: v.string(),
+  })
+    .index("by_name", ["name"]),
+  exerciseEquipment: defineTable({
+    exerciseId: v.id("exercises"),
+    equipmentId: v.id("equipment"),
+  })
+    .index("by_exercise", ["exerciseId"])
+    .index("by_equipment", ["equipmentId"]),
+  exerciseMuscles: defineTable({
+    exerciseId: v.id("exercises"),
+    muscleId: v.id("muscles"),
+    role: v.union(
+      v.literal("target"),
+      v.literal("lengthening"),
+      v.literal("synergist"),
+      v.literal("stabilizer")
+    ),
+  })
+    .index("by_exercise", ["exerciseId", "role"])
+    .index("by_muscle", ["muscleId", "role"])
+    .index("by_exercise_and_muscle", ["exerciseId", "muscleId"]),
 });
 
 export default schema;
