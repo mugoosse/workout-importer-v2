@@ -16,7 +16,9 @@ import { useAtom } from "jotai";
 import {
   individualMuscleProgressAtom,
   getProgressColor,
+  getStreakEmoji,
 } from "@/store/weeklyProgress";
+import { loggedSetsAtom } from "@/store/exerciseLog";
 
 type ExerciseRoleCardProps = {
   role: "target" | "synergist" | "stabilizer" | "lengthening";
@@ -76,6 +78,7 @@ const ExerciseRoleCard = ({
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [loggedSets] = useAtom(loggedSetsAtom);
 
   const muscle = useQuery(api.muscles.get, {
     muscleId: id as Id<"muscles">,
@@ -84,6 +87,24 @@ const Page = () => {
   const exerciseCounts = useQuery(api.muscles.getExerciseCounts, {
     muscleId: id as Id<"muscles">,
   });
+
+  // Find exercises that involve this muscle and have logged sets
+  const muscleExerciseSets = muscle
+    ? loggedSets.filter((set) => {
+        // This is a simplified check - in a real implementation, you'd query
+        // which exercises involve this muscle from the database
+        return true; // For now, show all sets as potentially related
+      })
+    : [];
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return (
+      date.toLocaleDateString() +
+      " " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  };
 
   if (!muscle || !exerciseCounts) {
     return (
@@ -96,7 +117,8 @@ const Page = () => {
   // Get muscle progress and color
   const muscleProgressData = individualMuscleProgress[muscle.svgId];
   const progressPercentage = muscleProgressData?.percentage || 0;
-  const muscleColor = getProgressColor(progressPercentage);
+  const progressColor = getProgressColor(progressPercentage);
+  const muscleColor = progressColor;
 
   return (
     <View className="flex-1 bg-dark">
@@ -172,6 +194,124 @@ const Page = () => {
               </Text>
             </View>
           )}
+
+          {/* Muscle Progress Card */}
+          <View className="bg-[#1c1c1e] rounded-2xl p-4 mb-6">
+            <View className="flex-row items-center mb-4">
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center mr-3">
+                <Ionicons name="trending-up" size={20} color="#6F2DBD" />
+              </View>
+              <Text className="text-white text-lg font-Poppins_600SemiBold">
+                Progress Tracking
+              </Text>
+            </View>
+
+            <View className="bg-[#2c2c2e] rounded-xl p-4">
+              {/* XP Progress Bar */}
+              <View className="mb-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-white font-Poppins_500Medium">
+                    XP Progress
+                  </Text>
+                  <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                    {muscleProgressData?.xp || 0} /{" "}
+                    {muscleProgressData?.goal || 50} XP
+                  </Text>
+                </View>
+                <View className="bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
+                  <View
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, muscleProgressData?.percentage || 0)}%`,
+                      backgroundColor: progressColor,
+                    }}
+                  />
+                </View>
+                <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+                  {muscleProgressData?.percentage || 0}% complete
+                </Text>
+              </View>
+
+              {/* Stats Row */}
+              <View className="flex-row justify-between">
+                <View className="items-center">
+                  <Text className="text-white text-lg font-Poppins_600SemiBold">
+                    {muscleProgressData?.sets || 0}
+                  </Text>
+                  <Text className="text-gray-400 text-xs font-Poppins_400Regular">
+                    Total Sets
+                  </Text>
+                </View>
+                <View className="items-center">
+                  <Text className="text-white text-lg font-Poppins_600SemiBold">
+                    {getStreakEmoji(muscleProgressData?.streak || 0)}{" "}
+                    {muscleProgressData?.streak || 0}
+                  </Text>
+                  <Text className="text-gray-400 text-xs font-Poppins_400Regular">
+                    Week Streak
+                  </Text>
+                </View>
+                <View className="items-center">
+                  <Text className="text-white text-lg font-Poppins_600SemiBold">
+                    {muscleExerciseSets.length}
+                  </Text>
+                  <Text className="text-gray-400 text-xs font-Poppins_400Regular">
+                    Recent Sets
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Recent Sets */}
+            {muscleExerciseSets.length > 0 && (
+              <View className="mt-4">
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-3">
+                  Recent Exercise Sets
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-2"
+                >
+                  {muscleExerciseSets.slice(0, 5).map((set, index) => {
+                    const formatSetDisplay = (set: any) => {
+                      const parts = [];
+                      if (set.reps) parts.push(`${set.reps} reps`);
+                      if (set.weight) parts.push(`${set.weight} kg`);
+                      if (set.duration) parts.push(`${set.duration}s`);
+                      if (set.distance) parts.push(`${set.distance}m`);
+                      return parts.join(" • ");
+                    };
+
+                    return (
+                      <TouchableOpacity
+                        key={set.id}
+                        onPress={() =>
+                          router.push(
+                            `/(app)/(authenticated)/(modal)/exercise/${set.exerciseId}`,
+                          )
+                        }
+                        className={`bg-[#1c1c1e] rounded-lg p-3 ${index > 0 ? "ml-3" : ""} min-w-[140px]`}
+                      >
+                        <Text className="text-white font-Poppins_500Medium text-center text-xs">
+                          {formatSetDisplay(set)}
+                        </Text>
+                        <Text className="text-[#6F2DBD] text-xs text-center mt-1">
+                          RPE {set.rpe}
+                        </Text>
+                        <Text className="text-gray-500 text-xs text-center mt-1">
+                          Exercise #{set.exerciseId.slice(-4)}
+                        </Text>
+                        <Text className="text-gray-500 text-xs text-center">
+                          {formatTimestamp(set.timestamp)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </View>
 
           {/* Function & Exercises Card */}
           <View className="bg-[#1c1c1e] rounded-2xl p-4">

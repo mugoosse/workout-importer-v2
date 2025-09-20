@@ -10,7 +10,17 @@ import {
   getProgressColor,
   getStreakEmoji,
   individualMuscleProgressAtom,
+  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
+import {
+  logSetAction,
+  getSetsByExerciseAtom,
+  type ExerciseType,
+} from "@/store/exerciseLog";
+import {
+  processSetLogging,
+  extractMuscleInvolvement,
+} from "@/utils/xpCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
@@ -18,8 +28,11 @@ import { useAtom } from "jotai";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -64,12 +77,31 @@ const Page = () => {
     exerciseId,
   });
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
-  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
+    individualMuscleProgressAtom,
+  );
+  const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
+  const [, logSet] = useAtom(logSetAction);
+  const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
+
+  // Set logging modal state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [reps, setReps] = useState("");
+  const [weight, setWeight] = useState("");
+  const [duration, setDuration] = useState("");
+  const [distance, setDistance] = useState("");
+  const [rpe, setRpe] = useState("8"); // Default to moderate intensity
+  // Remove unused variable for now
+  // const [lastXPCalculation, setLastXPCalculation] =
+  //   useState<XPCalculationResult | null>(null);
 
   const [collapsedSections, setCollapsedSections] = useState<Set<MuscleRole>>(
     () =>
       new Set<MuscleRole>(["target", "synergist", "stabilizer", "lengthening"]),
   );
+
+  // Get logged sets for this exercise
+  const loggedSets = getSetsByExercise(exerciseId);
 
   const toggleSection = (role: MuscleRole) => {
     setCollapsedSections((prev) => {
@@ -147,6 +179,170 @@ const Page = () => {
     );
   };
 
+  const handleLogSet = () => {
+    if (!validateInput()) {
+      Alert.alert(
+        "Invalid Input",
+        "Please fill in all required fields with valid values. RPE must be between 1-10.",
+      );
+      return;
+    }
+
+    const muscleInvolvements = extractMuscleInvolvement(
+      exerciseDetails!.muscles,
+    );
+
+    const rpeValue = parseInt(rpe);
+
+    // Process the set logging and update progress
+    const result = processSetLogging(
+      individualMuscleProgress,
+      weeklyProgress,
+      muscleInvolvements,
+      rpeValue,
+    );
+
+    // Update the atoms with new progress
+    setIndividualMuscleProgress(result.updatedIndividualProgress);
+    setWeeklyProgress(result.updatedMajorGroupProgress);
+
+    // Log the set
+    logSet({
+      exerciseId,
+      reps: requiredFields.needsReps ? parseInt(reps) : undefined,
+      weight: requiredFields.needsWeight ? parseFloat(weight) : undefined,
+      duration: requiredFields.needsDuration ? parseInt(duration) : undefined,
+      distance: requiredFields.needsDistance ? parseFloat(distance) : undefined,
+      rpe: rpeValue,
+    });
+
+    // Reset form and close modal
+    setReps("");
+    setWeight("");
+    setDuration("");
+    setDistance("");
+    setRpe("8");
+    setShowLogModal(false);
+
+    // Show success message with XP breakdown
+    const totalXP = result.xpCalculation.totalXP;
+    const rpeMultiplier = rpeValue / 10;
+    Alert.alert(
+      "Set Logged!",
+      `You earned ${totalXP} XP total from this set (RPE ${rpeValue} = ${Math.round(rpeMultiplier * 100)}% intensity).`,
+      [
+        {
+          text: "View Details",
+          onPress: () => {
+            // Could show detailed XP breakdown modal here
+          },
+        },
+        { text: "OK" },
+      ],
+    );
+  };
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Helper functions to determine which fields to show based on exercise type
+  const getRequiredFields = (exerciseType: ExerciseType) => {
+    switch (exerciseType) {
+      case "Weight Reps":
+        return {
+          needsReps: true,
+          needsWeight: true,
+          needsDuration: false,
+          needsDistance: false,
+        };
+      case "Reps Only":
+        return {
+          needsReps: true,
+          needsWeight: false,
+          needsDuration: false,
+          needsDistance: false,
+        };
+      case "Weighted Bodyweight":
+        return {
+          needsReps: true,
+          needsWeight: true,
+          needsDuration: false,
+          needsDistance: false,
+        };
+      case "Assisted Bodyweight":
+        return {
+          needsReps: true,
+          needsWeight: true,
+          needsDuration: false,
+          needsDistance: false,
+        }; // weight as assistance
+      case "Duration":
+        return {
+          needsReps: false,
+          needsWeight: false,
+          needsDuration: true,
+          needsDistance: false,
+        };
+      case "Weight & Duration":
+        return {
+          needsReps: false,
+          needsWeight: true,
+          needsDuration: true,
+          needsDistance: false,
+        };
+      case "Distance & Duration":
+        return {
+          needsReps: false,
+          needsWeight: false,
+          needsDuration: true,
+          needsDistance: true,
+        };
+      case "Weight & Distance":
+        return {
+          needsReps: false,
+          needsWeight: true,
+          needsDuration: false,
+          needsDistance: true,
+        };
+      default:
+        return {
+          needsReps: true,
+          needsWeight: false,
+          needsDuration: false,
+          needsDistance: false,
+        };
+    }
+  };
+
+  const requiredFields = exerciseDetails
+    ? getRequiredFields(exerciseDetails.exerciseType as ExerciseType)
+    : {
+        needsReps: true,
+        needsWeight: false,
+        needsDuration: false,
+        needsDistance: false,
+      };
+
+  const validateInput = () => {
+    if (!exerciseDetails || !rpe || parseInt(rpe) < 1 || parseInt(rpe) > 10) {
+      return false;
+    }
+    if (requiredFields.needsReps && (!reps || parseInt(reps) <= 0))
+      return false;
+    if (requiredFields.needsWeight && (!weight || parseFloat(weight) <= 0))
+      return false;
+    if (requiredFields.needsDuration && (!duration || parseInt(duration) <= 0))
+      return false;
+    if (
+      requiredFields.needsDistance &&
+      (!distance || parseFloat(distance) <= 0)
+    )
+      return false;
+    return true;
+  };
+
   return (
     <View className="flex-1 bg-dark">
       <Stack.Screen
@@ -221,6 +417,70 @@ const Page = () => {
                 <Text className="text-gray-300 text-sm font-Poppins_400Regular leading-5">
                   {exerciseDetails.description}
                 </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Set Logging Section */}
+        <View className="mx-4 mb-6">
+          <View className="bg-[#1c1c1e] rounded-2xl p-4">
+            <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
+              Log Exercise
+            </Text>
+
+            {/* Log Set Button */}
+            <TouchableOpacity
+              onPress={() => setShowLogModal(true)}
+              className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
+            >
+              <View className="flex-row items-center justify-center">
+                <Ionicons name="add" size={20} color="#ffffff" />
+                <Text className="text-white font-Poppins_600SemiBold ml-2">
+                  Log Set
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Recent Sets */}
+            {loggedSets.length > 0 && (
+              <View>
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-3">
+                  Recent Sets ({loggedSets.length})
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-2"
+                >
+                  {loggedSets.slice(0, 5).map((set, index) => {
+                    const formatSetDisplay = (set: any) => {
+                      const parts = [];
+                      if (set.reps) parts.push(`${set.reps} reps`);
+                      if (set.weight) parts.push(`${set.weight} kg`);
+                      if (set.duration) parts.push(`${set.duration}s`);
+                      if (set.distance) parts.push(`${set.distance}m`);
+                      return parts.join(" • ");
+                    };
+
+                    return (
+                      <View
+                        key={set.id}
+                        className={`bg-[#2c2c2e] rounded-lg p-3 ${index > 0 ? "ml-3" : ""} min-w-[120px]`}
+                      >
+                        <Text className="text-white font-Poppins_500Medium text-center text-xs">
+                          {formatSetDisplay(set)}
+                        </Text>
+                        <Text className="text-[#6F2DBD] text-xs text-center mt-1">
+                          RPE {set.rpe}
+                        </Text>
+                        <Text className="text-gray-500 text-xs text-center mt-1">
+                          {formatTimestamp(set.timestamp)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -393,6 +653,131 @@ const Page = () => {
           })}
         </View>
       </ScrollView>
+
+      {/* Set Logging Modal */}
+      <Modal
+        visible={showLogModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLogModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-[#1c1c1e] rounded-t-3xl p-6">
+            <View className="flex-row items-center justify-between mb-6">
+              <Text className="text-white text-xl font-Poppins_600SemiBold">
+                Log Set
+              </Text>
+              <TouchableOpacity onPress={() => setShowLogModal(false)}>
+                <Ionicons name="close" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Dynamic Fields Based on Exercise Type */}
+            {requiredFields.needsReps && (
+              <View className="mb-4">
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                  Reps *
+                </Text>
+                <TextInput
+                  value={reps}
+                  onChangeText={setReps}
+                  placeholder="Enter number of reps"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
+                />
+              </View>
+            )}
+
+            {requiredFields.needsWeight && (
+              <View className="mb-4">
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                  Weight (kg) *
+                </Text>
+                <TextInput
+                  value={weight}
+                  onChangeText={setWeight}
+                  placeholder="Enter weight in kg"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
+                />
+              </View>
+            )}
+
+            {requiredFields.needsDuration && (
+              <View className="mb-4">
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                  Duration (seconds) *
+                </Text>
+                <TextInput
+                  value={duration}
+                  onChangeText={setDuration}
+                  placeholder="Enter duration in seconds"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
+                />
+              </View>
+            )}
+
+            {requiredFields.needsDistance && (
+              <View className="mb-4">
+                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                  Distance (meters) *
+                </Text>
+                <TextInput
+                  value={distance}
+                  onChangeText={setDistance}
+                  placeholder="Enter distance in meters"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
+                />
+              </View>
+            )}
+
+            {/* RPE Field - Always Required */}
+            <View className="mb-4">
+              <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                RPE (Rate of Perceived Exertion) *
+              </Text>
+              <Text className="text-gray-400 text-xs font-Poppins_400Regular mb-2">
+                Scale 1-10: How hard did this feel? (1 = Very Easy, 10 = Maximum
+                Effort)
+              </Text>
+              <TextInput
+                value={rpe}
+                onChangeText={setRpe}
+                placeholder="Enter RPE (1-10)"
+                placeholderTextColor="#666"
+                keyboardType="numeric"
+                maxLength={2}
+                className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
+              />
+            </View>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowLogModal(false)}
+                className="flex-1 bg-[#2c2c2e] rounded-xl p-4"
+              >
+                <Text className="text-gray-300 font-Poppins_500Medium text-center">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleLogSet}
+                className="flex-1 bg-[#6F2DBD] rounded-xl p-4"
+              >
+                <Text className="text-white font-Poppins_600SemiBold text-center">
+                  Log Set
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
