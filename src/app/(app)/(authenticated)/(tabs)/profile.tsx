@@ -9,6 +9,12 @@ import {
   individualMuscleProgressAtom,
 } from "@/store/weeklyProgress";
 import { clearAllLogsAction } from "@/store/exerciseLog";
+import {
+  weightUnitAtom,
+  distanceUnitAtom,
+  setWeightUnitAction,
+  setDistanceUnitAction,
+} from "@/store/units";
 import { Ionicons } from "@expo/vector-icons";
 
 const Page = () => {
@@ -18,6 +24,10 @@ const Page = () => {
   const [, setWeeklyProgress] = useAtom(weeklyProgressAtom);
   const [, setIndividualMuscleProgress] = useAtom(individualMuscleProgressAtom);
   const [, clearAllLogs] = useAtom(clearAllLogsAction);
+  const [weightUnit] = useAtom(weightUnitAtom);
+  const [distanceUnit] = useAtom(distanceUnitAtom);
+  const [, setWeightUnit] = useAtom(setWeightUnitAction);
+  const [, setDistanceUnit] = useAtom(setDistanceUnitAction);
 
   const handleSignOut = async () => {
     await signOut();
@@ -126,6 +136,87 @@ const Page = () => {
         </Text>
 
         <View className="w-full max-w-sm space-y-4">
+          {/* Units Settings Section */}
+          <View className="bg-[#1c1c1e] rounded-xl p-4 mb-4">
+            <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
+              Units
+            </Text>
+
+            {/* Weight Unit Setting */}
+            <View className="mb-4">
+              <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                Weight Unit
+              </Text>
+              <View className="flex-row">
+                <TouchableOpacity
+                  onPress={() => setWeightUnit("kg")}
+                  className={`flex-1 p-3 rounded-l-xl flex-row items-center justify-center ${
+                    weightUnit === "kg" ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+                  }`}
+                >
+                  <Text
+                    className={`font-Poppins_500Medium ${
+                      weightUnit === "kg" ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    kg
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setWeightUnit("lbs")}
+                  className={`flex-1 p-3 rounded-r-xl flex-row items-center justify-center ${
+                    weightUnit === "lbs" ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+                  }`}
+                >
+                  <Text
+                    className={`font-Poppins_500Medium ${
+                      weightUnit === "lbs" ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    lbs
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Distance Unit Setting */}
+            <View>
+              <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
+                Distance Unit
+              </Text>
+              <View className="flex-row">
+                <TouchableOpacity
+                  onPress={() => setDistanceUnit("km")}
+                  className={`flex-1 p-3 rounded-l-xl flex-row items-center justify-center ${
+                    distanceUnit === "km" ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+                  }`}
+                >
+                  <Text
+                    className={`font-Poppins_500Medium ${
+                      distanceUnit === "km" ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    km
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setDistanceUnit("miles")}
+                  className={`flex-1 p-3 rounded-r-xl flex-row items-center justify-center ${
+                    distanceUnit === "miles" ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+                  }`}
+                >
+                  <Text
+                    className={`font-Poppins_500Medium ${
+                      distanceUnit === "miles" ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    mi
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           {/* Reset Progress Button */}
           <TouchableOpacity
             onPress={handleResetProgress}

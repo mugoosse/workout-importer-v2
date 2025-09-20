@@ -127,3 +127,46 @@ export const removeSetAction = atom(null, (get, set, setId: string) => {
 export const clearAllLogsAction = atom(null, (get, set) => {
   set(loggedSetsAtom, []);
 });
+
+// Atom for getting previous workout session sets for an exercise
+export const getLastWorkoutSetsAtom = atom(
+  (get) => (exerciseId: Id<"exercises">) => {
+    const loggedSets = get(loggedSetsAtom);
+
+    // Get all sets for this exercise, sorted by timestamp
+    const exerciseSets = loggedSets
+      .filter((set) => set.exerciseId === exerciseId)
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    if (exerciseSets.length === 0) {
+      return [];
+    }
+
+    // Group sets by date to find workout sessions
+    const setsByDate = exerciseSets.reduce(
+      (acc, set) => {
+        if (!acc[set.date]) {
+          acc[set.date] = [];
+        }
+        acc[set.date].push(set);
+        return acc;
+      },
+      {} as Record<string, LoggedSet[]>,
+    );
+
+    // Get dates sorted by most recent first
+    const sortedDates = Object.keys(setsByDate).sort((a, b) =>
+      b.localeCompare(a),
+    );
+
+    if (sortedDates.length === 0) {
+      return [];
+    }
+
+    // Return the most recent workout session's sets
+    const lastWorkoutDate = sortedDates[0];
+    return setsByDate[lastWorkoutDate].sort(
+      (a, b) => a.timestamp - b.timestamp,
+    );
+  },
+);

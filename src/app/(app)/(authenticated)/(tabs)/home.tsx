@@ -147,7 +147,7 @@ const Page = () => {
         <View className="mx-4 mb-6 mt-8">
           <View className="bg-[#1c1c1e] rounded-2xl p-4">
             <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-              Recent Exercise Logs
+              Recent Workouts
             </Text>
 
             {exerciseLogSummaries.slice(0, 6).map((summary, index) => (

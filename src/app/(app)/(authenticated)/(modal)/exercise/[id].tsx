@@ -3,9 +3,18 @@ import {
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
+import { SwipeableSetRow } from "@/components/SwipeableSetRow";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
+import {
+  getLastWorkoutSetsAtom,
+  getSetsByExerciseAtom,
+  logSetAction,
+  type ExerciseType,
+  type LoggedSet,
+} from "@/store/exerciseLog";
+import { unitsConfigAtom } from "@/store/units";
 import {
   getProgressColor,
   getStreakEmoji,
@@ -13,13 +22,13 @@ import {
   weeklyProgressAtom,
 } from "@/store/weeklyProgress";
 import {
-  logSetAction,
-  getSetsByExerciseAtom,
-  type ExerciseType,
-} from "@/store/exerciseLog";
+  formatPreviousSet,
+  getPreviousValuePlaceholder,
+} from "@/utils/previousWorkoutFormatter";
+import { convertWeight } from "@/utils/unitConversions";
 import {
-  processSetLogging,
   extractMuscleInvolvement,
+  processSetLogging,
 } from "@/utils/xpCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
@@ -83,14 +92,33 @@ const Page = () => {
   const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
   const [, logSet] = useAtom(logSetAction);
   const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
+  const [getLastWorkoutSets] = useAtom(getLastWorkoutSetsAtom);
+  const [unitsConfig] = useAtom(unitsConfigAtom);
 
   // Set logging modal state
   const [showLogModal, setShowLogModal] = useState(false);
-  const [reps, setReps] = useState("");
-  const [weight, setWeight] = useState("");
-  const [duration, setDuration] = useState("");
-  const [distance, setDistance] = useState("");
-  const [rpe, setRpe] = useState("8"); // Default to moderate intensity
+
+  // Multi-set interface state
+  interface SetData {
+    reps: string;
+    weight: string;
+    duration: string;
+    distance: string;
+    rpe: string;
+    completed: boolean;
+    previousData?: LoggedSet; // Store previous workout data for display and quick-fill
+  }
+
+  const [sets, setSets] = useState<SetData[]>([
+    {
+      reps: "",
+      weight: "",
+      duration: "",
+      distance: "",
+      rpe: "8",
+      completed: false,
+    },
+  ]);
   // Remove unused variable for now
   // const [lastXPCalculation, setLastXPCalculation] =
   //   useState<XPCalculationResult | null>(null);
@@ -102,6 +130,95 @@ const Page = () => {
 
   // Get logged sets for this exercise
   const loggedSets = getSetsByExercise(exerciseId);
+
+  // Helper functions for sets management
+  const addSet = () => {
+    setSets((prev) => [
+      ...prev,
+      {
+        reps: "",
+        weight: "",
+        duration: "",
+        distance: "",
+        rpe: "8",
+        completed: false,
+        // No previous data for new sets
+      },
+    ]);
+  };
+
+  const updateSet = (
+    index: number,
+    field: keyof SetData,
+    value: string | boolean,
+  ) => {
+    setSets((prev) =>
+      prev.map((set, i) => (i === index ? { ...set, [field]: value } : set)),
+    );
+  };
+
+  const quickFillSet = (index: number) => {
+    const set = sets[index];
+    if (!set.previousData) return;
+
+    const updatedSet: SetData = {
+      ...set,
+      reps: set.previousData.reps ? set.previousData.reps.toString() : "",
+      weight: set.previousData.weight ? set.previousData.weight.toString() : "",
+      duration: set.previousData.duration
+        ? set.previousData.duration.toString()
+        : "",
+      distance: set.previousData.distance
+        ? set.previousData.distance.toString()
+        : "",
+      rpe: set.previousData.rpe ? set.previousData.rpe.toString() : "8",
+      completed: true,
+    };
+
+    setSets((prev) =>
+      prev.map((setItem, i) => (i === index ? updatedSet : setItem)),
+    );
+  };
+
+  const removeSet = (index: number) => {
+    if (sets.length > 1) {
+      setSets((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const resetSets = () => {
+    initializeSetsWithPreviousData();
+  };
+
+  const initializeSetsWithPreviousData = () => {
+    const previousSets = getLastWorkoutSets(exerciseId);
+
+    if (previousSets.length > 0) {
+      // Create the same number of sets as the previous workout
+      const newSets: SetData[] = previousSets.map((prevSet) => ({
+        reps: "",
+        weight: "",
+        duration: "",
+        distance: "",
+        rpe: "8",
+        completed: false,
+        previousData: prevSet,
+      }));
+      setSets(newSets);
+    } else {
+      // No previous data, create a single empty set
+      setSets([
+        {
+          reps: "",
+          weight: "",
+          duration: "",
+          distance: "",
+          rpe: "8",
+          completed: false,
+        },
+      ]);
+    }
+  };
 
   const toggleSection = (role: MuscleRole) => {
     setCollapsedSections((prev) => {
@@ -179,11 +296,13 @@ const Page = () => {
     );
   };
 
-  const handleLogSet = () => {
-    if (!validateInput()) {
+  const handleLogAllSets = () => {
+    const completedSets = sets.filter((set) => set.completed);
+
+    if (completedSets.length === 0) {
       Alert.alert(
-        "Invalid Input",
-        "Please fill in all required fields with valid values. RPE must be between 1-10.",
+        "No Sets Completed",
+        "Please complete at least one set before logging.",
       );
       return;
     }
@@ -192,44 +311,61 @@ const Page = () => {
       exerciseDetails!.muscles,
     );
 
-    const rpeValue = parseInt(rpe);
+    let totalXP = 0;
+    let loggedCount = 0;
 
-    // Process the set logging and update progress
-    const result = processSetLogging(
-      individualMuscleProgress,
-      weeklyProgress,
-      muscleInvolvements,
-      rpeValue,
-    );
+    // Log each completed set
+    completedSets.forEach((set) => {
+      if (!validateSet(set)) {
+        return; // Skip invalid sets
+      }
 
-    // Update the atoms with new progress
-    setIndividualMuscleProgress(result.updatedIndividualProgress);
-    setWeeklyProgress(result.updatedMajorGroupProgress);
+      const rpeValue = parseInt(set.rpe);
 
-    // Log the set
-    logSet({
-      exerciseId,
-      reps: requiredFields.needsReps ? parseInt(reps) : undefined,
-      weight: requiredFields.needsWeight ? parseFloat(weight) : undefined,
-      duration: requiredFields.needsDuration ? parseInt(duration) : undefined,
-      distance: requiredFields.needsDistance ? parseFloat(distance) : undefined,
-      rpe: rpeValue,
+      // Process the set logging and update progress
+      const result = processSetLogging(
+        individualMuscleProgress,
+        weeklyProgress,
+        muscleInvolvements,
+        rpeValue,
+      );
+
+      // Update the atoms with new progress
+      setIndividualMuscleProgress(result.updatedIndividualProgress);
+      setWeeklyProgress(result.updatedMajorGroupProgress);
+
+      // Convert units back to metric for storage
+      const weightInKg =
+        unitsConfig.weight === "lbs" && set.weight
+          ? convertWeight(parseFloat(set.weight), "lbs", "kg")
+          : parseFloat(set.weight);
+
+      // Log the set
+      logSet({
+        exerciseId,
+        reps: requiredFields.needsReps ? parseInt(set.reps) : undefined,
+        weight: requiredFields.needsWeight ? weightInKg : undefined,
+        duration: requiredFields.needsDuration
+          ? parseInt(set.duration)
+          : undefined,
+        distance: requiredFields.needsDistance
+          ? parseFloat(set.distance)
+          : undefined,
+        rpe: rpeValue,
+      });
+
+      totalXP += result.xpCalculation.totalXP;
+      loggedCount++;
     });
 
     // Reset form and close modal
-    setReps("");
-    setWeight("");
-    setDuration("");
-    setDistance("");
-    setRpe("8");
+    resetSets();
     setShowLogModal(false);
 
-    // Show success message with XP breakdown
-    const totalXP = result.xpCalculation.totalXP;
-    const rpeMultiplier = rpeValue / 10;
+    // Show success message
     Alert.alert(
-      "Set Logged!",
-      `You earned ${totalXP} XP total from this set (RPE ${rpeValue} = ${Math.round(rpeMultiplier * 100)}% intensity).`,
+      "Sets Logged!",
+      `Successfully logged ${loggedCount} set${loggedCount > 1 ? "s" : ""}. You earned ${totalXP} total XP.`,
       [
         {
           text: "View Details",
@@ -240,11 +376,6 @@ const Page = () => {
         { text: "OK" },
       ],
     );
-  };
-
-  const formatTimestamp = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   // Helper functions to determine which fields to show based on exercise type
@@ -325,22 +456,45 @@ const Page = () => {
         needsDistance: false,
       };
 
-  const validateInput = () => {
-    if (!exerciseDetails || !rpe || parseInt(rpe) < 1 || parseInt(rpe) > 10) {
+  const validateSet = (set: SetData) => {
+    if (
+      !exerciseDetails ||
+      !set.rpe ||
+      parseInt(set.rpe) < 1 ||
+      parseInt(set.rpe) > 10
+    ) {
       return false;
     }
-    if (requiredFields.needsReps && (!reps || parseInt(reps) <= 0))
+    if (requiredFields.needsReps && (!set.reps || parseInt(set.reps) <= 0))
       return false;
-    if (requiredFields.needsWeight && (!weight || parseFloat(weight) <= 0))
+    if (
+      requiredFields.needsWeight &&
+      (!set.weight || parseFloat(set.weight) <= 0)
+    )
       return false;
-    if (requiredFields.needsDuration && (!duration || parseInt(duration) <= 0))
+    if (
+      requiredFields.needsDuration &&
+      (!set.duration || parseInt(set.duration) <= 0)
+    )
       return false;
     if (
       requiredFields.needsDistance &&
-      (!distance || parseFloat(distance) <= 0)
+      (!set.distance || parseFloat(set.distance) <= 0)
     )
       return false;
     return true;
+  };
+
+  // Helper functions for unit display
+  const getWeightLabel = () => unitsConfig.weight.toUpperCase();
+  const getDistanceLabel = () => {
+    return requiredFields.needsDistance
+      ? unitsConfig.distance === "km"
+        ? "KM"
+        : "MI"
+      : unitsConfig.distance === "km"
+        ? "METERS"
+        : "YARDS";
   };
 
   return (
@@ -431,7 +585,10 @@ const Page = () => {
 
             {/* Log Set Button */}
             <TouchableOpacity
-              onPress={() => setShowLogModal(true)}
+              onPress={() => {
+                initializeSetsWithPreviousData();
+                setShowLogModal(true);
+              }}
               className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
             >
               <View className="flex-row items-center justify-center">
@@ -442,45 +599,106 @@ const Page = () => {
               </View>
             </TouchableOpacity>
 
-            {/* Recent Sets */}
+            {/* Recent Workouts */}
             {loggedSets.length > 0 && (
               <View>
                 <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-3">
-                  Recent Sets ({loggedSets.length})
+                  Recent Workouts
                 </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="mb-2"
-                >
-                  {loggedSets.slice(0, 5).map((set, index) => {
-                    const formatSetDisplay = (set: any) => {
-                      const parts = [];
-                      if (set.reps) parts.push(`${set.reps} reps`);
-                      if (set.weight) parts.push(`${set.weight} kg`);
-                      if (set.duration) parts.push(`${set.duration}s`);
-                      if (set.distance) parts.push(`${set.distance}m`);
-                      return parts.join(" • ");
-                    };
-
-                    return (
-                      <View
-                        key={set.id}
-                        className={`bg-[#2c2c2e] rounded-lg p-3 ${index > 0 ? "ml-3" : ""} min-w-[120px]`}
-                      >
-                        <Text className="text-white font-Poppins_500Medium text-center text-xs">
-                          {formatSetDisplay(set)}
-                        </Text>
-                        <Text className="text-[#6F2DBD] text-xs text-center mt-1">
-                          RPE {set.rpe}
-                        </Text>
-                        <Text className="text-gray-500 text-xs text-center mt-1">
-                          {formatTimestamp(set.timestamp)}
-                        </Text>
-                      </View>
+                <View className="space-y-3">
+                  {(() => {
+                    // Group sets by date to create workout sessions
+                    const workoutsByDate = loggedSets.reduce(
+                      (acc, set) => {
+                        if (!acc[set.date]) {
+                          acc[set.date] = [];
+                        }
+                        acc[set.date].push(set);
+                        return acc;
+                      },
+                      {} as Record<string, typeof loggedSets>,
                     );
-                  })}
-                </ScrollView>
+
+                    // Sort dates in descending order (most recent first)
+                    const sortedDates = Object.keys(workoutsByDate).sort(
+                      (a, b) => b.localeCompare(a),
+                    );
+
+                    // Take only the 3 most recent workout sessions
+                    return sortedDates.slice(0, 3).map((date, workoutIndex) => {
+                      const workoutSets = workoutsByDate[date].sort(
+                        (a, b) => a.timestamp - b.timestamp,
+                      );
+                      const formatSetDisplay = (set: any) => {
+                        const parts = [];
+                        if (set.reps) parts.push(`${set.reps} reps`);
+                        if (set.weight) parts.push(`${set.weight} kg`);
+                        if (set.duration) parts.push(`${set.duration}s`);
+                        if (set.distance) parts.push(`${set.distance}m`);
+                        return parts.join(" • ");
+                      };
+
+                      const formatWorkoutDate = (dateStr: string) => {
+                        const date = new Date(dateStr);
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        if (dateStr === today.toISOString().split("T")[0]) {
+                          return "Today";
+                        } else if (
+                          dateStr === yesterday.toISOString().split("T")[0]
+                        ) {
+                          return "Yesterday";
+                        } else {
+                          return date.toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                            year:
+                              date.getFullYear() !== today.getFullYear()
+                                ? "numeric"
+                                : undefined,
+                          });
+                        }
+                      };
+
+                      return (
+                        <View
+                          key={date}
+                          className={`bg-[#2c2c2e] rounded-lg p-4 ${workoutIndex > 0 ? "mt-3" : ""}`}
+                        >
+                          {/* Workout Header */}
+                          <View className="flex-row justify-between items-center mb-3">
+                            <Text className="text-white font-Poppins_600SemiBold text-sm">
+                              {formatWorkoutDate(date)}
+                            </Text>
+                            <Text className="text-gray-400 text-xs">
+                              {workoutSets.length} set
+                              {workoutSets.length > 1 ? "s" : ""}
+                            </Text>
+                          </View>
+
+                          {/* Sets List */}
+                          <View className="space-y-2">
+                            {workoutSets.map((set, setIndex) => (
+                              <View
+                                key={set.id}
+                                className="flex-row justify-between items-center"
+                              >
+                                <Text className="text-gray-300 font-Poppins_400Regular text-xs flex-1">
+                                  Set {setIndex + 1}: {formatSetDisplay(set)}
+                                </Text>
+                                <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium ml-2">
+                                  RPE {set.rpe}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      );
+                    });
+                  })()}
+                </View>
               </View>
             )}
           </View>
@@ -654,7 +872,7 @@ const Page = () => {
         </View>
       </ScrollView>
 
-      {/* Set Logging Modal */}
+      {/* Multi-Set Logging Modal */}
       <Modal
         visible={showLogModal}
         transparent
@@ -662,104 +880,244 @@ const Page = () => {
         onRequestClose={() => setShowLogModal(false)}
       >
         <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-[#1c1c1e] rounded-t-3xl p-6">
+          <View className="bg-[#1c1c1e] rounded-t-3xl p-6 max-h-[85%]">
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-white text-xl font-Poppins_600SemiBold">
-                Log Set
+                Log Workout
               </Text>
               <TouchableOpacity onPress={() => setShowLogModal(false)}>
                 <Ionicons name="close" size={24} color="#ffffff" />
               </TouchableOpacity>
             </View>
 
-            {/* Dynamic Fields Based on Exercise Type */}
-            {requiredFields.needsReps && (
-              <View className="mb-4">
-                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
-                  Reps *
-                </Text>
-                <TextInput
-                  value={reps}
-                  onChangeText={setReps}
-                  placeholder="Enter number of reps"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
-                />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Sets Table Header */}
+              <View className="bg-[#2c2c2e] rounded-xl p-3 mb-4">
+                <View className="flex-row items-center">
+                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-12 text-center">
+                    SET
+                  </Text>
+                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-20 text-center">
+                    PREVIOUS
+                  </Text>
+                  {requiredFields.needsWeight && (
+                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
+                      {getWeightLabel()}
+                    </Text>
+                  )}
+                  {requiredFields.needsReps && (
+                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
+                      REPS
+                    </Text>
+                  )}
+                  {requiredFields.needsDuration && (
+                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
+                      TIME
+                    </Text>
+                  )}
+                  {requiredFields.needsDistance && (
+                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
+                      {getDistanceLabel()}
+                    </Text>
+                  )}
+                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-16 text-center">
+                    RPE
+                  </Text>
+                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-12 text-center">
+                    ✓
+                  </Text>
+                </View>
               </View>
-            )}
 
-            {requiredFields.needsWeight && (
-              <View className="mb-4">
-                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
-                  Weight (kg) *
-                </Text>
-                <TextInput
-                  value={weight}
-                  onChangeText={setWeight}
-                  placeholder="Enter weight in kg"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
-                />
-              </View>
-            )}
+              {/* Sets Rows */}
+              {sets.map((set, index) => (
+                <SwipeableSetRow
+                  key={index}
+                  onDelete={() => removeSet(index)}
+                  canDelete={sets.length > 1}
+                  isCompleted={set.completed}
+                >
+                  <View className="flex-row items-center">
+                    {/* Set Number */}
+                    <Text className="text-white text-sm font-Poppins_600SemiBold w-12 text-center">
+                      {index + 1}
+                    </Text>
 
-            {requiredFields.needsDuration && (
-              <View className="mb-4">
-                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
-                  Duration (seconds) *
-                </Text>
-                <TextInput
-                  value={duration}
-                  onChangeText={setDuration}
-                  placeholder="Enter duration in seconds"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
-                />
-              </View>
-            )}
+                    {/* Previous Column */}
+                    <View className="w-20 items-center">
+                      <Text className="text-gray-500 text-xs font-Poppins_400Regular text-center">
+                        {set.previousData && exerciseDetails
+                          ? formatPreviousSet(
+                              set.previousData,
+                              exerciseDetails.exerciseType as ExerciseType,
+                              unitsConfig.weight,
+                              unitsConfig.distance,
+                            )
+                          : "-"}
+                      </Text>
+                    </View>
 
-            {requiredFields.needsDistance && (
-              <View className="mb-4">
-                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
-                  Distance (meters) *
-                </Text>
-                <TextInput
-                  value={distance}
-                  onChangeText={setDistance}
-                  placeholder="Enter distance in meters"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
-                />
-              </View>
-            )}
+                    {/* Weight Input */}
+                    {requiredFields.needsWeight && (
+                      <View className="flex-1 mx-1">
+                        <TextInput
+                          value={set.weight}
+                          onChangeText={(value) =>
+                            updateSet(index, "weight", value)
+                          }
+                          placeholder={
+                            set.previousData
+                              ? getPreviousValuePlaceholder(
+                                  "weight",
+                                  set.previousData,
+                                  unitsConfig.weight,
+                                  unitsConfig.distance,
+                                )
+                              : "0"
+                          }
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
+                        />
+                      </View>
+                    )}
 
-            {/* RPE Field - Always Required */}
-            <View className="mb-4">
-              <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-2">
-                RPE (Rate of Perceived Exertion) *
-              </Text>
-              <Text className="text-gray-400 text-xs font-Poppins_400Regular mb-2">
-                Scale 1-10: How hard did this feel? (1 = Very Easy, 10 = Maximum
-                Effort)
-              </Text>
-              <TextInput
-                value={rpe}
-                onChangeText={setRpe}
-                placeholder="Enter RPE (1-10)"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-                maxLength={2}
-                className="bg-[#2c2c2e] rounded-xl p-4 text-white font-Poppins_400Regular"
-              />
-            </View>
+                    {/* Reps Input */}
+                    {requiredFields.needsReps && (
+                      <View className="flex-1 mx-1">
+                        <TextInput
+                          value={set.reps}
+                          onChangeText={(value) =>
+                            updateSet(index, "reps", value)
+                          }
+                          placeholder={
+                            set.previousData
+                              ? getPreviousValuePlaceholder(
+                                  "reps",
+                                  set.previousData,
+                                )
+                              : "0"
+                          }
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
+                        />
+                      </View>
+                    )}
 
-            <View className="flex-row gap-3">
+                    {/* Duration Input */}
+                    {requiredFields.needsDuration && (
+                      <View className="flex-1 mx-1">
+                        <TextInput
+                          value={set.duration}
+                          onChangeText={(value) =>
+                            updateSet(index, "duration", value)
+                          }
+                          placeholder={
+                            set.previousData
+                              ? getPreviousValuePlaceholder(
+                                  "duration",
+                                  set.previousData,
+                                )
+                              : "00:00"
+                          }
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
+                        />
+                      </View>
+                    )}
+
+                    {/* Distance Input */}
+                    {requiredFields.needsDistance && (
+                      <View className="flex-1 mx-1">
+                        <TextInput
+                          value={set.distance}
+                          onChangeText={(value) =>
+                            updateSet(index, "distance", value)
+                          }
+                          placeholder={
+                            set.previousData
+                              ? getPreviousValuePlaceholder(
+                                  "distance",
+                                  set.previousData,
+                                  unitsConfig.weight,
+                                  unitsConfig.distance,
+                                )
+                              : "0"
+                          }
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
+                        />
+                      </View>
+                    )}
+
+                    {/* RPE Input */}
+                    <View className="w-16 mx-1">
+                      <TextInput
+                        value={set.rpe}
+                        onChangeText={(value) => updateSet(index, "rpe", value)}
+                        placeholder="8"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                        maxLength={2}
+                        className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
+                      />
+                    </View>
+
+                    {/* Completed Checkbox */}
+                    <TouchableOpacity
+                      className="w-12 items-center"
+                      onPress={() => {
+                        if (set.previousData && !set.completed) {
+                          // Quick-fill with previous data
+                          quickFillSet(index);
+                        } else {
+                          // Normal toggle
+                          updateSet(index, "completed", !set.completed);
+                        }
+                      }}
+                    >
+                      <View
+                        className={`w-6 h-6 rounded border-2 items-center justify-center ${
+                          set.completed
+                            ? "bg-[#6F2DBD] border-[#6F2DBD]"
+                            : set.previousData
+                              ? "border-[#6F2DBD]"
+                              : "border-gray-500"
+                        }`}
+                      >
+                        {set.completed && (
+                          <Ionicons name="checkmark" size={16} color="white" />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                </SwipeableSetRow>
+              ))}
+
+              {/* Add Set Button */}
               <TouchableOpacity
-                onPress={() => setShowLogModal(false)}
+                onPress={addSet}
+                className="bg-[#2c2c2e] border-2 border-dashed border-gray-500 rounded-xl p-4 mb-6 items-center justify-center"
+              >
+                <View className="flex-row items-center">
+                  <Ionicons name="add" size={20} color="#6F2DBD" />
+                  <Text className="text-[#6F2DBD] font-Poppins_500Medium ml-2">
+                    Add Set
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                onPress={() => {
+                  resetSets();
+                  setShowLogModal(false);
+                }}
                 className="flex-1 bg-[#2c2c2e] rounded-xl p-4"
               >
                 <Text className="text-gray-300 font-Poppins_500Medium text-center">
@@ -767,11 +1125,11 @@ const Page = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={handleLogSet}
+                onPress={handleLogAllSets}
                 className="flex-1 bg-[#6F2DBD] rounded-xl p-4"
               >
                 <Text className="text-white font-Poppins_600SemiBold text-center">
-                  Log Set
+                  Finish
                 </Text>
               </TouchableOpacity>
             </View>

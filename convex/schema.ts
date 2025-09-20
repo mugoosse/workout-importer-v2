@@ -60,14 +60,14 @@ const schema = defineSchema({
     description: v.optional(v.string()),
     source: v.string(),
     exerciseType: v.union(
-      v.literal("Weight Reps"),
-      v.literal("Reps Only"),
-      v.literal("Weighted Bodyweight"),
-      v.literal("Assisted Bodyweight"),
-      v.literal("Duration"),
-      v.literal("Weight & Duration"),
-      v.literal("Distance & Duration"),
-      v.literal("Weight & Distance")
+      v.literal("Weight Reps"), // Example: Bench Press, Dumbbell Curls
+      v.literal("Reps Only"), // Example: Pullups, Sit ups, Burpees
+      v.literal("Weighted Bodyweight"), // Example: Weighted Pull Ups, Weighted Dips
+      v.literal("Assisted Bodyweight"), // Example: Assisted Pullups, Assisted Dips
+      v.literal("Duration"), // Example: Planks, Yoga, Stretching
+      v.literal("Weight & Duration"), // Example: Weighted Plank, Wall Sit
+      v.literal("Distance & Duration"), // Example: Running, Cycling, Rowing
+      v.literal("Weight & Distance") // Example: Farmers Walk, Suitcase Carry
     ),
     thumbnailUrl: v.optional(v.string()),
   })
