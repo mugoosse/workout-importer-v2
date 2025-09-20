@@ -151,7 +151,10 @@ const Page = () => {
             </Text>
 
             {exerciseLogSummaries.slice(0, 6).map((summary, index) => (
-              <View key={summary.exerciseId} className={index > 0 ? "mt-4" : ""}>
+              <View
+                key={summary.exerciseId}
+                className={index > 0 ? "mt-4" : ""}
+              >
                 <ExerciseLogItem
                   summary={summary}
                   formatLastLoggedDate={formatLastLoggedDate}
