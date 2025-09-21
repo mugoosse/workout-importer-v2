@@ -100,6 +100,28 @@ const schema = defineSchema({
     .index("by_exercise", ["exerciseId", "role"])
     .index("by_muscle", ["muscleId", "role"])
     .index("by_exercise_and_muscle", ["exerciseId", "muscleId"]),
+  videos: defineTable({
+    position: v.number(),
+    title: v.string(),
+    link: v.string(),
+    thumbnail: v.string(),
+    clip: v.optional(v.string()),
+    source: v.string(),
+    sourceIcon: v.optional(v.string()),
+    channel: v.string(),
+    searchQuery: v.string(),
+    searchDate: v.number(),
+  })
+    .index("by_search", ["searchQuery", "searchDate"])
+    .index("by_position", ["searchQuery", "position"])
+    .index("by_link", ["link"]),
+  exerciseVideos: defineTable({
+    exerciseId: v.id("exercises"),
+    videoId: v.id("videos"),
+  })
+    .index("by_exercise", ["exerciseId"])
+    .index("by_video", ["videoId"])
+    .index("by_both", ["exerciseId", "videoId"]),
 });
 
 export default schema;

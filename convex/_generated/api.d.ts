@@ -15,6 +15,8 @@ import type {
 } from "convex/server";
 import type * as auth from "../auth.js";
 import type * as exerciseHelpers from "../exerciseHelpers.js";
+import type * as exerciseVideoActions from "../exerciseVideoActions.js";
+import type * as exerciseVideos from "../exerciseVideos.js";
 import type * as exercises from "../exercises.js";
 import type * as http from "../http.js";
 import type * as muscles from "../muscles.js";
@@ -32,6 +34,8 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   exerciseHelpers: typeof exerciseHelpers;
+  exerciseVideoActions: typeof exerciseVideoActions;
+  exerciseVideos: typeof exerciseVideos;
   exercises: typeof exercises;
   http: typeof http;
   muscles: typeof muscles;

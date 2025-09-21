@@ -175,6 +175,27 @@ Set environment variables in your deployment platform:
 - `CONVEX_DEPLOYMENT`
 - `EXPO_PUBLIC_CONVEX_URL`
 
+### SerpAPI Configuration (Exercise Videos Feature)
+
+To enable exercise video search functionality, configure SerpAPI:
+
+1. **Get a SerpAPI key**:
+   - Go to [serpapi.com](https://serpapi.com/)
+   - Sign up for a free account (100 searches/month)
+   - Copy your API key from the dashboard
+
+2. **Add to Convex environment**:
+   ```bash
+   # Using Convex CLI
+   npx convex env set SERP_API_KEY your_serpapi_key_here
+   ```
+
+   Or via [Convex Dashboard](https://dashboard.convex.dev):
+   - Go to Settings → Environment Variables
+   - Add: `SERP_API_KEY` = `your_serpapi_key_here`
+
+3. **Video search will be available** in exercise detail pages via the "Videos" button
+
 ## Import Exercise Data
 
 If you have exercise data in CSV format:

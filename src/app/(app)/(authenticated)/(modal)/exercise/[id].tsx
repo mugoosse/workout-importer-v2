@@ -1,10 +1,10 @@
+import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import {
   MuscleBody,
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
 import { Badge } from "@/components/ui/Badge";
-import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import {
@@ -265,6 +265,23 @@ const Page = () => {
                     </Badge>
                   </TouchableOpacity>
                 ))}
+
+            {/* Videos Button */}
+            <TouchableOpacity
+              onPress={() =>
+                router.push(
+                  `/(app)/(authenticated)/(modal)/exercise/${exerciseId}/videos`,
+                )
+              }
+              className="ml-auto"
+            >
+              <View className="flex-row items-center bg-[#6F2DBD] px-3 py-1.5 rounded-lg">
+                <Text className="text-white text-xs font-Poppins_500Medium ml-1">
+                  Videos
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View className="bg-[#1c1c1e] rounded-2xl p-4">
