@@ -3,8 +3,11 @@ import { type Id } from "@/convex/_generated/dataModel";
 import {
   type LoggedSet,
   type ExerciseLog,
+  type WorkoutSession,
   getLastWorkoutSetsAtom,
   exerciseLogsAtom,
+  workoutSessionsAtom,
+  loggedSetsAtom,
 } from "@/store/exerciseLog";
 
 export interface WorkoutSet {
@@ -33,6 +36,7 @@ export interface WorkoutExercise {
 }
 
 export interface ActiveWorkout {
+  id: string; // Unique workout session ID
   exercises: WorkoutExercise[];
   startTime: number;
   name?: string;
@@ -41,6 +45,7 @@ export interface ActiveWorkout {
 
 // Initial state
 const initialWorkout: ActiveWorkout = {
+  id: "",
   exercises: [],
   startTime: 0,
   isActive: false,
@@ -91,9 +96,15 @@ export const generateWorkoutSetId = (): string => {
   return `wset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
+// Utility function to generate unique workout ID
+export const generateWorkoutId = (): string => {
+  return `workout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 // Action to start a new workout
 export const startWorkoutAction = atom(null, (get, set, name?: string) => {
   const newWorkout: ActiveWorkout = {
+    id: generateWorkoutId(),
     exercises: [],
     startTime: Date.now(),
     name,
@@ -363,9 +374,39 @@ export const finishWorkoutAction = atom(null, (get, set) => {
     throw new Error("No active workout to finish");
   }
 
+  const endTime = Date.now();
+  const currentDate = new Date().toISOString().split("T")[0];
+
+  // Calculate totals for the workout session
+  const completedSets = currentWorkout.exercises.flatMap((exercise) =>
+    exercise.sets.filter((set) => set.isCompleted),
+  );
+
+  const totalSets = completedSets.length;
+  const totalVolume = completedSets.reduce((vol, set) => {
+    if (set.weight && set.reps) {
+      return vol + set.weight * set.reps;
+    }
+    return vol;
+  }, 0);
+
+  const exerciseIds = currentWorkout.exercises.map((ex) => ex.exerciseId);
+
+  // Create workout session record
+  const workoutSession: WorkoutSession = {
+    id: currentWorkout.id,
+    name: currentWorkout.name,
+    startTime: currentWorkout.startTime,
+    endTime,
+    exercises: exerciseIds,
+    totalSets,
+    totalVolume,
+    totalXP: 0, // Will be calculated by the workout page
+    date: currentDate,
+  };
+
   // Convert workout sets to logged sets format
   const loggedSets: LoggedSet[] = [];
-  const currentDate = new Date().toISOString().split("T")[0];
 
   currentWorkout.exercises.forEach((exercise) => {
     exercise.sets
@@ -374,6 +415,7 @@ export const finishWorkoutAction = atom(null, (get, set) => {
         const loggedSet: LoggedSet = {
           id: workoutSet.id,
           exerciseId: exercise.exerciseId,
+          workoutSessionId: currentWorkout.id,
           reps: workoutSet.reps,
           weight: workoutSet.weight,
           duration: workoutSet.duration,
@@ -403,13 +445,18 @@ export const finishWorkoutAction = atom(null, (get, set) => {
     }
   });
 
-  // Update exercise logs atom
+  // Update atoms
+  const currentWorkoutSessions = get(workoutSessionsAtom);
+  const currentLoggedSets = get(loggedSetsAtom);
+
+  set(workoutSessionsAtom, [...currentWorkoutSessions, workoutSession]);
+  set(loggedSetsAtom, [...currentLoggedSets, ...loggedSets]);
   set(exerciseLogsAtom, [...currentExerciseLogs, ...exerciseLogs]);
 
   // Clear the active workout
   set(activeWorkoutAtom, initialWorkout);
 
-  return loggedSets;
+  return { loggedSets, workoutSession };
 });
 
 // Action to discard workout

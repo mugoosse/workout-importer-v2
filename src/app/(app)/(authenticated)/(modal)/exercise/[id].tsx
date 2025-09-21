@@ -4,25 +4,22 @@ import {
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
 import { Badge } from "@/components/ui/Badge";
+import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import {
-  getSetsByExerciseAtom,
-  exerciseLogSummariesAtom,
-} from "@/store/exerciseLog";
 import {
   addExercisesToWorkoutAction,
   startWorkoutAction,
 } from "@/store/activeWorkout";
 import {
+  getSetsByWorkoutSessionAtom,
+  getWorkoutSessionsByExerciseAtom,
+} from "@/store/exerciseLog";
+import {
   getProgressColor,
   getStreakEmoji,
   individualMuscleProgressAtom,
 } from "@/store/weeklyProgress";
-import {
-  calculateXPDistribution,
-  extractMuscleInvolvement,
-} from "@/utils/xpCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
 import { Link, router, Stack, useLocalSearchParams } from "expo-router";
@@ -77,8 +74,10 @@ const Page = () => {
   });
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
-  const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
-  const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
+  const [getWorkoutSessionsByExercise] = useAtom(
+    getWorkoutSessionsByExerciseAtom,
+  );
+  const [getSetsByWorkoutSession] = useAtom(getSetsByWorkoutSessionAtom);
   const [, startWorkout] = useAtom(startWorkoutAction);
   const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
 
@@ -87,13 +86,8 @@ const Page = () => {
       new Set<MuscleRole>(["target", "synergist", "stabilizer", "lengthening"]),
   );
 
-  // Get logged sets for this exercise
-  const loggedSets = getSetsByExercise(exerciseId);
-
-  // Get exercise log summary for notes
-  const exerciseLogSummary = exerciseLogSummaries.find(
-    (summary) => summary.exerciseId === exerciseId,
-  );
+  // Get workout sessions for this exercise
+  const workoutSessions = getWorkoutSessionsByExercise(exerciseId);
 
   // Handle starting a workout with this exercise
   const handleStartWorkout = () => {
@@ -271,152 +265,116 @@ const Page = () => {
 
         {/* Workouts Section */}
         <View className="mx-4 mb-6">
-          <View className="bg-[#1c1c1e] rounded-2xl p-4">
-            <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
-              Workouts
-            </Text>
+          <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
+            Workouts
+          </Text>
 
-            {/* Start Workout Button */}
-            <TouchableOpacity
-              onPress={handleStartWorkout}
-              className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
-            >
-              <View className="flex-row items-center justify-center">
-                <Ionicons name="play" size={20} color="#ffffff" />
-                <Text className="text-white font-Poppins_600SemiBold ml-2">
-                  Start workout
-                </Text>
-              </View>
-            </TouchableOpacity>
+          {/* Start Workout Button */}
+          <TouchableOpacity
+            onPress={handleStartWorkout}
+            className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
+          >
+            <View className="flex-row items-center justify-center">
+              <Ionicons name="play" size={20} color="#ffffff" />
+              <Text className="text-white font-Poppins_600SemiBold ml-2">
+                Start workout
+              </Text>
+            </View>
+          </TouchableOpacity>
 
-            {/* Recent Workouts */}
-            {loggedSets.length > 0 && (
-              <View>
-                <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-3">
-                  Recent Workouts
-                </Text>
-                <View className="space-y-3">
-                  {(() => {
-                    // Group sets by date to create workout sessions
-                    const workoutsByDate = loggedSets.reduce(
-                      (acc, set) => {
-                        if (!acc[set.date]) {
-                          acc[set.date] = [];
-                        }
-                        acc[set.date].push(set);
-                        return acc;
-                      },
-                      {} as Record<string, typeof loggedSets>,
-                    );
+          {/* Recent Workouts */}
+          {workoutSessions.length > 0 && (
+            <View>
+              <Text className="text-gray-300 text-sm font-Poppins_500Medium mb-3">
+                Recent Workouts
+              </Text>
+              <View className="space-y-3">
+                {workoutSessions.slice(0, 3).map((session, workoutIndex) => {
+                  const sessionSets = getSetsByWorkoutSession(
+                    session.id,
+                  ).filter((set) => set.exerciseId === exerciseId);
 
-                    // Sort dates in descending order (most recent first)
-                    const sortedDates = Object.keys(workoutsByDate).sort(
-                      (a, b) => b.localeCompare(a),
-                    );
+                  const formatWorkoutDate = (timestamp: number) => {
+                    const date = new Date(timestamp);
+                    const today = new Date();
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
 
-                    // Take only the 3 most recent workout sessions
-                    return sortedDates.slice(0, 3).map((date, workoutIndex) => {
-                      const workoutSets = workoutsByDate[date].sort(
-                        (a, b) => a.timestamp - b.timestamp,
-                      );
-                      const formatSetDisplay = (set: any) => {
-                        const parts = [];
-                        if (set.reps) parts.push(`${set.reps} reps`);
-                        if (set.weight) parts.push(`${set.weight} kg`);
-                        if (set.duration) parts.push(`${set.duration}s`);
-                        if (set.distance) parts.push(`${set.distance}m`);
-                        if (set.rpe) parts.push(`RPE ${set.rpe}`);
-                        return parts.join(" • ");
-                      };
+                    if (date.toDateString() === today.toDateString()) {
+                      return "Today";
+                    } else if (
+                      date.toDateString() === yesterday.toDateString()
+                    ) {
+                      return "Yesterday";
+                    } else {
+                      return date.toLocaleDateString([], {
+                        month: "short",
+                        day: "numeric",
+                        year:
+                          date.getFullYear() !== today.getFullYear()
+                            ? "numeric"
+                            : undefined,
+                      });
+                    }
+                  };
 
-                      const formatWorkoutDate = (dateStr: string) => {
-                        const date = new Date(dateStr);
-                        const today = new Date();
-                        const yesterday = new Date(today);
-                        yesterday.setDate(yesterday.getDate() - 1);
-
-                        if (dateStr === today.toISOString().split("T")[0]) {
-                          return "Today";
-                        } else if (
-                          dateStr === yesterday.toISOString().split("T")[0]
-                        ) {
-                          return "Yesterday";
-                        } else {
-                          return date.toLocaleDateString([], {
-                            month: "short",
-                            day: "numeric",
-                            year:
-                              date.getFullYear() !== today.getFullYear()
-                                ? "numeric"
-                                : undefined,
-                          });
-                        }
-                      };
-
-                      return (
-                        <View
-                          key={date}
-                          className={`bg-[#2c2c2e] rounded-lg p-4 ${workoutIndex > 0 ? "mt-3" : ""}`}
-                        >
-                          {/* Workout Header */}
-                          <View className="flex-row justify-between items-center mb-3">
-                            <Text className="text-white font-Poppins_600SemiBold text-sm">
-                              {formatWorkoutDate(date)}
-                            </Text>
-                            <Text className="text-gray-400 text-xs">
-                              {workoutSets.length} set
-                              {workoutSets.length > 1 ? "s" : ""}
-                            </Text>
-                          </View>
-
-                          {/* Sets List */}
-                          <View className="space-y-2">
-                            {workoutSets.map((set, setIndex) => {
-                              // Calculate XP for this set
-                              const muscleInvolvements =
-                                exerciseDetails?.muscles
-                                  ? extractMuscleInvolvement(
-                                      exerciseDetails.muscles,
-                                    )
-                                  : [];
-
-                              const xpResult = calculateXPDistribution(
-                                muscleInvolvements,
-                                set.rpe || 10,
-                              );
-
-                              return (
-                                <View
-                                  key={set.id}
-                                  className="flex-row justify-between items-center"
-                                >
-                                  <Text className="text-gray-300 font-Poppins_400Regular text-xs flex-1">
-                                    Set {setIndex + 1}: {formatSetDisplay(set)}
-                                  </Text>
-                                  <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium ml-2">
-                                    +{xpResult.totalXP} XP
-                                  </Text>
-                                </View>
-                              );
-                            })}
-                          </View>
-
-                          {/* Exercise Notes */}
-                          {exerciseLogSummary?.notes && (
-                            <View className="mt-3 bg-[#1c1c1e] rounded-lg p-3">
-                              <Text className="text-gray-300 text-sm font-Poppins_400Regular italic">
-                                {exerciseLogSummary.notes}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      );
+                  const formatTimeDisplay = (timestamp: number) => {
+                    const date = new Date(timestamp);
+                    return date.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
                     });
-                  })()}
-                </View>
+                  };
+
+                  const duration = session.endTime - session.startTime;
+                  const durationMins = Math.round(duration / 60000);
+
+                  return (
+                    <TouchableOpacity
+                      key={session.id}
+                      className={`bg-[#1c1c1e] rounded-lg p-4 ${workoutIndex > 0 ? "mt-3" : ""}`}
+                      onPress={() =>
+                        router.push(
+                          `/(app)/(authenticated)/(modal)/workout/${session.id}`,
+                        )
+                      }
+                    >
+                      {/* Workout Header */}
+                      <View className="flex-row justify-between items-start mb-3">
+                        <View className="flex-1 mr-3">
+                          <Text className="text-white font-Poppins_600SemiBold text-sm">
+                            {formatWorkoutDate(session.startTime)}
+                          </Text>
+                          <Text className="text-gray-400 text-xs">
+                            {formatTimeDisplay(session.startTime)} •{" "}
+                            {durationMins}min
+                          </Text>
+                        </View>
+                        <View className="bg-[#2c2c2e] w-8 h-8 rounded-lg items-center justify-center">
+                          <Ionicons
+                            name="chevron-forward"
+                            size={16}
+                            color="#fff"
+                          />
+                        </View>
+                      </View>
+
+                      {/* Exercise Sets Details */}
+                      <View className="mt-3">
+                        <ExerciseSetsDisplay
+                          exerciseDetail={exerciseDetails}
+                          exerciseSets={sessionSets}
+                          exerciseNotes={undefined}
+                          showHeader={false}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
-          </View>
+            </View>
+          )}
         </View>
 
         {/* Muscle Body Visualization */}

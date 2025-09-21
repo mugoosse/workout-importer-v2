@@ -2,7 +2,9 @@ import { WeeklyProgressCard } from "@/components/WeeklyProgressCard";
 import { api } from "@/convex/_generated/api";
 import {
   exerciseLogSummariesAtom,
+  workoutSessionsAtom,
   type ExerciseLogSummary,
+  type WorkoutSession,
 } from "@/store/exerciseLog";
 import {
   calculateXPDistribution,
@@ -93,9 +95,88 @@ const ExerciseLogItem = ({
   );
 };
 
+// Component to display workout session card
+const WorkoutSessionCard = ({
+  session,
+  formatLastLoggedDate,
+}: {
+  session: WorkoutSession;
+  formatLastLoggedDate: (dateString: string) => string;
+}) => {
+  const formatDuration = (milliseconds: number): string => {
+    const totalMinutes = Math.round(milliseconds / 60000);
+    if (totalMinutes < 60) {
+      return `${totalMinutes}min`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}min`;
+  };
+
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const duration = session.endTime - session.startTime;
+
+  return (
+    <TouchableOpacity
+      className="bg-[#1c1c1e] rounded-xl p-4 mb-3"
+      onPress={() =>
+        router.push(`/(app)/(authenticated)/(modal)/workout/${session.id}`)
+      }
+    >
+      {/* Workout Header */}
+      <View className="flex-row items-start justify-between mb-3">
+        <View className="flex-1 mr-3">
+          <Text className="text-white font-Poppins_600SemiBold text-base">
+            {session.name || "Workout"}
+          </Text>
+          <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+            {formatLastLoggedDate(session.date)} •{" "}
+            {formatTime(session.startTime)} • {formatDuration(duration)}
+          </Text>
+        </View>
+
+        <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
+        </View>
+      </View>
+
+      {/* Stats Row */}
+      <View className="flex-row items-center gap-3 mb-3">
+        <View className="bg-[#2c2c2e] rounded-full px-3 py-1">
+          <Text className="text-gray-400 text-xs font-Poppins_500Medium">
+            {session.totalSets} sets
+          </Text>
+        </View>
+        <View className="bg-[#2c2c2e] rounded-full px-3 py-1">
+          <Text className="text-gray-400 text-xs font-Poppins_500Medium">
+            {session.exercises.length} exercise
+            {session.exercises.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
+        {session.totalXP > 0 && (
+          <View className="bg-[#2c2c2e] rounded-full px-3 py-1">
+            <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium">
+              +{session.totalXP} XP
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const Page = () => {
   const muscles = useQuery(api.muscles.list);
   const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
+  const [workoutSessions] = useAtom(workoutSessionsAtom);
 
   const formatLastLoggedDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -145,34 +226,57 @@ const Page = () => {
           <WeeklyProgressCard />
         </View>
 
-        {/* Logged Exercises Section */}
-        {exerciseLogSummaries.length > 0 && (
+        {/* Recent Workouts Section */}
+        {(workoutSessions.length > 0 || exerciseLogSummaries.length > 0) && (
           <View className="mx-4 mb-6 mt-8">
-            <View className="bg-[#1c1c1e] rounded-2xl p-4">
-              <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-                Recent Workouts
-              </Text>
+            <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
+              Recent Workouts
+            </Text>
 
-              {exerciseLogSummaries.slice(0, 6).map((summary, index) => (
-                <View
-                  key={summary.exerciseId}
-                  className={index > 0 ? "mt-4" : ""}
-                >
-                  <ExerciseLogItem
-                    summary={summary}
-                    formatLastLoggedDate={formatLastLoggedDate}
-                  />
-                </View>
-              ))}
-
-              {exerciseLogSummaries.length > 6 && (
-                <TouchableOpacity className="mt-2 p-2">
-                  <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
-                    View All ({exerciseLogSummaries.length} exercises)
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            {workoutSessions.length > 0 ? (
+              /* Show workout sessions if available */
+              <>
+                {workoutSessions
+                  .sort((a, b) => b.startTime - a.startTime)
+                  .slice(0, 4)
+                  .map((session) => (
+                    <WorkoutSessionCard
+                      key={session.id}
+                      session={session}
+                      formatLastLoggedDate={formatLastLoggedDate}
+                    />
+                  ))}
+                {workoutSessions.length > 4 && (
+                  <TouchableOpacity className="mt-2 p-2">
+                    <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
+                      View All ({workoutSessions.length} workouts)
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              /* Fallback to exercise summaries */
+              <>
+                {exerciseLogSummaries.slice(0, 6).map((summary, index) => (
+                  <View
+                    key={summary.exerciseId}
+                    className={index > 0 ? "mt-4" : ""}
+                  >
+                    <ExerciseLogItem
+                      summary={summary}
+                      formatLastLoggedDate={formatLastLoggedDate}
+                    />
+                  </View>
+                ))}
+                {exerciseLogSummaries.length > 6 && (
+                  <TouchableOpacity className="mt-2 p-2">
+                    <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
+                      View All ({exerciseLogSummaries.length} exercises)
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
         )}
       </ScrollView>

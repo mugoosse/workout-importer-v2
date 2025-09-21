@@ -14,6 +14,7 @@ export type ExerciseType =
 export interface LoggedSet {
   id: string;
   exerciseId: Id<"exercises">;
+  workoutSessionId?: string; // Link to workout session
   reps?: number; // For reps-based exercises
   weight?: number; // Weight in kg
   duration?: number; // Duration in seconds
@@ -21,6 +22,18 @@ export interface LoggedSet {
   rpe: number; // Rate of Perceived Exertion (1-10 scale)
   timestamp: number;
   date: string; // YYYY-MM-DD format for grouping
+}
+
+export interface WorkoutSession {
+  id: string; // Unique workout session ID
+  name?: string;
+  startTime: number;
+  endTime: number;
+  exercises: Id<"exercises">[];
+  totalSets: number;
+  totalVolume: number;
+  totalXP: number;
+  date: string; // YYYY-MM-DD
 }
 
 export interface ExerciseLog {
@@ -44,6 +57,9 @@ export const loggedSetsAtom = atom<LoggedSet[]>([]);
 
 // Simple atom for exercise logs (client-side only)
 export const exerciseLogsAtom = atom<ExerciseLog[]>([]);
+
+// Atom for workout sessions
+export const workoutSessionsAtom = atom<WorkoutSession[]>([]);
 
 // Derived atom for exercise log summaries
 export const exerciseLogSummariesAtom = atom<ExerciseLogSummary[]>((get) => {
@@ -164,10 +180,37 @@ export const clearAllLogsAction = atom(null, (get, set) => {
   set(loggedSetsAtom, []);
 });
 
+// Atom for getting workout sessions by exercise
+export const getWorkoutSessionsByExerciseAtom = atom(
+  (get) => (exerciseId: Id<"exercises">) => {
+    const workoutSessions = get(workoutSessionsAtom);
+    return workoutSessions
+      .filter((session) => session.exercises.includes(exerciseId))
+      .sort((a, b) => b.startTime - a.startTime);
+  },
+);
+
+// Atom for getting sets by workout session
+export const getSetsByWorkoutSessionAtom = atom(
+  (get) => (sessionId: string) => {
+    const loggedSets = get(loggedSetsAtom);
+    return loggedSets
+      .filter((set) => set.workoutSessionId === sessionId)
+      .sort((a, b) => a.timestamp - b.timestamp);
+  },
+);
+
+// Atom for getting workout session by ID
+export const getWorkoutSessionByIdAtom = atom((get) => (sessionId: string) => {
+  const workoutSessions = get(workoutSessionsAtom);
+  return workoutSessions.find((session) => session.id === sessionId);
+});
+
 // Atom for getting previous workout session sets for an exercise
 export const getLastWorkoutSetsAtom = atom(
   (get) => (exerciseId: Id<"exercises">) => {
     const loggedSets = get(loggedSetsAtom);
+    const workoutSessions = get(workoutSessionsAtom);
 
     // Get all sets for this exercise, sorted by timestamp
     const exerciseSets = loggedSets
@@ -178,7 +221,19 @@ export const getLastWorkoutSetsAtom = atom(
       return [];
     }
 
-    // Group sets by date to find workout sessions
+    // If we have workout sessions, use the most recent session
+    const sessionsWithExercise = workoutSessions
+      .filter((session) => session.exercises.includes(exerciseId))
+      .sort((a, b) => b.startTime - a.startTime);
+
+    if (sessionsWithExercise.length > 0) {
+      const lastSession = sessionsWithExercise[0];
+      return exerciseSets
+        .filter((set) => set.workoutSessionId === lastSession.id)
+        .sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    // Fallback to date-based grouping for backward compatibility
     const setsByDate = exerciseSets.reduce(
       (acc, set) => {
         if (!acc[set.date]) {
@@ -190,7 +245,6 @@ export const getLastWorkoutSetsAtom = atom(
       {} as Record<string, LoggedSet[]>,
     );
 
-    // Get dates sorted by most recent first
     const sortedDates = Object.keys(setsByDate).sort((a, b) =>
       b.localeCompare(a),
     );
@@ -199,7 +253,6 @@ export const getLastWorkoutSetsAtom = atom(
       return [];
     }
 
-    // Return the most recent workout session's sets
     const lastWorkoutDate = sortedDates[0];
     return setsByDate[lastWorkoutDate].sort(
       (a, b) => a.timestamp - b.timestamp,

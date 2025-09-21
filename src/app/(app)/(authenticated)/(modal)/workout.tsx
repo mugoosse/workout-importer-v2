@@ -627,11 +627,12 @@ const Page = () => {
               // Navigate away immediately to prevent race condition
               router.back();
 
-              const loggedSets = finishWorkout();
+              const { loggedSets, workoutSession } = finishWorkout();
 
               // Process XP for each exercise and update progress
               let updatedIndividualProgress = individualMuscleProgress;
               let updatedWeeklyProgress = weeklyProgress;
+              let totalWorkoutXP = 0;
 
               for (const exercise of activeWorkout.exercises) {
                 // Get exercise details with muscle data for each exercise
@@ -668,6 +669,7 @@ const Page = () => {
                           result.updatedIndividualProgress;
                         updatedWeeklyProgress =
                           result.updatedMajorGroupProgress;
+                        totalWorkoutXP += result.xpCalculation.totalXP;
                       });
                   }
                 } catch (error) {
@@ -677,6 +679,9 @@ const Page = () => {
                   );
                 }
               }
+
+              // Update the workout session with calculated XP
+              workoutSession.totalXP = totalWorkoutXP;
 
               // Update progress atoms
               setIndividualMuscleProgress(updatedIndividualProgress);

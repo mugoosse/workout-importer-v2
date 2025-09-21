@@ -134,11 +134,13 @@ const Page = () => {
     });
 
     const queryString = searchParams.toString();
-    router.replace(`/exercises${queryString ? `?${queryString}` : ""}`);
+    router.replace(
+      `/(app)/(authenticated)/(modal)/exercises${queryString ? `?${queryString}` : ""}`,
+    );
   };
 
   const handleClearAllFilters = () => {
-    router.replace("/exercises");
+    router.replace("/(app)/(authenticated)/(modal)/exercises");
     setSearchText("");
   };
 
@@ -247,7 +249,7 @@ const Page = () => {
 
               const queryString = filterParams.toString();
               router.replace(
-                `/exercises/filter${queryString ? `?${queryString}` : ""}`,
+                `/(app)/(authenticated)/(modal)/exercises/filter${queryString ? `?${queryString}` : ""}`,
               );
             }}
             className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
