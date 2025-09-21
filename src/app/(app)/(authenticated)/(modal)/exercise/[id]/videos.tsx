@@ -59,21 +59,9 @@ const Page = () => {
   };
 
   const handleVideoPress = (video: any) => {
-    Alert.alert(
-      video.title,
-      `Source: ${video.source}\nChannel: ${video.channel}`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Open Video",
-          onPress: () => {
-            Linking.openURL(video.link).catch(() => {
-              Alert.alert("Error", "Unable to open video link");
-            });
-          },
-        },
-      ],
-    );
+    Linking.openURL(video.link).catch(() => {
+      Alert.alert("Error", "Unable to open video link");
+    });
   };
 
   const onRefresh = async () => {
