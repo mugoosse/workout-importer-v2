@@ -1,15 +1,15 @@
-import { Text, TouchableOpacity, View } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useAtom } from "jotai";
-import { Badge } from "@/components/ui/Badge";
 import { TopCreateOption } from "@/components/TopCreateOption";
-import { type MajorMuscleGroup } from "@/utils/muscleMapping";
+import { Badge } from "@/components/ui/Badge";
 import {
-  weeklyProgressAtom,
   getProgressColor,
   getStreakEmoji,
+  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
+import { type MajorMuscleGroup } from "@/utils/muscleMapping";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import { useAtom } from "jotai";
+import { Text, TouchableOpacity, View } from "react-native";
 
 const Page = () => {
   const { group } = useLocalSearchParams<{ group: string }>();
@@ -17,7 +17,7 @@ const Page = () => {
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
 
   const muscleGroupData = weeklyProgress.find(
-    (item) => item.majorGroup === majorGroup,
+    (item) => item.majorGroup === majorGroup
   );
 
   if (!muscleGroupData) {
@@ -30,15 +30,15 @@ const Page = () => {
 
   const progressColor = getProgressColor(muscleGroupData.percentage);
 
-  const handleSuggestExercises = () => {
+  const handleShowExercises = () => {
     router.push(
-      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=target`,
+      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=target`
     );
   };
 
   const handleShowBreakdown = () => {
     router.push(
-      `/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}/breakdown`,
+      `/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}/muscles`
     );
   };
 
@@ -93,14 +93,14 @@ const Page = () => {
         <View className="flex-row gap-3 mb-3">
           <TopCreateOption
             icon={<Ionicons name="fitness-outline" size={24} color="white" />}
-            title="Suggest Exercises"
+            title="Show Exercises"
             subtitle={`For ${majorGroup}`}
-            onPress={handleSuggestExercises}
+            onPress={handleShowExercises}
           />
           <TopCreateOption
             icon={<Ionicons name="analytics-outline" size={24} color="white" />}
-            title="Show Breakdown"
-            subtitle="Individual muscles"
+            title="Show Muscles"
+            subtitle="Detailed view"
             onPress={handleShowBreakdown}
           />
         </View>
