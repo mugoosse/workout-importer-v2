@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
 import { SwipeableSetRow } from "@/components/SwipeableSetRow";
+import { RPEDrawer } from "@/components/RPEDrawer";
 import { api } from "@/convex/_generated/api";
 import {
   activeWorkoutAtom,
@@ -75,6 +76,11 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   });
 
   const [localNotes, setLocalNotes] = useState(exercise.notes || "");
+  const [drawerState, setDrawerState] = useState<{
+    visible: boolean;
+    setId: string | null;
+    isEdit: boolean;
+  }>({ visible: false, setId: null, isEdit: false });
 
   // Get previous workout data
   const previousSets = getLastWorkoutSets(exercise.exerciseId);
@@ -179,6 +185,52 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
     }
 
     handleUpdateSet(setId, updates);
+  };
+
+  // Drawer handlers
+  const openDrawer = (setId: string, isEdit = false) => {
+    setDrawerState({ visible: true, setId, isEdit });
+  };
+
+  const closeDrawer = () => {
+    setDrawerState({ visible: false, setId: null, isEdit: false });
+  };
+
+  const handleRPESelect = (rpe: number) => {
+    if (!drawerState.setId) return;
+
+    const currentSet = exercise.sets.find((s) => s.id === drawerState.setId);
+    if (!currentSet) return;
+
+    if (drawerState.isEdit) {
+      // Just update RPE for completed set
+      handleUpdateSet(drawerState.setId, { rpe });
+    } else {
+      // Log the set with the selected RPE
+      const previousData =
+        previousSets?.[
+          exercise.sets.findIndex((s) => s.id === drawerState.setId)
+        ];
+
+      if (previousData && !currentSet.isCompleted) {
+        // Quick-fill with previous data and complete the set
+        quickFillSet(drawerState.setId, previousData);
+        // Update with selected RPE
+        setTimeout(() => {
+          handleUpdateSet(drawerState.setId!, { rpe });
+        }, 0);
+      } else {
+        // Normal set completion
+        handleUpdateSet(drawerState.setId, {
+          isCompleted: true,
+          rpe,
+        });
+      }
+    }
+  };
+
+  const handleDirectUndo = (setId: string) => {
+    handleUpdateSet(setId, { isCompleted: false });
   };
 
   // Helper functions for unit display
@@ -347,11 +399,8 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
               {getDistanceLabel()}
             </Text>
           )}
-          <Text className="text-gray-300 text-xs font-Poppins_600SemiBold w-12 text-center">
-            RPE
-          </Text>
-          <Text className="text-gray-300 text-xs font-Poppins_600SemiBold w-8 text-center">
-            ✓
+          <Text className="text-gray-300 text-xs font-Poppins_600SemiBold w-20 text-center">
+            COMPLETION
           </Text>
         </View>
 
@@ -507,54 +556,32 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                   </View>
                 )}
 
-                {/* RPE Input */}
-                <View className="w-12 mx-1">
-                  <TextInput
-                    value={set.rpe.toString()}
-                    onChangeText={(value) =>
-                      handleUpdateSet(set.id, {
-                        rpe: value ? parseInt(value) : 5,
-                      })
-                    }
-                    placeholder={
-                      previousData?.rpe ? previousData.rpe.toString() : "8"
-                    }
-                    placeholderTextColor="#666"
-                    keyboardType="numeric"
-                    maxLength={2}
-                    className="bg-neutral-700 rounded-lg p-2 text-white text-center text-sm font-Poppins_400Regular"
-                  />
+                {/* Complete/Status Button */}
+                <View className="w-20 mx-1">
+                  {set.isCompleted ? (
+                    // Completed state - green-tinted RPE pill for undo
+                    <TouchableOpacity
+                      onPress={() => handleDirectUndo(set.id)}
+                      className="bg-green-800 bg-opacity-70 rounded-full py-2 px-3 items-center justify-center border border-green-600"
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-green-100 text-xs font-Poppins_500Medium">
+                        RPE {set.rpe}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    // Not completed state - show Complete button
+                    <TouchableOpacity
+                      onPress={() => openDrawer(set.id, false)}
+                      className="bg-[#6F2DBD] rounded-lg py-2 px-2 items-center justify-center"
+                      activeOpacity={0.7}
+                    >
+                      <Text className="text-white text-xs font-Poppins_500Medium">
+                        Complete
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-
-                {/* Completed Checkbox */}
-                <TouchableOpacity
-                  className="w-8 items-center"
-                  onPress={() => {
-                    if (previousData && !set.isCompleted) {
-                      // Quick-fill with previous data, but preserve user values
-                      quickFillSet(set.id, previousData);
-                    } else {
-                      // Normal toggle
-                      handleUpdateSet(set.id, {
-                        isCompleted: !set.isCompleted,
-                      });
-                    }
-                  }}
-                >
-                  <View
-                    className={`w-5 h-5 rounded border-2 items-center justify-center ${
-                      set.isCompleted
-                        ? "bg-[#6F2DBD] border-[#6F2DBD]"
-                        : previousData
-                          ? "border-[#6F2DBD]"
-                          : "border-gray-500"
-                    }`}
-                  >
-                    {set.isCompleted && (
-                      <Ionicons name="checkmark" size={12} color="white" />
-                    )}
-                  </View>
-                </TouchableOpacity>
               </View>
             </SwipeableSetRow>
           );
@@ -571,6 +598,24 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
           Add Set
         </Text>
       </TouchableOpacity>
+
+      {/* RPE Drawer */}
+      <RPEDrawer
+        visible={drawerState.visible}
+        onClose={closeDrawer}
+        onSelect={handleRPESelect}
+        currentRPE={
+          drawerState.setId
+            ? exercise.sets.find((s) => s.id === drawerState.setId)?.rpe || 8
+            : 8
+        }
+        setNumber={
+          drawerState.setId
+            ? exercise.sets.findIndex((s) => s.id === drawerState.setId) + 1
+            : 1
+        }
+        isEdit={drawerState.isEdit}
+      />
     </View>
   );
 };
