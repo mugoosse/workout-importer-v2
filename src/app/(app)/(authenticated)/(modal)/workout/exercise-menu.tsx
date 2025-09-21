@@ -5,12 +5,10 @@ import { useSetAtom } from "jotai";
 import { removeExerciseFromWorkoutAction } from "@/store/activeWorkout";
 
 const Page = () => {
-  const { exerciseId, exerciseName, targetMuscleGroups } =
-    useLocalSearchParams<{
-      exerciseId: string;
-      exerciseName: string;
-      targetMuscleGroups?: string;
-    }>();
+  const { exerciseId, targetMuscleGroups } = useLocalSearchParams<{
+    exerciseId: string;
+    targetMuscleGroups?: string;
+  }>();
 
   const removeExercise = useSetAtom(removeExerciseFromWorkoutAction);
 
