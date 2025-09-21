@@ -416,7 +416,7 @@ const Page = () => {
 
               const queryString = filterParams.toString();
               router.replace(
-                `/(app)/(authenticated)/exercises/filter${queryString ? `?${queryString}` : ""}` as any,
+                `/(app)/(authenticated)/(modal)/exercises/filter${queryString ? `?${queryString}` : ""}` as any,
               );
             }}
             className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
