@@ -7,6 +7,7 @@ import {
   type WeeklyProgressData,
   type IndividualMuscleProgress,
 } from "@/store/weeklyProgress";
+import { RPE_SCALE } from "@/constants/rpe";
 
 export type MuscleRole = "target" | "synergist" | "stabilizer" | "lengthening";
 
@@ -44,14 +45,14 @@ const MULTIPLE_TARGET_FACTOR = 0.7;
  */
 export const calculateXPDistribution = (
   muscleInvolvements: MuscleInvolvement[],
-  rpe = 10, // Rate of Perceived Exertion (1-10 scale), defaults to 10
+  rpe: number = RPE_SCALE.MAX, // Rate of Perceived Exertion, defaults to max
 ): XPCalculationResult => {
   // Count target muscles to determine if we need to apply the multiple target factor
   const targetMuscles = muscleInvolvements.filter((m) => m.role === "target");
   const hasMultipleTargets = targetMuscles.length > 1;
 
   // Calculate RPE multiplier (1-10 scale where 10 = 1.0x, 1 = 0.1x)
-  const rpeMultiplier = Math.max(0.1, Math.min(1.0, rpe / 10));
+  const rpeMultiplier = Math.max(0.1, Math.min(1.0, rpe / RPE_SCALE.MAX));
 
   // Calculate XP for each muscle
   const muscleXPDistribution = muscleInvolvements.map((involvement) => {
@@ -212,7 +213,7 @@ export const processSetLogging = (
   currentIndividualProgress: Record<string, IndividualMuscleProgress>,
   currentMajorGroupProgress: WeeklyProgressData[],
   muscleInvolvements: MuscleInvolvement[],
-  rpe = 10,
+  rpe: number = RPE_SCALE.MAX,
 ): {
   updatedIndividualProgress: Record<string, IndividualMuscleProgress>;
   updatedMajorGroupProgress: WeeklyProgressData[];

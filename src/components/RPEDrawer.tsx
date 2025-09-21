@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
+import { RPE_SCALE_SIZE } from "@/constants/rpe";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,7 +16,7 @@ interface RPEDrawerProps {
   visible: boolean;
   onClose: () => void;
   onSelect: (rpe: number) => void;
-  currentRPE: number;
+  currentRPE?: number;
   setNumber: number;
   isEdit?: boolean;
 }
@@ -180,7 +181,7 @@ export const RPEDrawer: React.FC<RPEDrawerProps> = ({
         {/* RPE Grid */}
         <View className="flex-1 px-4 py-4">
           <View className="flex-row flex-wrap justify-between">
-            {[...Array(10)].map((_, index) => {
+            {[...Array(RPE_SCALE_SIZE)].map((_, index) => {
               const rpe = index + 1;
               const description = RPE_DESCRIPTIONS[rpe];
               const isSelected = currentRPE === rpe;

@@ -2,6 +2,7 @@ import { MuscleBody, type MuscleId } from "@/components/muscle-body/MuscleBody";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { RPE_SCALE } from "@/constants/rpe";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
 import { Stack, useLocalSearchParams, router } from "expo-router";
@@ -271,7 +272,7 @@ const Page = () => {
           // Calculate XP for this set for this specific muscle
           const xpResult = calculateXPDistribution(
             [{ muscleId: muscle.svgId as MuscleId, role: muscleRole }],
-            set.rpe || 10,
+            set.rpe || RPE_SCALE.MAX,
           );
 
           const muscleXP =

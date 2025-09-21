@@ -16,7 +16,7 @@ export interface WorkoutSet {
   weight?: number;
   duration?: number;
   distance?: number;
-  rpe: number;
+  rpe?: number;
   timestamp: number;
   isCompleted: boolean;
 }
@@ -32,7 +32,6 @@ export interface WorkoutExercise {
   sets: WorkoutSet[];
   order: number;
   notes?: string;
-  restTimerEnabled: boolean;
 }
 
 export interface ActiveWorkout {
@@ -143,7 +142,7 @@ export const addExercisesToWorkoutAction = atom(
           // Create the same number of empty sets as the previous workout
           initialSets = previousSets.map(() => ({
             id: generateWorkoutSetId(),
-            rpe: 5,
+            rpe: undefined,
             timestamp: Date.now(),
             isCompleted: false,
           }));
@@ -152,7 +151,7 @@ export const addExercisesToWorkoutAction = atom(
           initialSets = [
             {
               id: generateWorkoutSetId(),
-              rpe: 5,
+              rpe: undefined,
               timestamp: Date.now(),
               isCompleted: false,
             },
@@ -164,7 +163,6 @@ export const addExercisesToWorkoutAction = atom(
           exerciseDetails: exerciseDetails?.[exerciseId],
           sets: initialSets,
           order: currentWorkout.exercises.length + index,
-          restTimerEnabled: false,
         };
       },
     );
@@ -202,7 +200,7 @@ export const addSetToExerciseAction = atom(
       weight: setData.weight,
       duration: setData.duration,
       distance: setData.distance,
-      rpe: setData.rpe || 5,
+      rpe: setData.rpe,
       timestamp: Date.now(),
       isCompleted: setData.isCompleted || false,
     };
@@ -335,38 +333,6 @@ export const updateExerciseNotesAction = atom(
   },
 );
 
-// Action to toggle rest timer for an exercise
-export const toggleRestTimerAction = atom(
-  null,
-  (get, set, exerciseId: Id<"exercises">) => {
-    const currentWorkout = get(activeWorkoutAtom);
-    if (!currentWorkout.isActive) {
-      throw new Error("No active workout");
-    }
-
-    const exerciseIndex = currentWorkout.exercises.findIndex(
-      (ex) => ex.exerciseId === exerciseId,
-    );
-
-    if (exerciseIndex === -1) {
-      throw new Error("Exercise not found in workout");
-    }
-
-    const updatedExercises = [...currentWorkout.exercises];
-    updatedExercises[exerciseIndex] = {
-      ...updatedExercises[exerciseIndex],
-      restTimerEnabled: !updatedExercises[exerciseIndex].restTimerEnabled,
-    };
-
-    const updatedWorkout = {
-      ...currentWorkout,
-      exercises: updatedExercises,
-    };
-
-    set(activeWorkoutAtom, updatedWorkout);
-  },
-);
-
 // Action to finish workout and convert to logged sets
 export const finishWorkoutAction = atom(null, (get, set) => {
   const currentWorkout = get(activeWorkoutAtom);
@@ -410,7 +376,7 @@ export const finishWorkoutAction = atom(null, (get, set) => {
 
   currentWorkout.exercises.forEach((exercise) => {
     exercise.sets
-      .filter((workoutSet) => workoutSet.isCompleted)
+      .filter((workoutSet) => workoutSet.isCompleted && workoutSet.rpe != null)
       .forEach((workoutSet) => {
         const loggedSet: LoggedSet = {
           id: workoutSet.id,
@@ -420,7 +386,7 @@ export const finishWorkoutAction = atom(null, (get, set) => {
           weight: workoutSet.weight,
           duration: workoutSet.duration,
           distance: workoutSet.distance,
-          rpe: workoutSet.rpe,
+          rpe: workoutSet.rpe!, // We know it's not null due to filter
           timestamp: workoutSet.timestamp,
           date: currentDate,
         };

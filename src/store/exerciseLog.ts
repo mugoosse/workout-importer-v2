@@ -19,7 +19,7 @@ export interface LoggedSet {
   weight?: number; // Weight in kg
   duration?: number; // Duration in seconds
   distance?: number; // Distance in meters
-  rpe: number; // Rate of Perceived Exertion (1-10 scale)
+  rpe: number; // Rate of Perceived Exertion
   timestamp: number;
   date: string; // YYYY-MM-DD format for grouping
 }

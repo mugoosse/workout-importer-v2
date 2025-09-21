@@ -11,12 +11,9 @@ import {
 import {
   clearAllLogsAction,
   exerciseLogsAtom,
-  workoutSessionsAtom
+  workoutSessionsAtom,
 } from "@/store/exerciseLog";
-import {
-  activeWorkoutAtom,
-  discardWorkoutAction
-} from "@/store/activeWorkout";
+import { activeWorkoutAtom, discardWorkoutAction } from "@/store/activeWorkout";
 import {
   weightUnitAtom,
   distanceUnitAtom,

@@ -377,6 +377,7 @@ const Page = () => {
                                   _id: eq._id,
                                   name: eq.name,
                                 })) || [],
+                            muscles: exerciseDetails.muscles,
                           }}
                           exerciseSets={sessionSets}
                           exerciseNotes={undefined}
