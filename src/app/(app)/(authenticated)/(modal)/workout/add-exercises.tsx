@@ -5,6 +5,7 @@ import { useCachedStableQuery } from "@/hooks/cachedHooks";
 import {
   activeWorkoutAtom,
   addExercisesToWorkoutAction,
+  replaceExerciseInWorkoutAction,
 } from "@/store/activeWorkout";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
@@ -84,11 +85,16 @@ const Page = () => {
     exerciseTypes?: string;
     search?: string;
     selectedExercises?: string;
+    replacingExercise?: string;
   }>();
 
   const [activeWorkout] = useAtom(activeWorkoutAtom);
   const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
+  const [, replaceExerciseInWorkout] = useAtom(replaceExerciseInWorkoutAction);
   const [searchText, setSearchText] = useState(params.search || "");
+
+  // Check if we're in replacement mode
+  const isReplacementMode = !!params.replacingExercise;
 
   // Initialize selected exercises from URL params
   const initialSelectedExercises = params.selectedExercises
@@ -204,7 +210,43 @@ const Page = () => {
     setSearchText(text);
   };
 
-  const toggleExerciseSelection = (exerciseId: Id<"exercises">) => {
+  const toggleExerciseSelection = async (exerciseId: Id<"exercises">) => {
+    // In replacement mode, immediately replace the exercise
+    if (isReplacementMode && params.replacingExercise) {
+      try {
+        // Find exercise details
+        let exerciseDetails = selectedExerciseDetails[exerciseId];
+        if (!exerciseDetails && exercises) {
+          const exercise = exercises.find((ex) => ex._id === exerciseId);
+          if (exercise) {
+            exerciseDetails = {
+              name: exercise.title,
+              type: exercise.exerciseType,
+              equipment:
+                exercise.equipment
+                  ?.filter((eq) => eq !== null)
+                  .map((eq) => eq.name) || [],
+            };
+          }
+        }
+
+        // Replace the exercise
+        replaceExerciseInWorkout(
+          params.replacingExercise as Id<"exercises">,
+          exerciseId,
+          exerciseDetails,
+        );
+
+        // Navigate back to existing workout screen
+        router.back();
+        return;
+      } catch (error) {
+        console.error("Error replacing exercise:", error);
+        return;
+      }
+    }
+
+    // Normal selection mode
     const newSelection = new Set(selectedExercises);
     const newDetails = { ...selectedExerciseDetails };
 
@@ -290,7 +332,7 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: "Add Exercises",
+          title: isReplacementMode ? "Replace Exercise" : "Add Exercises",
           headerStyle: {
             backgroundColor: "#000000",
           },
@@ -594,8 +636,8 @@ const Page = () => {
         )}
       </View>
 
-      {/* Add Exercises Button */}
-      {totalSelectedCount > 0 && (
+      {/* Add Exercises Button - Hidden in replacement mode */}
+      {totalSelectedCount > 0 && !isReplacementMode && (
         <View className="absolute bottom-0 left-0 right-0 p-4 bg-dark border-t border-neutral-700">
           <TouchableOpacity
             onPress={handleAddExercises}

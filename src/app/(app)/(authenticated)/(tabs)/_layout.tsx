@@ -1,10 +1,12 @@
 import { HapticTab } from "@/components/HapticTab";
+import { activeWorkoutAtom } from "@/store/activeWorkout";
 import { twFullConfig } from "@/utils/twconfig";
 import { Ionicons } from "@expo/vector-icons";
 import { PlatformPressable } from "@react-navigation/elements";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, Tabs } from "expo-router";
+import { useAtom } from "jotai";
 import { cssInterop } from "nativewind";
 import { Text, TouchableOpacity } from "react-native";
 
@@ -22,9 +24,15 @@ cssInterop(Ionicons, {
 });
 
 const CreateButton = () => {
+  const [activeWorkout] = useAtom(activeWorkoutAtom);
+
   const handleCreate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/(app)/(authenticated)/(modal)/create");
+    if (activeWorkout.isActive) {
+      router.push("/(app)/(authenticated)/(modal)/workout");
+    } else {
+      router.push("/(app)/(authenticated)/(modal)/create");
+    }
   };
 
   return (
@@ -39,7 +47,7 @@ const CreateButton = () => {
         className="rounded-xl items-center justify-center px-6 py-1"
       >
         <Text className="text-white text-lg font-Poppins_600SemiBold p-2">
-          Workout
+          {activeWorkout.isActive ? "Resume" : "Workout"}
         </Text>
       </LinearGradient>
     </TouchableOpacity>

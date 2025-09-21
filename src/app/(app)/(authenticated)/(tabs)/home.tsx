@@ -1,3 +1,4 @@
+import { ActiveWorkoutBanner } from "@/components/ActiveWorkoutBanner";
 import { WeeklyProgressCard } from "@/components/WeeklyProgressCard";
 import { api } from "@/convex/_generated/api";
 import {
@@ -218,6 +219,7 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
+      <ActiveWorkoutBanner />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

@@ -451,3 +451,68 @@ export const removeExerciseFromWorkoutAction = atom(
     set(activeWorkoutAtom, updatedWorkout);
   },
 );
+
+// Action to replace exercise in workout
+export const replaceExerciseInWorkoutAction = atom(
+  null,
+  (
+    get,
+    set,
+    oldExerciseId: Id<"exercises">,
+    newExerciseId: Id<"exercises">,
+    newExerciseDetails?: any,
+  ) => {
+    const currentWorkout = get(activeWorkoutAtom);
+    if (!currentWorkout.isActive) {
+      throw new Error("No active workout");
+    }
+
+    const exerciseIndex = currentWorkout.exercises.findIndex(
+      (ex) => ex.exerciseId === oldExerciseId,
+    );
+    if (exerciseIndex === -1) {
+      throw new Error("Exercise not found");
+    }
+
+    const getLastWorkoutSets = get(getLastWorkoutSetsAtom);
+    const previousSets = getLastWorkoutSets(newExerciseId);
+
+    // Create initial sets based on history or keep existing structure
+    const currentSets = currentWorkout.exercises[exerciseIndex].sets;
+    let initialSets: WorkoutSet[];
+
+    if (previousSets.length > 0) {
+      // Use previous workout history for new exercise
+      initialSets = previousSets.map(() => ({
+        id: generateWorkoutSetId(),
+        rpe: undefined,
+        timestamp: Date.now(),
+        isCompleted: false,
+      }));
+    } else {
+      // No history, adapt current set structure but reset values
+      initialSets = currentSets.map(() => ({
+        id: generateWorkoutSetId(),
+        rpe: undefined,
+        timestamp: Date.now(),
+        isCompleted: false,
+      }));
+    }
+
+    const updatedExercises = [...currentWorkout.exercises];
+    updatedExercises[exerciseIndex] = {
+      exerciseId: newExerciseId,
+      exerciseDetails: newExerciseDetails,
+      sets: initialSets,
+      order: updatedExercises[exerciseIndex].order,
+      notes: undefined, // Clear notes for new exercise
+    };
+
+    const updatedWorkout = {
+      ...currentWorkout,
+      exercises: updatedExercises,
+    };
+
+    set(activeWorkoutAtom, updatedWorkout);
+  },
+);

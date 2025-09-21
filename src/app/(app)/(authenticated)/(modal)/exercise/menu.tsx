@@ -29,7 +29,11 @@ const Page = () => {
   };
 
   return (
-    <View className="flex-1 bg-dark px-4 pt-4">
+    <View className="flex-1 bg-dark px-4 pt-2">
+      {/* Grabber Handle */}
+      <View className="items-center py-2">
+        <View className="w-12 h-1 bg-gray-500 rounded-full" />
+      </View>
       <View className="flex-1 p-4 rounded-2xl">
         {/* Copy Exercise Name */}
         <TouchableOpacity

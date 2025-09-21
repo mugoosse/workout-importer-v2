@@ -7,9 +7,7 @@ import {
   addSetToExerciseAction,
   discardWorkoutAction,
   finishWorkoutAction,
-  removeExerciseFromWorkoutAction,
   removeSetAction,
-  tickTimerAction,
   updateExerciseNotesAction,
   updateSetAction,
   workoutDurationAtom,
@@ -41,7 +39,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useConvex, useQuery } from "convex/react";
 import { Link, router, Stack } from "expo-router";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -64,7 +62,6 @@ const formatDuration = (milliseconds: number): string => {
 
 const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   const [, updateNotes] = useAtom(updateExerciseNotesAction);
-  const [, removeExercise] = useAtom(removeExerciseFromWorkoutAction);
   const [, addSet] = useAtom(addSetToExerciseAction);
   const [, updateSet] = useAtom(updateSetAction);
   const [, removeSet] = useAtom(removeSetAction);
@@ -91,18 +88,24 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   };
 
   const handleRemoveExercise = () => {
-    Alert.alert(
-      "Remove Exercise",
-      `Remove ${exerciseDetails?.title || "this exercise"} from workout?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => removeExercise(exercise.exerciseId),
-        },
-      ],
-    );
+    // Extract target muscle groups for smart filtering
+    const targetMuscleGroups = exerciseDetails?.muscles
+      ?.filter((m: any) => m.role === "target" && m.muscle)
+      .map((m: any) => m.muscle.majorGroup)
+      .filter(Boolean);
+
+    const uniqueMajorGroups = [...new Set(targetMuscleGroups)];
+
+    const params = new URLSearchParams({
+      exerciseId: exercise.exerciseId,
+      exerciseName: encodeURIComponent(exerciseDetails?.title || "Exercise"),
+    });
+
+    if (uniqueMajorGroups.length > 0) {
+      params.set("targetMuscleGroups", uniqueMajorGroups.join(","));
+    }
+
+    router.push(`/workout/exercise-menu?${params}`);
   };
 
   const handleAddSet = () => {
@@ -630,19 +633,10 @@ const Page = () => {
   const [, finishWorkout] = useAtom(finishWorkoutAction);
   const [, discardWorkout] = useAtom(discardWorkoutAction);
   const [, logSet] = useAtom(logSetAction);
-  const [, tickTimer] = useAtom(tickTimerAction);
   const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
     individualMuscleProgressAtom,
   );
   const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
-
-  // Force duration updates every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      tickTimer();
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [tickTimer]);
 
   const handleFinishWorkout = async () => {
     if (activeWorkout.exercises.length === 0) {
@@ -800,6 +794,15 @@ const Page = () => {
           headerTitleStyle: {
             fontFamily: "Poppins_600SemiBold",
           },
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="p-2"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="caret-down" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity
               onPress={handleFinishWorkout}

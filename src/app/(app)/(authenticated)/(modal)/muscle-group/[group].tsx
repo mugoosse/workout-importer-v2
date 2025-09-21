@@ -17,7 +17,7 @@ const Page = () => {
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
 
   const muscleGroupData = weeklyProgress.find(
-    (item) => item.majorGroup === majorGroup
+    (item) => item.majorGroup === majorGroup,
   );
 
   if (!muscleGroupData) {
@@ -32,13 +32,13 @@ const Page = () => {
 
   const handleShowExercises = () => {
     router.push(
-      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=target`
+      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=target`,
     );
   };
 
   const handleShowBreakdown = () => {
     router.push(
-      `/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}/muscles`
+      `/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}/muscles`,
     );
   };
 
@@ -47,7 +47,11 @@ const Page = () => {
   };
 
   return (
-    <View className="flex-1 bg-dark px-4 pt-4">
+    <View className="flex-1 bg-dark px-4 pt-2">
+      {/* Grabber Handle */}
+      <View className="items-center py-2">
+        <View className="w-12 h-1 bg-gray-500 rounded-full" />
+      </View>
       <View className="flex-1 p-4 rounded-2xl">
         {/* Progress Section - Compact */}
         <View className="mb-6">

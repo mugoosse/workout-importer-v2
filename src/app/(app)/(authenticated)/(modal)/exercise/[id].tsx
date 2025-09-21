@@ -8,6 +8,7 @@ import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import {
+  activeWorkoutAtom,
   addExercisesToWorkoutAction,
   startWorkoutAction,
 } from "@/store/activeWorkout";
@@ -78,6 +79,7 @@ const Page = () => {
     getWorkoutSessionsByExerciseAtom,
   );
   const [getSetsByWorkoutSession] = useAtom(getSetsByWorkoutSessionAtom);
+  const [activeWorkout] = useAtom(activeWorkoutAtom);
   const [, startWorkout] = useAtom(startWorkoutAction);
   const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
 
@@ -91,17 +93,28 @@ const Page = () => {
 
   // Handle starting a workout with this exercise
   const handleStartWorkout = () => {
-    // Start a new workout
-    startWorkout();
+    if (activeWorkout.isActive) {
+      // Add to existing workout
+      addExercisesToWorkout([exerciseId], {
+        [exerciseId]: {
+          title: exerciseDetails?.title,
+          exerciseType: exerciseDetails?.exerciseType,
+          equipment: exerciseDetails?.equipment,
+        },
+      });
+    } else {
+      // Start a new workout
+      startWorkout();
 
-    // Add this exercise to the workout with exercise details
-    addExercisesToWorkout([exerciseId], {
-      [exerciseId]: {
-        title: exerciseDetails?.title,
-        exerciseType: exerciseDetails?.exerciseType,
-        equipment: exerciseDetails?.equipment,
-      },
-    });
+      // Add this exercise to the workout with exercise details
+      addExercisesToWorkout([exerciseId], {
+        [exerciseId]: {
+          title: exerciseDetails?.title,
+          exerciseType: exerciseDetails?.exerciseType,
+          equipment: exerciseDetails?.equipment,
+        },
+      });
+    }
 
     // Navigate to the workout page
     router.push("/(app)/(authenticated)/(modal)/workout");
@@ -278,9 +291,13 @@ const Page = () => {
             className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
           >
             <View className="flex-row items-center justify-center">
-              <Ionicons name="play" size={20} color="#ffffff" />
+              <Ionicons
+                name={activeWorkout.isActive ? "add" : "play"}
+                size={20}
+                color="#ffffff"
+              />
               <Text className="text-white font-Poppins_600SemiBold ml-2">
-                Start workout
+                {activeWorkout.isActive ? "Add to workout" : "Start workout"}
               </Text>
             </View>
           </TouchableOpacity>
