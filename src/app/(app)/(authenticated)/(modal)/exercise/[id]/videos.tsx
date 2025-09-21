@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -184,17 +183,6 @@ const Page = () => {
                             </Text>
                           </View>
                         </View>
-
-                        {/* Duration badge - bottom right (if you have duration data) */}
-                        {video.duration && (
-                          <View className="absolute bottom-2 right-2">
-                            <View className="bg-black/70 rounded px-2 py-1">
-                              <Text className="text-white text-xs font-medium">
-                                {video.duration}
-                              </Text>
-                            </View>
-                          </View>
-                        )}
                       </View>
 
                       {/* Video Info - more compact like TikTok */}
@@ -221,13 +209,6 @@ const Page = () => {
                             </Text>
                           </View>
                         </View>
-
-                        {/* Optional: Add view count or engagement metrics */}
-                        {video.views && (
-                          <Text className="text-gray-500 text-xs mt-1">
-                            {video.views} views
-                          </Text>
-                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
