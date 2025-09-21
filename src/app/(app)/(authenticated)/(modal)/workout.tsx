@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/Badge";
-import { SwipeableSetRow } from "@/components/SwipeableSetRow";
 import { RPEDrawer } from "@/components/RPEDrawer";
+import { SwipeableSetRow } from "@/components/SwipeableSetRow";
+import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import {
   activeWorkoutAtom,
@@ -18,9 +18,9 @@ import {
   type WorkoutSet,
 } from "@/store/activeWorkout";
 import {
+  getLastWorkoutSetsAtom,
   logSetAction,
   type ExerciseType,
-  getLastWorkoutSetsAtom,
   type LoggedSet,
 } from "@/store/exerciseLog";
 import { unitsConfigAtom } from "@/store/units";
@@ -34,11 +34,11 @@ import {
 } from "@/utils/previousWorkoutFormatter";
 import { convertWeight } from "@/utils/unitConversions";
 import {
-  processSetLogging,
   extractMuscleInvolvement,
+  processSetLogging,
 } from "@/utils/xpCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useQuery, useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import { Link, router, Stack } from "expo-router";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
@@ -101,7 +101,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
           style: "destructive",
           onPress: () => removeExercise(exercise.exerciseId),
         },
-      ],
+      ]
     );
   };
 
@@ -321,7 +321,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   }
 
   const requiredFields = getRequiredFields(
-    exerciseDetails.exerciseType as ExerciseType,
+    exerciseDetails.exerciseType as ExerciseType
   );
 
   return (
@@ -332,7 +332,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
           className="flex-1"
           onPress={() =>
             router.push(
-              `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`,
+              `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`
             )
           }
         >
@@ -429,7 +429,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                           previousData,
                           exerciseDetails.exerciseType as ExerciseType,
                           unitsConfig.weight,
-                          unitsConfig.distance === "miles" ? "mi" : "km",
+                          unitsConfig.distance === "miles" ? "mi" : "km"
                         )
                       : "-"}
                   </Text>
@@ -461,7 +461,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "weight",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km",
+                              unitsConfig.distance === "miles" ? "mi" : "km"
                             )
                           : "0"
                       }
@@ -508,7 +508,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                         previousData
                           ? getPreviousValuePlaceholder(
                               "duration",
-                              previousData,
+                              previousData
                             )
                           : "60"
                       }
@@ -545,7 +545,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "distance",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km",
+                              unitsConfig.distance === "miles" ? "mi" : "km"
                             )
                           : "100"
                       }
@@ -593,8 +593,8 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
         onPress={handleAddSet}
         className="bg-neutral-700 border border-dashed border-gray-500 rounded-xl p-3 flex-row items-center justify-center"
       >
-        <Ionicons name="add" size={16} color="#6F2DBD" />
-        <Text className="text-[#6F2DBD] font-Poppins_500Medium ml-1 text-sm">
+        <Ionicons name="add" size={16} color="white" />
+        <Text className="text-white font-Poppins_500Medium ml-1 text-sm">
           Add Set
         </Text>
       </TouchableOpacity>
@@ -630,7 +630,7 @@ const Page = () => {
   const [, logSet] = useAtom(logSetAction);
   const [, tickTimer] = useAtom(tickTimerAction);
   const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
-    individualMuscleProgressAtom,
+    individualMuscleProgressAtom
   );
   const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
 
@@ -646,7 +646,7 @@ const Page = () => {
     if (activeWorkout.exercises.length === 0) {
       Alert.alert(
         "Empty Workout",
-        "Add some exercises before finishing your workout.",
+        "Add some exercises before finishing your workout."
       );
       return;
     }
@@ -655,7 +655,7 @@ const Page = () => {
     if (totalCompletedSets === 0) {
       Alert.alert(
         "No Sets Completed",
-        "Complete at least one set before finishing your workout.",
+        "Complete at least one set before finishing your workout."
       );
       return;
     }
@@ -686,7 +686,7 @@ const Page = () => {
                     api.exercises.getExerciseDetails,
                     {
                       exerciseId: exercise.exerciseId,
-                    },
+                    }
                   );
 
                   if (
@@ -696,7 +696,7 @@ const Page = () => {
                   ) {
                     // Extract real muscle involvement from exercise details
                     const muscleInvolvements = extractMuscleInvolvement(
-                      exerciseDetails.muscles,
+                      exerciseDetails.muscles
                     );
 
                     // Process each completed set
@@ -707,7 +707,7 @@ const Page = () => {
                           updatedIndividualProgress,
                           updatedWeeklyProgress,
                           muscleInvolvements,
-                          set.rpe,
+                          set.rpe
                         );
 
                         updatedIndividualProgress =
@@ -720,7 +720,7 @@ const Page = () => {
                 } catch (error) {
                   console.error(
                     `Failed to fetch exercise details for ${exercise.exerciseId}:`,
-                    error,
+                    error
                   );
                 }
               }
@@ -749,7 +749,7 @@ const Page = () => {
             }
           },
         },
-      ],
+      ]
     );
   };
 
@@ -767,7 +767,7 @@ const Page = () => {
             router.back();
           },
         },
-      ],
+      ]
     );
   };
 
