@@ -13,7 +13,7 @@ import {
   exerciseLogsAtom,
   workoutSessionsAtom,
 } from "@/store/exerciseLog";
-import { activeWorkoutAtom, discardWorkoutAction } from "@/store/activeWorkout";
+import { discardWorkoutAction } from "@/store/activeWorkout";
 import {
   weightUnitAtom,
   distanceUnitAtom,

@@ -19,7 +19,7 @@ export function formatPreviousSet(
   weightUnit: "kg" | "lbs" = "kg",
   distanceUnit: "km" | "mi" = "km",
 ): string {
-  const { weight, reps, duration, distance, rpe } = set;
+  const { weight, reps, duration, distance } = set;
 
   switch (exerciseType) {
     case "Weight Reps":
