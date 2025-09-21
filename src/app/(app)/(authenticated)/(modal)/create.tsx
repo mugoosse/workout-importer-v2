@@ -1,16 +1,23 @@
+import { TopCreateOption } from "@/components/TopCreateOption";
+import { startWorkoutAction } from "@/store/activeWorkout";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useAtom } from "jotai";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { TopCreateOption } from "@/components/TopCreateOption";
 
 const Page = () => {
-  const onCustomWorkout = () => {
-    console.log("Custom workout");
+  const [, startWorkout] = useAtom(startWorkoutAction);
+
+  const onLogWorkout = () => {
+    startWorkout();
+    router.replace(
+      "/(app)/(authenticated)/(modal)/workout/add-exercises?muscleFunctions=target",
+    );
   };
 
   const onQuickStart = () => {
-    console.log("Quick start");
+    // Disabled for now
   };
 
   return (
@@ -19,15 +26,16 @@ const Page = () => {
         <View className="flex-row gap-3 mb-3">
           <TopCreateOption
             icon={<Ionicons name="add-outline" size={24} color="white" />}
-            title="Custom Workout"
-            subtitle="Start from scratch"
-            onPress={onCustomWorkout}
+            title="Log Workout"
+            subtitle="Select exercises"
+            onPress={onLogWorkout}
           />
           <TopCreateOption
-            icon={<Ionicons name="play-outline" size={24} color="white" />}
+            icon={<Ionicons name="play-outline" size={24} color="gray" />}
             title="Quick Start"
-            subtitle="Start from routine"
+            subtitle="Coming soon"
             onPress={onQuickStart}
+            disabled={true}
           />
         </View>
 

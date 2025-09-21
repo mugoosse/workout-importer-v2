@@ -32,7 +32,7 @@ const Page = () => {
 
   const handleSuggestExercises = () => {
     router.push(
-      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}`,
+      `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=target`,
     );
   };
 

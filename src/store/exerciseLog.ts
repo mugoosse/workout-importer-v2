@@ -23,19 +23,32 @@ export interface LoggedSet {
   date: string; // YYYY-MM-DD format for grouping
 }
 
+export interface ExerciseLog {
+  id: string;
+  exerciseId: Id<"exercises">;
+  workoutDate: string; // YYYY-MM-DD format
+  notes?: string;
+  timestamp: number;
+}
+
 export interface ExerciseLogSummary {
   exerciseId: Id<"exercises">;
   totalSets: number;
   lastLoggedDate: string;
   lastLoggedTimestamp: number;
+  notes?: string; // Most recent exercise notes
 }
 
 // Simple atom for logged sets (will be enhanced with persistence later)
 export const loggedSetsAtom = atom<LoggedSet[]>([]);
 
+// Simple atom for exercise logs (client-side only)
+export const exerciseLogsAtom = atom<ExerciseLog[]>([]);
+
 // Derived atom for exercise log summaries
 export const exerciseLogSummariesAtom = atom<ExerciseLogSummary[]>((get) => {
   const loggedSets = get(loggedSetsAtom);
+  const exerciseLogs = get(exerciseLogsAtom);
 
   // Group sets by exercise
   const exerciseGroups = loggedSets.reduce(
@@ -55,11 +68,17 @@ export const exerciseLogSummariesAtom = atom<ExerciseLogSummary[]>((get) => {
       const sortedSets = sets.sort((a, b) => b.timestamp - a.timestamp);
       const lastSet = sortedSets[0];
 
+      // Get the most recent exercise log notes for this exercise
+      const exerciseLogForExercise = exerciseLogs
+        .filter((log) => log.exerciseId === exerciseId)
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+
       return {
         exerciseId: exerciseId as Id<"exercises">,
         totalSets: sets.length,
         lastLoggedDate: lastSet.date,
         lastLoggedTimestamp: lastSet.timestamp,
+        notes: exerciseLogForExercise?.notes,
       };
     })
     .sort((a, b) => b.lastLoggedTimestamp - a.lastLoggedTimestamp);
@@ -111,6 +130,23 @@ export const logSetAction = atom(
 
     set(loggedSetsAtom, [...currentSets, newSet]);
     return newSet;
+  },
+);
+
+// Action to log exercise notes
+export const logExerciseAction = atom(
+  null,
+  (get, set, logData: Omit<ExerciseLog, "id" | "timestamp">) => {
+    const currentExerciseLogs = get(exerciseLogsAtom);
+    const now = Date.now();
+    const newExerciseLog: ExerciseLog = {
+      ...logData,
+      id: `exercise_log_${now}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: now,
+    };
+
+    set(exerciseLogsAtom, [...currentExerciseLogs, newExerciseLog]);
+    return newExerciseLog;
   },
 );
 

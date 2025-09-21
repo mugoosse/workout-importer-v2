@@ -25,17 +25,29 @@ const EXERCISE_TYPES = [
   "Weight & Distance",
 ];
 
+const MUSCLE_FUNCTIONS = [
+  { id: "target", label: "Target" },
+  { id: "synergist", label: "Synergist" },
+  { id: "stabilizer", label: "Stabilizer" },
+  { id: "lengthening", label: "Lengthening" },
+];
+
 const Page = () => {
   const params = useLocalSearchParams<{
     currentMajorGroups?: string;
     currentEquipmentIds?: string;
     currentExerciseTypes?: string;
+    currentMuscleFunctions?: string;
+    returnRoute?: string;
+    selectedExercises?: string;
   }>();
 
   // Parse current filters from params (support comma-separated values)
   const currentMajorGroups = params.currentMajorGroups?.split(",") || [];
   const currentEquipmentIds = params.currentEquipmentIds?.split(",") || [];
   const currentExerciseTypes = params.currentExerciseTypes?.split(",") || [];
+  const currentMuscleFunctions =
+    params.currentMuscleFunctions?.split(",") || [];
 
   // State for selected filters (now arrays for multi-selection)
   const [selectedMajorGroups, setSelectedMajorGroups] =
@@ -44,6 +56,9 @@ const Page = () => {
     useState<string[]>(currentEquipmentIds);
   const [selectedExerciseTypes, setSelectedExerciseTypes] =
     useState<string[]>(currentExerciseTypes);
+  const [selectedMuscleFunctions, setSelectedMuscleFunctions] = useState<
+    string[]
+  >(currentMuscleFunctions);
 
   // Get all equipment
   const equipment = useQuery(api.exercises.getAllEquipment, {});
@@ -70,6 +85,14 @@ const Page = () => {
     );
   };
 
+  const handleMuscleFunctionToggle = (functionId: string) => {
+    setSelectedMuscleFunctions((prev) =>
+      prev.includes(functionId)
+        ? prev.filter((id) => id !== functionId)
+        : [...prev, functionId],
+    );
+  };
+
   const handleApplyFilters = () => {
     const searchParams = new URLSearchParams();
 
@@ -82,15 +105,27 @@ const Page = () => {
     if (selectedExerciseTypes.length > 0) {
       searchParams.set("exerciseTypes", selectedExerciseTypes.join(","));
     }
+    if (selectedMuscleFunctions.length > 0) {
+      searchParams.set("muscleFunctions", selectedMuscleFunctions.join(","));
+    }
+
+    // Pass through selected exercises to maintain selection
+    if (params.selectedExercises) {
+      searchParams.set("selectedExercises", params.selectedExercises);
+    }
 
     const queryString = searchParams.toString();
-    router.replace(`/exercises${queryString ? `?${queryString}` : ""}`);
+
+    // Use returnRoute if provided, otherwise default to /exercises
+    const targetRoute = params.returnRoute || "/exercises";
+    router.replace(`${targetRoute}${queryString ? `?${queryString}` : ""}`);
   };
 
   const handleClearAll = () => {
     setSelectedMajorGroups([]);
     setSelectedEquipmentIds([]);
     setSelectedExerciseTypes([]);
+    setSelectedMuscleFunctions([]);
   };
 
   const handleCancel = () => {
@@ -100,7 +135,8 @@ const Page = () => {
   const hasActiveFilters =
     selectedMajorGroups.length > 0 ||
     selectedEquipmentIds.length > 0 ||
-    selectedExerciseTypes.length > 0;
+    selectedExerciseTypes.length > 0 ||
+    selectedMuscleFunctions.length > 0;
 
   return (
     <View className="flex-1 bg-dark">
@@ -156,6 +192,32 @@ const Page = () => {
               >
                 <Text className="text-white font-Poppins_500Medium">
                   {group.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Muscle Function */}
+        <View className="mb-6">
+          <Text className="text-white text-lg font-Poppins_600SemiBold mb-3">
+            Muscle Function
+            {selectedMuscleFunctions.length > 0 &&
+              ` (${selectedMuscleFunctions.length} selected)`}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {MUSCLE_FUNCTIONS.map((func) => (
+              <TouchableOpacity
+                key={func.id}
+                onPress={() => handleMuscleFunctionToggle(func.id)}
+                className={`px-4 py-3 rounded-xl ${
+                  selectedMuscleFunctions.includes(func.id)
+                    ? "bg-[#6F2DBD]"
+                    : "bg-[#2c2c2e]"
+                }`}
+              >
+                <Text className="text-white font-Poppins_500Medium">
+                  {func.label}
                 </Text>
               </TouchableOpacity>
             ))}

@@ -33,7 +33,7 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
     majorGroup: "back" as MajorMuscleGroup,
     level: 1,
     xp: 0,
-    nextLevel: 350,
+    nextLevel: 100,
     percentage: 0,
     streak: 0,
   },
@@ -41,7 +41,7 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
     majorGroup: "legs" as MajorMuscleGroup,
     level: 1,
     xp: 0,
-    nextLevel: 450,
+    nextLevel: 100,
     percentage: 0,
     streak: 0,
   },
@@ -49,7 +49,7 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
     majorGroup: "shoulders" as MajorMuscleGroup,
     level: 1,
     xp: 0,
-    nextLevel: 50,
+    nextLevel: 100,
     percentage: 0,
     streak: 0,
   },
@@ -57,7 +57,7 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
     majorGroup: "arms" as MajorMuscleGroup,
     level: 1,
     xp: 0,
-    nextLevel: 350,
+    nextLevel: 100,
     percentage: 0,
     streak: 0,
   },
@@ -65,7 +65,7 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
     majorGroup: "core" as MajorMuscleGroup,
     level: 1,
     xp: 0,
-    nextLevel: 200,
+    nextLevel: 100,
     percentage: 0,
     streak: 0,
   },
@@ -379,13 +379,75 @@ export const individualMuscleProgressAtom = atom<
   },
 });
 
-// Utility function to get progress color
+// Utility function to interpolate between two hex colors
+export const interpolateColor = (
+  color1: string,
+  color2: string,
+  factor: number,
+): string => {
+  // Ensure factor is between 0 and 1
+  factor = Math.max(0, Math.min(1, factor));
+
+  // Parse hex colors
+  const hex1 = color1.replace("#", "");
+  const hex2 = color2.replace("#", "");
+
+  const r1 = parseInt(hex1.substr(0, 2), 16);
+  const g1 = parseInt(hex1.substr(2, 2), 16);
+  const b1 = parseInt(hex1.substr(4, 2), 16);
+
+  const r2 = parseInt(hex2.substr(0, 2), 16);
+  const g2 = parseInt(hex2.substr(2, 2), 16);
+  const b2 = parseInt(hex2.substr(4, 2), 16);
+
+  // Interpolate each channel
+  const r = Math.round(r1 + (r2 - r1) * factor);
+  const g = Math.round(g1 + (g2 - g1) * factor);
+  const b = Math.round(b1 + (b2 - b1) * factor);
+
+  // Convert back to hex
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+};
+
+// Legend colors for interpolation
+const LEGEND_COLORS = [
+  "#FF5C14", // 0-24%
+  "#FF8A1B", // 25-49%
+  "#FCD514", // 50-74%
+  "#98DA00", // 75-99%
+  "#1FD224", // 100%+
+];
+
+// Utility function to get progress color with smooth interpolation
 export const getProgressColor = (progress: number): string => {
-  if (progress >= 100) return "#1FD224";
-  if (progress >= 75) return "#98DA00";
-  if (progress >= 50) return "#FCD514";
-  if (progress >= 25) return "#FF8A1B";
-  return "#FF5C14";
+  // Handle edge cases
+  if (progress <= 0) return LEGEND_COLORS[0];
+  if (progress >= 100) return LEGEND_COLORS[4];
+
+  // Determine which color range we're in
+  let rangeIndex: number;
+  let localProgress: number;
+
+  if (progress < 25) {
+    rangeIndex = 0;
+    localProgress = progress / 25; // 0-1 within first range
+  } else if (progress < 50) {
+    rangeIndex = 1;
+    localProgress = (progress - 25) / 25; // 0-1 within second range
+  } else if (progress < 75) {
+    rangeIndex = 2;
+    localProgress = (progress - 50) / 25; // 0-1 within third range
+  } else {
+    rangeIndex = 3;
+    localProgress = (progress - 75) / 25; // 0-1 within fourth range
+  }
+
+  // Interpolate between the two colors in this range
+  return interpolateColor(
+    LEGEND_COLORS[rangeIndex],
+    LEGEND_COLORS[rangeIndex + 1],
+    localProgress,
+  );
 };
 
 // Utility function to get streak emoji

@@ -93,7 +93,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="create"
+        name="workout"
         options={{
           tabBarButton: () => <CreateButton />,
         }}

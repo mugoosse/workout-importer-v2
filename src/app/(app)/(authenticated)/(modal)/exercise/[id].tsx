@@ -3,32 +3,25 @@ import {
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
-import { SwipeableSetRow } from "@/components/SwipeableSetRow";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import {
-  getLastWorkoutSetsAtom,
   getSetsByExerciseAtom,
-  logSetAction,
-  type ExerciseType,
-  type LoggedSet,
+  exerciseLogSummariesAtom,
 } from "@/store/exerciseLog";
-import { unitsConfigAtom } from "@/store/units";
+import {
+  addExercisesToWorkoutAction,
+  startWorkoutAction,
+} from "@/store/activeWorkout";
 import {
   getProgressColor,
   getStreakEmoji,
   individualMuscleProgressAtom,
-  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
 import {
-  formatPreviousSet,
-  getPreviousValuePlaceholder,
-} from "@/utils/previousWorkoutFormatter";
-import { convertWeight } from "@/utils/unitConversions";
-import {
+  calculateXPDistribution,
   extractMuscleInvolvement,
-  processSetLogging,
 } from "@/utils/xpCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
@@ -37,11 +30,8 @@ import { useAtom } from "jotai";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -86,42 +76,11 @@ const Page = () => {
     exerciseId,
   });
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
-  const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
-    individualMuscleProgressAtom,
-  );
-  const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
-  const [, logSet] = useAtom(logSetAction);
+  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
   const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
-  const [getLastWorkoutSets] = useAtom(getLastWorkoutSetsAtom);
-  const [unitsConfig] = useAtom(unitsConfigAtom);
-
-  // Set logging modal state
-  const [showLogModal, setShowLogModal] = useState(false);
-
-  // Multi-set interface state
-  interface SetData {
-    reps: string;
-    weight: string;
-    duration: string;
-    distance: string;
-    rpe: string;
-    completed: boolean;
-    previousData?: LoggedSet; // Store previous workout data for display and quick-fill
-  }
-
-  const [sets, setSets] = useState<SetData[]>([
-    {
-      reps: "",
-      weight: "",
-      duration: "",
-      distance: "",
-      rpe: "8",
-      completed: false,
-    },
-  ]);
-  // Remove unused variable for now
-  // const [lastXPCalculation, setLastXPCalculation] =
-  //   useState<XPCalculationResult | null>(null);
+  const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
+  const [, startWorkout] = useAtom(startWorkoutAction);
+  const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
 
   const [collapsedSections, setCollapsedSections] = useState<Set<MuscleRole>>(
     () =>
@@ -131,93 +90,28 @@ const Page = () => {
   // Get logged sets for this exercise
   const loggedSets = getSetsByExercise(exerciseId);
 
-  // Helper functions for sets management
-  const addSet = () => {
-    setSets((prev) => [
-      ...prev,
-      {
-        reps: "",
-        weight: "",
-        duration: "",
-        distance: "",
-        rpe: "8",
-        completed: false,
-        // No previous data for new sets
+  // Get exercise log summary for notes
+  const exerciseLogSummary = exerciseLogSummaries.find(
+    (summary) => summary.exerciseId === exerciseId,
+  );
+
+  // Handle starting a workout with this exercise
+  const handleStartWorkout = () => {
+    // Start a new workout
+    startWorkout();
+
+    // Add this exercise to the workout with exercise details
+    addExercisesToWorkout([exerciseId], {
+      [exerciseId]: {
+        title: exerciseDetails?.title,
+        exerciseType: exerciseDetails?.exerciseType,
+        equipment: exerciseDetails?.equipment,
+        instructions: exerciseDetails?.instructions,
       },
-    ]);
-  };
+    });
 
-  const updateSet = (
-    index: number,
-    field: keyof SetData,
-    value: string | boolean,
-  ) => {
-    setSets((prev) =>
-      prev.map((set, i) => (i === index ? { ...set, [field]: value } : set)),
-    );
-  };
-
-  const quickFillSet = (index: number) => {
-    const set = sets[index];
-    if (!set.previousData) return;
-
-    const updatedSet: SetData = {
-      ...set,
-      reps: set.previousData.reps ? set.previousData.reps.toString() : "",
-      weight: set.previousData.weight ? set.previousData.weight.toString() : "",
-      duration: set.previousData.duration
-        ? set.previousData.duration.toString()
-        : "",
-      distance: set.previousData.distance
-        ? set.previousData.distance.toString()
-        : "",
-      rpe: set.previousData.rpe ? set.previousData.rpe.toString() : "8",
-      completed: true,
-    };
-
-    setSets((prev) =>
-      prev.map((setItem, i) => (i === index ? updatedSet : setItem)),
-    );
-  };
-
-  const removeSet = (index: number) => {
-    if (sets.length > 1) {
-      setSets((prev) => prev.filter((_, i) => i !== index));
-    }
-  };
-
-  const resetSets = () => {
-    initializeSetsWithPreviousData();
-  };
-
-  const initializeSetsWithPreviousData = () => {
-    const previousSets = getLastWorkoutSets(exerciseId);
-
-    if (previousSets.length > 0) {
-      // Create the same number of sets as the previous workout
-      const newSets: SetData[] = previousSets.map((prevSet) => ({
-        reps: "",
-        weight: "",
-        duration: "",
-        distance: "",
-        rpe: "8",
-        completed: false,
-        previousData: prevSet,
-      }));
-      setSets(newSets);
-    } else {
-      // No previous data, create a single empty set
-      setSets([
-        {
-          reps: "",
-          weight: "",
-          duration: "",
-          distance: "",
-          rpe: "8",
-          completed: false,
-        },
-      ]);
-    }
+    // Navigate to the workout page
+    router.push("/(app)/(authenticated)/(modal)/workout");
   };
 
   const toggleSection = (role: MuscleRole) => {
@@ -294,207 +188,6 @@ const Page = () => {
     router.push(
       `/(app)/(authenticated)/(modal)/exercise/menu?exerciseId=${exerciseId}&exerciseName=${encodeURIComponent(exerciseDetails.title)}${exerciseDetails.url ? `&url=${encodeURIComponent(exerciseDetails.url)}` : ""}`,
     );
-  };
-
-  const handleLogAllSets = () => {
-    const completedSets = sets.filter((set) => set.completed);
-
-    if (completedSets.length === 0) {
-      Alert.alert(
-        "No Sets Completed",
-        "Please complete at least one set before logging.",
-      );
-      return;
-    }
-
-    const muscleInvolvements = extractMuscleInvolvement(
-      exerciseDetails!.muscles,
-    );
-
-    let totalXP = 0;
-    let loggedCount = 0;
-
-    // Log each completed set
-    completedSets.forEach((set) => {
-      if (!validateSet(set)) {
-        return; // Skip invalid sets
-      }
-
-      const rpeValue = parseInt(set.rpe);
-
-      // Process the set logging and update progress
-      const result = processSetLogging(
-        individualMuscleProgress,
-        weeklyProgress,
-        muscleInvolvements,
-        rpeValue,
-      );
-
-      // Update the atoms with new progress
-      setIndividualMuscleProgress(result.updatedIndividualProgress);
-      setWeeklyProgress(result.updatedMajorGroupProgress);
-
-      // Convert units back to metric for storage
-      const weightInKg =
-        unitsConfig.weight === "lbs" && set.weight
-          ? convertWeight(parseFloat(set.weight), "lbs", "kg")
-          : parseFloat(set.weight);
-
-      // Log the set
-      logSet({
-        exerciseId,
-        reps: requiredFields.needsReps ? parseInt(set.reps) : undefined,
-        weight: requiredFields.needsWeight ? weightInKg : undefined,
-        duration: requiredFields.needsDuration
-          ? parseInt(set.duration)
-          : undefined,
-        distance: requiredFields.needsDistance
-          ? parseFloat(set.distance)
-          : undefined,
-        rpe: rpeValue,
-      });
-
-      totalXP += result.xpCalculation.totalXP;
-      loggedCount++;
-    });
-
-    // Reset form and close modal
-    resetSets();
-    setShowLogModal(false);
-
-    // Show success message
-    Alert.alert(
-      "Sets Logged!",
-      `Successfully logged ${loggedCount} set${loggedCount > 1 ? "s" : ""}. You earned ${totalXP} total XP.`,
-      [
-        {
-          text: "View Details",
-          onPress: () => {
-            // Could show detailed XP breakdown modal here
-          },
-        },
-        { text: "OK" },
-      ],
-    );
-  };
-
-  // Helper functions to determine which fields to show based on exercise type
-  const getRequiredFields = (exerciseType: ExerciseType) => {
-    switch (exerciseType) {
-      case "Weight Reps":
-        return {
-          needsReps: true,
-          needsWeight: true,
-          needsDuration: false,
-          needsDistance: false,
-        };
-      case "Reps Only":
-        return {
-          needsReps: true,
-          needsWeight: false,
-          needsDuration: false,
-          needsDistance: false,
-        };
-      case "Weighted Bodyweight":
-        return {
-          needsReps: true,
-          needsWeight: true,
-          needsDuration: false,
-          needsDistance: false,
-        };
-      case "Assisted Bodyweight":
-        return {
-          needsReps: true,
-          needsWeight: true,
-          needsDuration: false,
-          needsDistance: false,
-        }; // weight as assistance
-      case "Duration":
-        return {
-          needsReps: false,
-          needsWeight: false,
-          needsDuration: true,
-          needsDistance: false,
-        };
-      case "Weight & Duration":
-        return {
-          needsReps: false,
-          needsWeight: true,
-          needsDuration: true,
-          needsDistance: false,
-        };
-      case "Distance & Duration":
-        return {
-          needsReps: false,
-          needsWeight: false,
-          needsDuration: true,
-          needsDistance: true,
-        };
-      case "Weight & Distance":
-        return {
-          needsReps: false,
-          needsWeight: true,
-          needsDuration: false,
-          needsDistance: true,
-        };
-      default:
-        return {
-          needsReps: true,
-          needsWeight: false,
-          needsDuration: false,
-          needsDistance: false,
-        };
-    }
-  };
-
-  const requiredFields = exerciseDetails
-    ? getRequiredFields(exerciseDetails.exerciseType as ExerciseType)
-    : {
-        needsReps: true,
-        needsWeight: false,
-        needsDuration: false,
-        needsDistance: false,
-      };
-
-  const validateSet = (set: SetData) => {
-    if (
-      !exerciseDetails ||
-      !set.rpe ||
-      parseInt(set.rpe) < 1 ||
-      parseInt(set.rpe) > 10
-    ) {
-      return false;
-    }
-    if (requiredFields.needsReps && (!set.reps || parseInt(set.reps) <= 0))
-      return false;
-    if (
-      requiredFields.needsWeight &&
-      (!set.weight || parseFloat(set.weight) <= 0)
-    )
-      return false;
-    if (
-      requiredFields.needsDuration &&
-      (!set.duration || parseInt(set.duration) <= 0)
-    )
-      return false;
-    if (
-      requiredFields.needsDistance &&
-      (!set.distance || parseFloat(set.distance) <= 0)
-    )
-      return false;
-    return true;
-  };
-
-  // Helper functions for unit display
-  const getWeightLabel = () => unitsConfig.weight.toUpperCase();
-  const getDistanceLabel = () => {
-    return requiredFields.needsDistance
-      ? unitsConfig.distance === "km"
-        ? "KM"
-        : "MI"
-      : unitsConfig.distance === "km"
-        ? "METERS"
-        : "YARDS";
   };
 
   return (
@@ -576,25 +269,22 @@ const Page = () => {
           </View>
         </View>
 
-        {/* Set Logging Section */}
+        {/* Workouts Section */}
         <View className="mx-4 mb-6">
           <View className="bg-[#1c1c1e] rounded-2xl p-4">
             <Text className="text-white text-lg font-Poppins_600SemiBold mb-4">
-              Log Exercise
+              Workouts
             </Text>
 
-            {/* Log Set Button */}
+            {/* Start Workout Button */}
             <TouchableOpacity
-              onPress={() => {
-                initializeSetsWithPreviousData();
-                setShowLogModal(true);
-              }}
+              onPress={handleStartWorkout}
               className="bg-[#6F2DBD] rounded-xl p-4 mb-4"
             >
               <View className="flex-row items-center justify-center">
-                <Ionicons name="add" size={20} color="#ffffff" />
+                <Ionicons name="play" size={20} color="#ffffff" />
                 <Text className="text-white font-Poppins_600SemiBold ml-2">
-                  Log Set
+                  Start workout
                 </Text>
               </View>
             </TouchableOpacity>
@@ -635,6 +325,7 @@ const Page = () => {
                         if (set.weight) parts.push(`${set.weight} kg`);
                         if (set.duration) parts.push(`${set.duration}s`);
                         if (set.distance) parts.push(`${set.distance}m`);
+                        if (set.rpe) parts.push(`RPE ${set.rpe}`);
                         return parts.join(" • ");
                       };
 
@@ -680,20 +371,44 @@ const Page = () => {
 
                           {/* Sets List */}
                           <View className="space-y-2">
-                            {workoutSets.map((set, setIndex) => (
-                              <View
-                                key={set.id}
-                                className="flex-row justify-between items-center"
-                              >
-                                <Text className="text-gray-300 font-Poppins_400Regular text-xs flex-1">
-                                  Set {setIndex + 1}: {formatSetDisplay(set)}
-                                </Text>
-                                <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium ml-2">
-                                  RPE {set.rpe}
-                                </Text>
-                              </View>
-                            ))}
+                            {workoutSets.map((set, setIndex) => {
+                              // Calculate XP for this set
+                              const muscleInvolvements =
+                                exerciseDetails?.muscles
+                                  ? extractMuscleInvolvement(
+                                      exerciseDetails.muscles,
+                                    )
+                                  : [];
+
+                              const xpResult = calculateXPDistribution(
+                                muscleInvolvements,
+                                set.rpe || 10,
+                              );
+
+                              return (
+                                <View
+                                  key={set.id}
+                                  className="flex-row justify-between items-center"
+                                >
+                                  <Text className="text-gray-300 font-Poppins_400Regular text-xs flex-1">
+                                    Set {setIndex + 1}: {formatSetDisplay(set)}
+                                  </Text>
+                                  <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium ml-2">
+                                    +{xpResult.totalXP} XP
+                                  </Text>
+                                </View>
+                              );
+                            })}
                           </View>
+
+                          {/* Exercise Notes */}
+                          {exerciseLogSummary?.notes && (
+                            <View className="mt-3 bg-[#1c1c1e] rounded-lg p-3">
+                              <Text className="text-gray-300 text-sm font-Poppins_400Regular italic">
+                                {exerciseLogSummary.notes}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       );
                     });
@@ -871,271 +586,6 @@ const Page = () => {
           })}
         </View>
       </ScrollView>
-
-      {/* Multi-Set Logging Modal */}
-      <Modal
-        visible={showLogModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowLogModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-[#1c1c1e] rounded-t-3xl p-6 max-h-[85%]">
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-white text-xl font-Poppins_600SemiBold">
-                Log Workout
-              </Text>
-              <TouchableOpacity onPress={() => setShowLogModal(false)}>
-                <Ionicons name="close" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Sets Table Header */}
-              <View className="bg-[#2c2c2e] rounded-xl p-3 mb-4">
-                <View className="flex-row items-center">
-                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-12 text-center">
-                    SET
-                  </Text>
-                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-20 text-center">
-                    PREVIOUS
-                  </Text>
-                  {requiredFields.needsWeight && (
-                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
-                      {getWeightLabel()}
-                    </Text>
-                  )}
-                  {requiredFields.needsReps && (
-                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
-                      REPS
-                    </Text>
-                  )}
-                  {requiredFields.needsDuration && (
-                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
-                      TIME
-                    </Text>
-                  )}
-                  {requiredFields.needsDistance && (
-                    <Text className="text-gray-300 text-sm font-Poppins_600SemiBold flex-1 text-center">
-                      {getDistanceLabel()}
-                    </Text>
-                  )}
-                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-16 text-center">
-                    RPE
-                  </Text>
-                  <Text className="text-gray-300 text-sm font-Poppins_600SemiBold w-12 text-center">
-                    ✓
-                  </Text>
-                </View>
-              </View>
-
-              {/* Sets Rows */}
-              {sets.map((set, index) => (
-                <SwipeableSetRow
-                  key={index}
-                  onDelete={() => removeSet(index)}
-                  canDelete={sets.length > 1}
-                  isCompleted={set.completed}
-                >
-                  <View className="flex-row items-center">
-                    {/* Set Number */}
-                    <Text className="text-white text-sm font-Poppins_600SemiBold w-12 text-center">
-                      {index + 1}
-                    </Text>
-
-                    {/* Previous Column */}
-                    <View className="w-20 items-center">
-                      <Text className="text-gray-500 text-xs font-Poppins_400Regular text-center">
-                        {set.previousData && exerciseDetails
-                          ? formatPreviousSet(
-                              set.previousData,
-                              exerciseDetails.exerciseType as ExerciseType,
-                              unitsConfig.weight,
-                              unitsConfig.distance,
-                            )
-                          : "-"}
-                      </Text>
-                    </View>
-
-                    {/* Weight Input */}
-                    {requiredFields.needsWeight && (
-                      <View className="flex-1 mx-1">
-                        <TextInput
-                          value={set.weight}
-                          onChangeText={(value) =>
-                            updateSet(index, "weight", value)
-                          }
-                          placeholder={
-                            set.previousData
-                              ? getPreviousValuePlaceholder(
-                                  "weight",
-                                  set.previousData,
-                                  unitsConfig.weight,
-                                  unitsConfig.distance,
-                                )
-                              : "0"
-                          }
-                          placeholderTextColor="#666"
-                          keyboardType="numeric"
-                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
-                        />
-                      </View>
-                    )}
-
-                    {/* Reps Input */}
-                    {requiredFields.needsReps && (
-                      <View className="flex-1 mx-1">
-                        <TextInput
-                          value={set.reps}
-                          onChangeText={(value) =>
-                            updateSet(index, "reps", value)
-                          }
-                          placeholder={
-                            set.previousData
-                              ? getPreviousValuePlaceholder(
-                                  "reps",
-                                  set.previousData,
-                                )
-                              : "0"
-                          }
-                          placeholderTextColor="#666"
-                          keyboardType="numeric"
-                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
-                        />
-                      </View>
-                    )}
-
-                    {/* Duration Input */}
-                    {requiredFields.needsDuration && (
-                      <View className="flex-1 mx-1">
-                        <TextInput
-                          value={set.duration}
-                          onChangeText={(value) =>
-                            updateSet(index, "duration", value)
-                          }
-                          placeholder={
-                            set.previousData
-                              ? getPreviousValuePlaceholder(
-                                  "duration",
-                                  set.previousData,
-                                )
-                              : "00:00"
-                          }
-                          placeholderTextColor="#666"
-                          keyboardType="numeric"
-                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
-                        />
-                      </View>
-                    )}
-
-                    {/* Distance Input */}
-                    {requiredFields.needsDistance && (
-                      <View className="flex-1 mx-1">
-                        <TextInput
-                          value={set.distance}
-                          onChangeText={(value) =>
-                            updateSet(index, "distance", value)
-                          }
-                          placeholder={
-                            set.previousData
-                              ? getPreviousValuePlaceholder(
-                                  "distance",
-                                  set.previousData,
-                                  unitsConfig.weight,
-                                  unitsConfig.distance,
-                                )
-                              : "0"
-                          }
-                          placeholderTextColor="#666"
-                          keyboardType="numeric"
-                          className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
-                        />
-                      </View>
-                    )}
-
-                    {/* RPE Input */}
-                    <View className="w-16 mx-1">
-                      <TextInput
-                        value={set.rpe}
-                        onChangeText={(value) => updateSet(index, "rpe", value)}
-                        placeholder="8"
-                        placeholderTextColor="#666"
-                        keyboardType="numeric"
-                        maxLength={2}
-                        className="bg-[#2c2c2e] rounded-lg p-2 text-white text-center font-Poppins_400Regular"
-                      />
-                    </View>
-
-                    {/* Completed Checkbox */}
-                    <TouchableOpacity
-                      className="w-12 items-center"
-                      onPress={() => {
-                        if (set.previousData && !set.completed) {
-                          // Quick-fill with previous data
-                          quickFillSet(index);
-                        } else {
-                          // Normal toggle
-                          updateSet(index, "completed", !set.completed);
-                        }
-                      }}
-                    >
-                      <View
-                        className={`w-6 h-6 rounded border-2 items-center justify-center ${
-                          set.completed
-                            ? "bg-[#6F2DBD] border-[#6F2DBD]"
-                            : set.previousData
-                              ? "border-[#6F2DBD]"
-                              : "border-gray-500"
-                        }`}
-                      >
-                        {set.completed && (
-                          <Ionicons name="checkmark" size={16} color="white" />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                </SwipeableSetRow>
-              ))}
-
-              {/* Add Set Button */}
-              <TouchableOpacity
-                onPress={addSet}
-                className="bg-[#2c2c2e] border-2 border-dashed border-gray-500 rounded-xl p-4 mb-6 items-center justify-center"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="add" size={20} color="#6F2DBD" />
-                  <Text className="text-[#6F2DBD] font-Poppins_500Medium ml-2">
-                    Add Set
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </ScrollView>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-3 mt-4">
-              <TouchableOpacity
-                onPress={() => {
-                  resetSets();
-                  setShowLogModal(false);
-                }}
-                className="flex-1 bg-[#2c2c2e] rounded-xl p-4"
-              >
-                <Text className="text-gray-300 font-Poppins_500Medium text-center">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleLogAllSets}
-                className="flex-1 bg-[#6F2DBD] rounded-xl p-4"
-              >
-                <Text className="text-white font-Poppins_600SemiBold text-center">
-                  Finish
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

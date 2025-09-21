@@ -4,7 +4,10 @@ import {
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
 import { api } from "@/convex/_generated/api";
-import { getProgressColor, weeklyProgressAtom } from "@/store/weeklyProgress";
+import {
+  getProgressColor,
+  individualMuscleProgressAtom,
+} from "@/store/weeklyProgress";
 import { getMajorGroupFromMuscle } from "@/utils/muscleMapping";
 import { useQuery } from "convex/react";
 import { router } from "expo-router";
@@ -37,17 +40,38 @@ const ColorLegend = () => {
   );
 };
 
+const getCurrentWeekRange = () => {
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Calculate Sunday of current week
+  startOfWeek.setDate(today.getDate() - dayOfWeek);
+
+  // Calculate Saturday of current week
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  const formatDate = (date: Date) => {
+    return date
+      .toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+      .toUpperCase()
+      .replace(",", "");
+  };
+
+  return `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
+};
+
 export const WeeklyProgressCard = () => {
   const muscles = useQuery(api.muscles.list);
-  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const [individualProgress] = useAtom(individualMuscleProgressAtom);
 
   if (!muscles) {
     return null;
   }
-
-  const progressMap = new Map(
-    weeklyProgress.map((item) => [item.majorGroup, item.percentage]),
-  );
 
   const highlightedMuscles: MuscleColorPair[] = [];
   const seenMuscleIds = new Set<string>();
@@ -58,7 +82,9 @@ export const WeeklyProgressCard = () => {
     }
     seenMuscleIds.add(muscle.svgId);
 
-    const progress = progressMap.get(muscle.majorGroup) || 0;
+    // Get individual muscle progress or default to 0
+    const muscleProgress = individualProgress[muscle.svgId];
+    const progress = muscleProgress?.percentage || 0;
     const color = getProgressColor(progress);
 
     highlightedMuscles.push({
@@ -75,9 +101,14 @@ export const WeeklyProgressCard = () => {
   return (
     <View className="mx-4 mb-6">
       <View className="bg-[#1c1c1e] rounded-2xl p-4">
-        <Text className="text-white text-xl font-Poppins_600SemiBold mb-4 text-center">
-          Weekly Progress
-        </Text>
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-white text-xl font-Poppins_600SemiBold">
+            Weekly Progress
+          </Text>
+          <Text className="text-gray-400 text-sm font-Poppins_500Medium">
+            {getCurrentWeekRange()}
+          </Text>
+        </View>
 
         <View className="items-center">
           <MuscleBody

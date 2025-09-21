@@ -13,6 +13,7 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { ConvexReactClient } from "convex/react";
+import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { Slot, SplashScreen } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect } from "react";
@@ -64,13 +65,18 @@ function RootLayout() {
           : undefined
       }
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <InitialLayout />
-        </ThemeProvider>
-      </GestureHandlerRootView>
+      <ConvexQueryCacheProvider
+        expireTime={60 * 60 * 1000} // 1 hour cache as requested
+        maxIdleTime={5 * 60 * 1000} // 5 minutes idle time before cache cleanup
+      >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <InitialLayout />
+          </ThemeProvider>
+        </GestureHandlerRootView>
+      </ConvexQueryCacheProvider>
     </ConvexAuthProvider>
   );
 }

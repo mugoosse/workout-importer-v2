@@ -2,10 +2,15 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { useCachedStableQuery } from "@/hooks/cachedHooks";
+import {
+  activeWorkoutAtom,
+  addExercisesToWorkoutAction,
+} from "@/store/activeWorkout";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
-import { Link, router, Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,13 +34,10 @@ const ExerciseSkeleton = () => (
   <View className="bg-[#1c1c1e] rounded-2xl p-4 mb-4">
     <View className="flex-row items-start justify-between mb-3">
       <View className="flex-1 mr-3">
-        {/* Title skeleton */}
         <View
           className="bg-gray-600 h-5 rounded mb-2"
           style={{ width: "70%" }}
         />
-
-        {/* Badges skeleton */}
         <View className="flex-row items-center flex-wrap gap-2">
           <View
             className="bg-gray-600 h-6 rounded px-3 py-1"
@@ -45,14 +47,8 @@ const ExerciseSkeleton = () => (
             className="bg-gray-600 h-6 rounded px-3 py-1"
             style={{ width: 60 }}
           />
-          <View
-            className="bg-gray-600 h-6 rounded px-3 py-1"
-            style={{ width: 70 }}
-          />
         </View>
       </View>
-
-      {/* Arrow skeleton */}
       <View className="bg-gray-600 w-10 h-10 rounded-xl" />
     </View>
   </View>
@@ -75,7 +71,6 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 const cleanExerciseTitle = (title: string) => {
-  // Remove equipment suffix pattern " (Equipment Name)"
   return title.replace(/\s*\([^)]*\)\s*$/, "").trim();
 };
 
@@ -88,9 +83,24 @@ const Page = () => {
     equipmentIds?: string;
     exerciseTypes?: string;
     search?: string;
+    selectedExercises?: string;
   }>();
 
+  const [activeWorkout] = useAtom(activeWorkoutAtom);
+  const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
   const [searchText, setSearchText] = useState(params.search || "");
+
+  // Initialize selected exercises from URL params
+  const initialSelectedExercises = params.selectedExercises
+    ? new Set(params.selectedExercises.split(",") as Id<"exercises">[])
+    : new Set<Id<"exercises">>();
+
+  const [selectedExercises, setSelectedExercises] = useState<
+    Set<Id<"exercises">>
+  >(initialSelectedExercises);
+  const [selectedExerciseDetails, setSelectedExerciseDetails] = useState<
+    Record<Id<"exercises">, any>
+  >({});
   const debouncedSearch = useDebounce(searchText, 300);
 
   // Get muscle and equipment details for display
@@ -124,6 +134,41 @@ const Page = () => {
     },
   );
 
+  // Query details for initially selected exercises (to get their details even if filtered out)
+  const allSelectedExercises = useQuery(
+    api.exercises.getExercisesByIds,
+    selectedExercises.size > 0
+      ? { exerciseIds: Array.from(selectedExercises) }
+      : "skip",
+  );
+
+  // Populate exercise details when data loads
+  useEffect(() => {
+    if (allSelectedExercises && selectedExercises.size > 0) {
+      setSelectedExerciseDetails((prevDetails) => {
+        const newDetails = { ...prevDetails };
+        let hasChanges = false;
+
+        allSelectedExercises.forEach((exercise) => {
+          if (
+            selectedExercises.has(exercise._id) &&
+            !newDetails[exercise._id]
+          ) {
+            newDetails[exercise._id] = {
+              name: exercise.title,
+              type: exercise.exerciseType,
+              equipment: exercise.equipment?.map((eq) => eq.name) || [],
+              instructions: exercise.instructions,
+            };
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? newDetails : prevDetails;
+      });
+    }
+  }, [allSelectedExercises, selectedExercises]);
+
   const handleClearFilter = (filterType: string) => {
     const newParams = { ...params };
     delete newParams[filterType as keyof typeof params];
@@ -134,16 +179,14 @@ const Page = () => {
     });
 
     const queryString = searchParams.toString();
-    router.replace(`/exercises${queryString ? `?${queryString}` : ""}`);
+    router.replace(
+      `/workout/add-exercises${queryString ? `?${queryString}` : ""}`,
+    );
   };
 
   const handleClearAllFilters = () => {
-    router.replace("/exercises");
+    router.replace("/workout/add-exercises");
     setSearchText("");
-  };
-
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
   };
 
   const hasActiveFilters = !!(
@@ -155,13 +198,82 @@ const Page = () => {
     searchText
   );
 
-  const filteredExercises = exercises || [];
-
-  const getPageTitle = () => {
-    return "Exercises";
+  const handleSearchChange = (text: string) => {
+    setSearchText(text);
   };
 
-  // Only show full loading screen on initial load (no previous data)
+  const toggleExerciseSelection = (exerciseId: Id<"exercises">) => {
+    const newSelection = new Set(selectedExercises);
+    const newDetails = { ...selectedExerciseDetails };
+
+    if (newSelection.has(exerciseId)) {
+      // Remove from selection and details
+      newSelection.delete(exerciseId);
+      delete newDetails[exerciseId];
+    } else {
+      // Add to selection and store details
+      newSelection.add(exerciseId);
+      const exercise = exercises?.find((ex) => ex._id === exerciseId);
+      if (exercise) {
+        newDetails[exerciseId] = {
+          name: exercise.title,
+          type: exercise.exerciseType,
+          equipment: exercise.equipment?.map((eq) => eq.name) || [],
+          instructions: exercise.instructions,
+        };
+      }
+    }
+
+    setSelectedExercises(newSelection);
+    setSelectedExerciseDetails(newDetails);
+  };
+
+  const handleAddExercises = async () => {
+    if (selectedExercises.size === 0) return;
+
+    try {
+      // Use the stored exercise details
+      const exercisesToAdd = Array.from(selectedExercises);
+
+      if (exercisesToAdd.length > 0) {
+        addExercisesToWorkout(exercisesToAdd, selectedExerciseDetails);
+      }
+
+      // Navigate directly to the workout page instead of using router.back()
+      // to avoid navigation stack issues when filters were used
+      // Use replace to maintain proper back button behavior
+      router.replace("/(app)/(authenticated)/(modal)/workout");
+    } catch (error) {
+      console.error("Error adding exercises:", error);
+    }
+  };
+
+  const filteredExercises =
+    exercises?.filter(
+      (exercise) =>
+        !activeWorkout.exercises.some((we) => we.exerciseId === exercise._id),
+    ) || [];
+
+  // Create a selection key for forcing re-renders
+  const selectionKey = Array.from(selectedExercises).join(",");
+
+  // Count total selected exercises (including those not visible due to filters)
+  const totalSelectedCount = selectedExercises.size;
+
+  if (!activeWorkout.isActive) {
+    return (
+      <View className="flex-1 bg-dark justify-center items-center">
+        <Text className="text-white text-lg">No active workout</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="mt-4 bg-blue-600 px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-Poppins_500Medium">Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (exercises === undefined) {
     return (
       <View className="flex-1 bg-dark items-center justify-center">
@@ -174,7 +286,7 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: getPageTitle(),
+          title: "Add Exercises",
           headerStyle: {
             backgroundColor: "#000000",
           },
@@ -197,7 +309,7 @@ const Page = () => {
           <Ionicons name="search" size={20} color="white" />
           <TextInput
             className="flex-1 ml-3 text-white font-Poppins_400Regular"
-            placeholder="Search exercises..."
+            placeholder="Search exercise"
             placeholderTextColor="#666"
             value={searchText}
             onChangeText={handleSearchChange}
@@ -244,6 +356,17 @@ const Page = () => {
                 filterParams.set("currentEquipmentIds", params.equipmentIds);
               if (params.exerciseTypes)
                 filterParams.set("currentExerciseTypes", params.exerciseTypes);
+
+              // Pass selected exercises to maintain selection
+              if (selectedExercises.size > 0) {
+                filterParams.set(
+                  "selectedExercises",
+                  Array.from(selectedExercises).join(","),
+                );
+              }
+
+              // Pass return route so filter page knows where to go back
+              filterParams.set("returnRoute", "/workout/add-exercises");
 
               const queryString = filterParams.toString();
               router.replace(
@@ -367,8 +490,20 @@ const Page = () => {
               ? "Loading..."
               : `${filteredExercises.length} Exercise${filteredExercises.length !== 1 ? "s" : ""}`}
           </Text>
+          {totalSelectedCount > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedExercises(new Set());
+                setSelectedExerciseDetails({});
+              }}
+              className="px-3 py-1"
+            >
+              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
+                Clear ({totalSelectedCount})
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-
         {exercises === undefined ? (
           <View>
             {Array.from({ length: 8 }, (_, index) => (
@@ -379,10 +514,11 @@ const Page = () => {
           <View className="bg-[#1c1c1e] rounded-2xl p-6 items-center">
             <Ionicons name="barbell" size={48} color="#666" />
             <Text className="text-white text-lg font-Poppins_600SemiBold mt-4 mb-2">
-              No exercises found
+              No new exercises found
             </Text>
             <Text className="text-gray-400 text-sm font-Poppins_400Regular text-center">
-              Try adjusting your filters or search terms to find more exercises.
+              All available exercises have been added to your workout or try
+              adjusting your search.
             </Text>
           </View>
         ) : (
@@ -395,13 +531,18 @@ const Page = () => {
             windowSize={5}
             recycleItems={true}
             style={{ flex: 1 }}
-            renderItem={({ item: exercise, index }) => (
-              <View className={index > 0 ? "mt-4" : ""}>
-                <Link
-                  href={`/(app)/(authenticated)/(modal)/exercise/${exercise._id}`}
-                  asChild
-                >
-                  <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
+            extraData={selectionKey}
+            renderItem={({ item: exercise, index }) => {
+              const isSelected = selectedExercises.has(exercise._id);
+              return (
+                <View className={index > 0 ? "mt-4" : ""}>
+                  <TouchableOpacity
+                    key={`${exercise._id}-${isSelected}`}
+                    onPress={() => toggleExerciseSelection(exercise._id)}
+                    className={`bg-[#1c1c1e] rounded-2xl p-4 border-2 ${
+                      isSelected ? "border-[#6F2DBD]" : "border-[#1c1c1e]"
+                    }`}
+                  >
                     <View className="flex-row items-start justify-between mb-3">
                       <View className="flex-1 mr-3">
                         <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
@@ -410,44 +551,56 @@ const Page = () => {
 
                         <View className="flex-row items-center flex-wrap gap-2">
                           <Badge variant="outline">
-                            <Text className="text-white text-xs">
-                              {exercise.exerciseType}
-                            </Text>
+                            {exercise.exerciseType}
                           </Badge>
 
-                          {/* Equipment tags inline */}
                           {exercise.equipment.slice(0, 2).map((equip) => (
                             <Badge key={equip._id} variant="outline">
-                              <Text className="text-white text-xs">
-                                {equip.name}
-                              </Text>
+                              {equip.name}
                             </Badge>
                           ))}
                           {exercise.equipment.length > 2 && (
                             <Badge variant="outline">
-                              <Text className="text-white text-xs">
-                                +{exercise.equipment.length - 2}
-                              </Text>
+                              +{exercise.equipment.length - 2}
                             </Badge>
                           )}
                         </View>
                       </View>
 
-                      <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
+                      <View
+                        className={`w-10 h-10 rounded-xl items-center justify-center ${
+                          isSelected ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+                        }`}
+                      >
                         <Ionicons
-                          name="chevron-forward"
+                          name={isSelected ? "checkmark" : "add"}
                           size={20}
                           color="#fff"
                         />
                       </View>
                     </View>
                   </TouchableOpacity>
-                </Link>
-              </View>
-            )}
+                </View>
+              );
+            }}
           />
         )}
       </View>
+
+      {/* Add Exercises Button */}
+      {totalSelectedCount > 0 && (
+        <View className="absolute bottom-0 left-0 right-0 p-4 bg-dark border-t border-neutral-700">
+          <TouchableOpacity
+            onPress={handleAddExercises}
+            className="bg-[#6F2DBD] rounded-xl py-4 px-6 flex-row items-center justify-center"
+          >
+            <Text className="text-white font-Poppins_600SemiBold text-lg">
+              Add {totalSelectedCount} exercise
+              {totalSelectedCount !== 1 ? "s" : ""}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };

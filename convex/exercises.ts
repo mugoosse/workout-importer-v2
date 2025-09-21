@@ -19,6 +19,55 @@ export const get = query({
   },
 });
 
+export const getExercisesByIds = query({
+  args: { exerciseIds: v.array(v.id("exercises")) },
+  handler: async (ctx, args) => {
+    const exercises = await Promise.all(
+      args.exerciseIds.map((id) => ctx.db.get(id))
+    );
+
+    // Filter out null exercises and get their details
+    const validExercises = exercises.filter(
+      (exercise): exercise is NonNullable<typeof exercise> => exercise !== null
+    );
+
+    const exercisesWithDetails = await Promise.all(
+      validExercises.map(async (exercise) => {
+        const [muscleRelationships, equipmentRelationships] = await Promise.all([
+          ctx.db
+            .query("exerciseMuscles")
+            .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
+            .collect(),
+          ctx.db
+            .query("exerciseEquipment")
+            .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
+            .collect(),
+        ]);
+
+        const [muscles, equipment] = await Promise.all([
+          Promise.all(
+            muscleRelationships.map(async (rel) => ({
+              muscle: await ctx.db.get(rel.muscleId),
+              role: rel.role,
+            }))
+          ),
+          Promise.all(
+            equipmentRelationships.map((rel) => ctx.db.get(rel.equipmentId))
+          ),
+        ]);
+
+        return {
+          ...exercise,
+          muscles: muscles.filter((m) => m.muscle),
+          equipment: equipment.filter(Boolean),
+        };
+      })
+    );
+
+    return exercisesWithDetails;
+  },
+});
+
 export const importExercise = mutation({
   args: {
     title: v.string(),
@@ -459,6 +508,16 @@ export const getFilteredExercises = query({
         v.literal("stabilizer"),
       ),
     ),
+    muscleFunctions: v.optional(
+      v.array(
+        v.union(
+          v.literal("target"),
+          v.literal("lengthening"),
+          v.literal("synergist"),
+          v.literal("stabilizer"),
+        ),
+      ),
+    ),
     equipmentIds: v.optional(v.array(v.id("equipment"))),
     exerciseTypes: v.optional(
       v.array(
@@ -493,7 +552,6 @@ export const getFilteredExercises = query({
         const muscleIds = muscles.map((m) => m._id);
         const muscleRelationships = await ctx.db
           .query("exerciseMuscles")
-          .filter((q) => q.eq(q.field("role"), "target"))
           .collect();
 
         const majorGroupExerciseIds = muscleRelationships
@@ -533,6 +591,34 @@ export const getFilteredExercises = query({
       } else {
         exerciseIds = new Set(
           muscleExerciseIds.filter((id) => exerciseIds.has(id)),
+        );
+      }
+    }
+
+    // Filter by muscle functions
+    if (args.muscleFunctions && args.muscleFunctions.length > 0) {
+      const allMuscleFunctionExerciseIds = new Set<Id<"exercises">>();
+
+      for (const role of args.muscleFunctions) {
+        const muscleRelationships = await ctx.db
+          .query("exerciseMuscles")
+          .filter((q) => q.eq(q.field("role"), role))
+          .collect();
+
+        const functionExerciseIds = muscleRelationships.map(
+          (rel) => rel.exerciseId,
+        );
+        functionExerciseIds.forEach((id) => allMuscleFunctionExerciseIds.add(id));
+      }
+
+      if (firstFilter) {
+        exerciseIds = allMuscleFunctionExerciseIds;
+        firstFilter = false;
+      } else {
+        exerciseIds = new Set(
+          Array.from(allMuscleFunctionExerciseIds).filter((id) =>
+            exerciseIds.has(id),
+          ),
         );
       }
     }

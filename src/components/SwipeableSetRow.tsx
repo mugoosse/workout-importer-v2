@@ -1,6 +1,11 @@
 import React, { useRef } from "react";
-import { Text, TouchableOpacity, View, Animated } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
+import { TouchableOpacity, View } from "react-native";
+import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import Reanimated, {
+  SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 
 interface SwipeableSetRowProps {
   children: React.ReactNode;
@@ -15,30 +20,25 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
   canDelete,
   isCompleted,
 }) => {
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<typeof ReanimatedSwipeable>(null);
 
-  const renderRightActions = (
-    progress: Animated.AnimatedAddition,
-    dragX: Animated.AnimatedAddition,
-  ) => {
-    const scale = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1],
-    });
-
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.5, 1],
+  const RightActions = ({
+    progress,
+    dragX,
+  }: {
+    progress: SharedValue<number>;
+    dragX: SharedValue<number>;
+  }) => {
+    const animatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: progress.value }],
+        opacity: progress.value,
+      };
     });
 
     return (
-      <View className="flex-1 bg-red-600 rounded-xl justify-center items-center">
-        <Animated.View
-          style={{
-            transform: [{ scale }],
-            opacity,
-          }}
-        >
+      <View className="w-20 justify-center items-center mb-4">
+        <Reanimated.View style={animatedStyle}>
           <TouchableOpacity
             onPress={() => {
               swipeableRef.current?.close();
@@ -46,26 +46,31 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
                 onDelete();
               }
             }}
-            className="bg-red-600 px-8 py-4 rounded-lg items-center justify-center min-w-[80px]"
             activeOpacity={0.7}
+            className="rounded-xl p-4 justify-center items-center"
           >
-            <Text className="text-white font-Poppins_700Bold text-base">
-              DELETE
-            </Text>
+            <Ionicons name="trash" size={20} color="#dc2626" />
           </TouchableOpacity>
-        </Animated.View>
+        </Reanimated.View>
       </View>
     );
   };
 
+  const renderRightActions = (
+    progress: SharedValue<number>,
+    dragX: SharedValue<number>,
+    swipeableMethods: any,
+  ) => <RightActions progress={progress} dragX={dragX} />;
+
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={canDelete ? renderRightActions : undefined}
       overshootRight={false}
       rightThreshold={50}
       friction={1.5}
       enableTrackpadTwoFingerGesture
+      snapToOffsets={[75]}
       onSwipeableOpen={(direction) => {
         if (direction === "right" && !canDelete) {
           // If can't delete, immediately close the swipeable
@@ -80,6 +85,6 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
       >
         {children}
       </View>
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 };

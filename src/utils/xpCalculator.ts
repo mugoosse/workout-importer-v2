@@ -155,14 +155,14 @@ export const calculateMajorGroupProgress = (
   // Convert to WeeklyProgressData format
   return Object.entries(groupedData).map(([group, data]) => {
     const majorGroup = group as MajorMuscleGroup;
-    const percentage =
-      data.totalGoal > 0
-        ? Math.round((data.totalXP / data.totalGoal) * 100)
-        : 0;
+
+    // Fixed target of 100 XP for all major muscle groups
+    const fixedTarget = 100;
+    const percentage = Math.round((data.totalXP / fixedTarget) * 100);
 
     // Simple level calculation based on total XP
-    const level = Math.max(1, Math.floor(data.totalXP / 100) + 1);
-    const nextLevel = level * 100;
+    const level = Math.max(1, Math.floor(data.totalXP / fixedTarget) + 1);
+    const nextLevel = fixedTarget; // Always 100 XP target
 
     return {
       majorGroup,
