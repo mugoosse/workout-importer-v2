@@ -101,7 +101,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
           style: "destructive",
           onPress: () => removeExercise(exercise.exerciseId),
         },
-      ]
+      ],
     );
   };
 
@@ -112,7 +112,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
       weight: lastSet?.weight,
       duration: lastSet?.duration,
       distance: lastSet?.distance,
-      rpe: lastSet?.rpe || 8,
+      rpe: lastSet?.rpe,
       isCompleted: false,
     });
   };
@@ -163,10 +163,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
       currentSet.distance !== undefined &&
       currentSet.distance !== null &&
       currentSet.distance > 0;
-    const hasUserRpe =
-      currentSet.rpe !== undefined &&
-      currentSet.rpe !== null &&
-      currentSet.rpe !== 5; // 5 is default
+    const hasUserRpe = currentSet.rpe !== undefined && currentSet.rpe !== null;
 
     if (!hasUserReps && previousData.reps !== undefined) {
       updates.reps = previousData.reps;
@@ -321,7 +318,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   }
 
   const requiredFields = getRequiredFields(
-    exerciseDetails.exerciseType as ExerciseType
+    exerciseDetails.exerciseType as ExerciseType,
   );
 
   return (
@@ -332,7 +329,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
           className="flex-1"
           onPress={() =>
             router.push(
-              `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`
+              `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`,
             )
           }
         >
@@ -429,10 +426,15 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                           previousData,
                           exerciseDetails.exerciseType as ExerciseType,
                           unitsConfig.weight,
-                          unitsConfig.distance === "miles" ? "mi" : "km"
+                          unitsConfig.distance === "miles" ? "mi" : "km",
                         )
                       : "-"}
                   </Text>
+                  {previousData && previousData.rpe && (
+                    <Text className="text-gray-500 text-xs font-Poppins_400Regular text-center">
+                      RPE {previousData.rpe}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Weight Input */}
@@ -461,7 +463,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "weight",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km"
+                              unitsConfig.distance === "miles" ? "mi" : "km",
                             )
                           : "0"
                       }
@@ -508,7 +510,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                         previousData
                           ? getPreviousValuePlaceholder(
                               "duration",
-                              previousData
+                              previousData,
                             )
                           : "60"
                       }
@@ -545,7 +547,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "distance",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km"
+                              unitsConfig.distance === "miles" ? "mi" : "km",
                             )
                           : "100"
                       }
@@ -606,8 +608,8 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
         onSelect={handleRPESelect}
         currentRPE={
           drawerState.setId
-            ? exercise.sets.find((s) => s.id === drawerState.setId)?.rpe || 8
-            : 8
+            ? exercise.sets.find((s) => s.id === drawerState.setId)?.rpe
+            : undefined
         }
         setNumber={
           drawerState.setId
@@ -630,7 +632,7 @@ const Page = () => {
   const [, logSet] = useAtom(logSetAction);
   const [, tickTimer] = useAtom(tickTimerAction);
   const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
-    individualMuscleProgressAtom
+    individualMuscleProgressAtom,
   );
   const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
 
@@ -646,7 +648,7 @@ const Page = () => {
     if (activeWorkout.exercises.length === 0) {
       Alert.alert(
         "Empty Workout",
-        "Add some exercises before finishing your workout."
+        "Add some exercises before finishing your workout.",
       );
       return;
     }
@@ -655,102 +657,101 @@ const Page = () => {
     if (totalCompletedSets === 0) {
       Alert.alert(
         "No Sets Completed",
-        "Complete at least one set before finishing your workout."
+        "Complete at least one set before finishing your workout.",
       );
       return;
     }
 
-    Alert.alert(
-      "Finish Workout",
-      `Save your workout with ${totalCompletedSets} completed sets?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Finish",
-          onPress: async () => {
-            try {
-              // Navigate away immediately to prevent race condition
-              router.back();
+    // Check for completed sets without RPE values
+    const setsWithoutRpe = activeWorkout.exercises
+      .flatMap((exercise) => exercise.sets)
+      .filter((set) => set.isCompleted && set.rpe == null);
 
-              const { loggedSets, workoutSession } = finishWorkout();
+    if (setsWithoutRpe.length > 0) {
+      Alert.alert(
+        "Missing RPE Values",
+        "All completed sets must have an RPE (Rate of Perceived Exertion) value. Please set RPE for all completed sets.",
+      );
+      return;
+    }
 
-              // Process XP for each exercise and update progress
-              let updatedIndividualProgress = individualMuscleProgress;
-              let updatedWeeklyProgress = weeklyProgress;
-              let totalWorkoutXP = 0;
+    try {
+      // Navigate away immediately to prevent race condition
+      router.back();
 
-              for (const exercise of activeWorkout.exercises) {
-                // Get exercise details with muscle data for each exercise
-                try {
-                  const exerciseDetails = await convex.query(
-                    api.exercises.getExerciseDetails,
-                    {
-                      exerciseId: exercise.exerciseId,
-                    }
-                  );
+      const { loggedSets, workoutSession } = finishWorkout();
 
-                  if (
-                    exerciseDetails &&
-                    exerciseDetails.muscles &&
-                    exercise.sets.some((set) => set.isCompleted)
-                  ) {
-                    // Extract real muscle involvement from exercise details
-                    const muscleInvolvements = extractMuscleInvolvement(
-                      exerciseDetails.muscles
-                    );
+      // Process XP for each exercise and update progress
+      let updatedIndividualProgress = individualMuscleProgress;
+      let updatedWeeklyProgress = weeklyProgress;
+      let totalWorkoutXP = 0;
 
-                    // Process each completed set
-                    exercise.sets
-                      .filter((set) => set.isCompleted)
-                      .forEach((set) => {
-                        const result = processSetLogging(
-                          updatedIndividualProgress,
-                          updatedWeeklyProgress,
-                          muscleInvolvements,
-                          set.rpe
-                        );
+      for (const exercise of activeWorkout.exercises) {
+        // Get exercise details with muscle data for each exercise
+        try {
+          const exerciseDetails = await convex.query(
+            api.exercises.getExerciseDetails,
+            {
+              exerciseId: exercise.exerciseId,
+            },
+          );
 
-                        updatedIndividualProgress =
-                          result.updatedIndividualProgress;
-                        updatedWeeklyProgress =
-                          result.updatedMajorGroupProgress;
-                        totalWorkoutXP += result.xpCalculation.totalXP;
-                      });
-                  }
-                } catch (error) {
-                  console.error(
-                    `Failed to fetch exercise details for ${exercise.exerciseId}:`,
-                    error
-                  );
-                }
-              }
+          if (
+            exerciseDetails &&
+            exerciseDetails.muscles &&
+            exercise.sets.some((set) => set.isCompleted)
+          ) {
+            // Extract real muscle involvement from exercise details
+            const muscleInvolvements = extractMuscleInvolvement(
+              exerciseDetails.muscles,
+            );
 
-              // Update the workout session with calculated XP
-              workoutSession.totalXP = totalWorkoutXP;
+            // Process each completed set
+            exercise.sets
+              .filter((set) => set.isCompleted)
+              .forEach((set) => {
+                const result = processSetLogging(
+                  updatedIndividualProgress,
+                  updatedWeeklyProgress,
+                  muscleInvolvements,
+                  set.rpe,
+                );
 
-              // Update progress atoms
-              setIndividualMuscleProgress(updatedIndividualProgress);
-              setWeeklyProgress(updatedWeeklyProgress);
-
-              // Add sets to exercise log
-              loggedSets.forEach((set) => {
-                logSet({
-                  exerciseId: set.exerciseId,
-                  reps: set.reps,
-                  weight: set.weight,
-                  duration: set.duration,
-                  distance: set.distance,
-                  rpe: set.rpe,
-                });
+                updatedIndividualProgress = result.updatedIndividualProgress;
+                updatedWeeklyProgress = result.updatedMajorGroupProgress;
+                totalWorkoutXP += result.xpCalculation.totalXP;
               });
-            } catch (error) {
-              console.error("Error finishing workout:", error);
-              Alert.alert("Error", "Failed to save workout. Please try again.");
-            }
-          },
-        },
-      ]
-    );
+          }
+        } catch (error) {
+          console.error(
+            `Failed to fetch exercise details for ${exercise.exerciseId}:`,
+            error,
+          );
+        }
+      }
+
+      // Update the workout session with calculated XP
+      workoutSession.totalXP = totalWorkoutXP;
+
+      // Update progress atoms
+      setIndividualMuscleProgress(updatedIndividualProgress);
+      setWeeklyProgress(updatedWeeklyProgress);
+
+      // Add sets to exercise log
+      loggedSets.forEach((set) => {
+        logSet({
+          exerciseId: set.exerciseId,
+          reps: set.reps,
+          weight: set.weight,
+          duration: set.duration,
+          distance: set.distance,
+          rpe: set.rpe,
+        });
+      });
+    } catch (error) {
+      console.error("Error finishing workout:", error);
+      Alert.alert("Error", "Failed to save workout. Please try again.");
+    }
   };
 
   const handleDiscardWorkout = () => {
@@ -767,7 +768,7 @@ const Page = () => {
             router.back();
           },
         },
-      ]
+      ],
     );
   };
 

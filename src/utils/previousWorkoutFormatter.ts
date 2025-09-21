@@ -23,21 +23,21 @@ export function formatPreviousSet(
 
   switch (exerciseType) {
     case "Weight Reps":
-      // "10kg x 10 @ 9.5 rpe"
-      return `${weight}${weightUnit} x ${reps} @ ${rpe} rpe`;
+      // "10kg x 10"
+      return `${weight}${weightUnit} x ${reps}`;
 
     case "Reps Only":
-      // "x 10 @ 7.5 rpe"
-      return `x ${reps} @ ${rpe} rpe`;
+      // "x 10"
+      return `x ${reps}`;
 
     case "Weighted Bodyweight":
-      // "10kg x 10 @ 9.5 rpe" (same as Weight Reps)
-      return `${weight}${weightUnit} x ${reps} @ ${rpe} rpe`;
+      // "10kg x 10" (same as Weight Reps)
+      return `${weight}${weightUnit} x ${reps}`;
 
     case "Assisted Bodyweight":
       // Shows with negative weight for assistance
       const assistWeight = weight ? -Math.abs(weight) : 0;
-      return `${assistWeight}${weightUnit} x ${reps} @ ${rpe} rpe`;
+      return `${assistWeight}${weightUnit} x ${reps}`;
 
     case "Duration":
       // "00:05"
