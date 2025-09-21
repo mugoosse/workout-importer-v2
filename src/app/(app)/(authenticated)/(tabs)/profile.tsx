@@ -8,7 +8,15 @@ import {
   weeklyProgressAtom,
   individualMuscleProgressAtom,
 } from "@/store/weeklyProgress";
-import { clearAllLogsAction } from "@/store/exerciseLog";
+import {
+  clearAllLogsAction,
+  exerciseLogsAtom,
+  workoutSessionsAtom
+} from "@/store/exerciseLog";
+import {
+  activeWorkoutAtom,
+  discardWorkoutAction
+} from "@/store/activeWorkout";
 import {
   weightUnitAtom,
   distanceUnitAtom,
@@ -24,6 +32,9 @@ const Page = () => {
   const [, setWeeklyProgress] = useAtom(weeklyProgressAtom);
   const [, setIndividualMuscleProgress] = useAtom(individualMuscleProgressAtom);
   const [, clearAllLogs] = useAtom(clearAllLogsAction);
+  const [, setExerciseLogs] = useAtom(exerciseLogsAtom);
+  const [, setWorkoutSessions] = useAtom(workoutSessionsAtom);
+  const [, discardWorkout] = useAtom(discardWorkoutAction);
   const [weightUnit] = useAtom(weightUnitAtom);
   const [distanceUnit] = useAtom(distanceUnitAtom);
   const [, setWeightUnit] = useAtom(setWeightUnitAction);
@@ -49,6 +60,13 @@ const Page = () => {
           onPress: () => {
             // Clear all logged sets
             clearAllLogs();
+
+            // Clear exercise logs and workout sessions
+            setExerciseLogs([]);
+            setWorkoutSessions([]);
+
+            // Discard any active workout
+            discardWorkout();
 
             // Reset weekly progress
             setWeeklyProgress([
