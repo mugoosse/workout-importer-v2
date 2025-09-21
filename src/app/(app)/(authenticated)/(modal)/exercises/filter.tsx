@@ -145,15 +145,6 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: "Filter Exercises",
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
           headerLeft: () => (
             <TouchableOpacity onPress={handleCancel} className="ml-2">
               <Ionicons name="chevron-back" size={24} color="#ffffff" />

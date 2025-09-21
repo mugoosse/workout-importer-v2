@@ -1,9 +1,10 @@
+import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { Badge } from "@/components/ui/Badge";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { Stack, useLocalSearchParams, router } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -14,11 +15,21 @@ import {
 
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const equipmentId = id as Id<"equipment">;
 
   // Get equipment details
   const equipment = useQuery(api.exercises.getAllEquipment, {});
   const selectedEquipment = equipment?.find((e) => e._id === equipmentId);
+
+  // Set the title dynamically when equipment data loads
+  useLayoutEffect(() => {
+    if (selectedEquipment?.name) {
+      navigation.setOptions({
+        title: selectedEquipment.name,
+      });
+    }
+  }, [navigation, selectedEquipment?.name]);
 
   // Get exercises that use this equipment
   const exercises = useQuery(api.exercises.getExercisesByEquipment, {
@@ -55,25 +66,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: selectedEquipment.name,
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

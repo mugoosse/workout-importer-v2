@@ -1,20 +1,20 @@
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useQuery, useAction } from "convex/react";
-import { Stack, useLocalSearchParams, router } from "expo-router";
+import { useAction, useQuery } from "convex/react";
+import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   Image,
+  Linking,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  Linking,
 } from "react-native";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -93,25 +93,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: "Exercise Videos",
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

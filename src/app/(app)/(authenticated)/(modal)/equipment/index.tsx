@@ -1,9 +1,9 @@
-import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/Badge";
+import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { Link, Stack, router } from "expo-router";
-import { useState, useMemo } from "react";
+import { Link, router } from "expo-router";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -41,25 +41,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: "Equipment",
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

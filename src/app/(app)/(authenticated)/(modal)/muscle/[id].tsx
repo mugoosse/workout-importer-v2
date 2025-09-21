@@ -1,11 +1,20 @@
 import { MuscleBody, type MuscleId } from "@/components/muscle-body/MuscleBody";
 import { Badge } from "@/components/ui/Badge";
+import { RPE_SCALE } from "@/constants/rpe";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { RPE_SCALE } from "@/constants/rpe";
+import { exerciseLogSummariesAtom, loggedSetsAtom } from "@/store/exerciseLog";
+import {
+  getProgressColor,
+  getStreakEmoji,
+  individualMuscleProgressAtom,
+} from "@/store/weeklyProgress";
+import { calculateXPDistribution, type MuscleRole } from "@/utils/xpCalculator";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { Stack, useLocalSearchParams, router } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { useAtom } from "jotai";
+import { useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,14 +22,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAtom } from "jotai";
-import {
-  individualMuscleProgressAtom,
-  getProgressColor,
-  getStreakEmoji,
-} from "@/store/weeklyProgress";
-import { loggedSetsAtom, exerciseLogSummariesAtom } from "@/store/exerciseLog";
-import { calculateXPDistribution, type MuscleRole } from "@/utils/xpCalculator";
 
 // Helper function to get role color
 const getRoleColor = (role: MuscleRole): string => {
@@ -235,6 +236,7 @@ const ExerciseRoleCard = ({
 
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
   const [loggedSets] = useAtom(loggedSetsAtom);
   const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
@@ -246,6 +248,15 @@ const Page = () => {
   const exerciseCounts = useQuery(api.muscles.getExerciseCounts, {
     muscleId: id as Id<"muscles">,
   });
+
+  // Set the title dynamically when muscle data loads
+  useLayoutEffect(() => {
+    if (muscle?.name) {
+      navigation.setOptions({
+        title: muscle.name,
+      });
+    }
+  }, [navigation, muscle?.name]);
 
   // Get recent workouts that involve this muscle
   const recentWorkouts = muscle
@@ -350,19 +361,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: muscle.name,
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-          },
-        }}
-      />
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

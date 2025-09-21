@@ -1,9 +1,9 @@
+import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import {
   MuscleBody,
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
-import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import {
@@ -20,9 +20,20 @@ import {
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
 import { useConvex } from "convex/react";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import {
+  router,
+  Stack,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import { useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -48,6 +59,7 @@ const formatDuration = (milliseconds: number): string => {
 
 const Page = () => {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const navigation = useNavigation();
   const convex = useConvex();
 
   const [getWorkoutSessionById] = useAtom(getWorkoutSessionByIdAtom);
@@ -72,6 +84,15 @@ const Page = () => {
     () => (sessionId ? getSetsByWorkoutSession(sessionId) : []),
     [sessionId, getSetsByWorkoutSession],
   );
+
+  // Set the title dynamically when workout session data loads
+  useLayoutEffect(() => {
+    if (workoutSession?.name) {
+      navigation.setOptions({
+        title: workoutSession.name || "Workout Details",
+      });
+    }
+  }, [navigation, workoutSession?.name]);
 
   // Get exercise notes for this workout
   const workoutExerciseNotes = exerciseLogs.filter(
@@ -246,12 +267,6 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: workoutSession.name || "Workout Details",
-          headerShown: true,
-          presentation: "modal",
-          headerStyle: { backgroundColor: "#000000" },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
           headerRight: () => (
             <Text className="text-gray-400 text-lg font-Poppins_400Regular">
               {formatDate(workoutSession.startTime)}

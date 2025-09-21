@@ -784,16 +784,6 @@ const Page = () => {
     <>
       <Stack.Screen
         options={{
-          title: "Log Workout",
-          headerShown: true,
-          presentation: "modal",
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-          },
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => router.back()}

@@ -10,9 +10,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import {
+  router,
+  Stack,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -76,6 +81,7 @@ const cleanExerciseTitle = (title: string) => {
 };
 
 const Page = () => {
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{
     majorGroups?: string;
     muscleId?: string;
@@ -95,6 +101,13 @@ const Page = () => {
 
   // Check if we're in replacement mode
   const isReplacementMode = !!params.replacingExercise;
+
+  // Set the title dynamically based on mode
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: isReplacementMode ? "Replace Exercise" : "Add Exercises",
+    });
+  }, [navigation, isReplacementMode]);
 
   // Initialize selected exercises from URL params
   const initialSelectedExercises = params.selectedExercises
@@ -332,15 +345,6 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: isReplacementMode ? "Replace Exercise" : "Add Exercises",
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} className="ml-2">
               <Ionicons name="chevron-back" size={24} color="#ffffff" />

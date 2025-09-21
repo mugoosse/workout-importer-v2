@@ -5,7 +5,7 @@ import { useCachedStableQuery } from "@/hooks/cachedHooks";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
-import { Link, router, Stack, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -159,10 +159,6 @@ const Page = () => {
 
   const filteredExercises = exercises || [];
 
-  const getPageTitle = () => {
-    return "Exercises";
-  };
-
   // Only show full loading screen on initial load (no previous data)
   if (exercises === undefined) {
     return (
@@ -174,25 +170,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: getPageTitle(),
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       {/* Search Bar */}
       <View className="mx-4 mt-4 mb-4">
         <View className="flex-row items-center bg-[#2c2c2e] rounded-xl px-3 py-2">

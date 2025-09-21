@@ -5,12 +5,19 @@ import {
 } from "@/components/muscle-body/MuscleBody";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
+import {
+  getMuscleProgress,
+  getProgressColor,
+  getStreakEmoji,
+  individualMuscleProgressAtom,
+} from "@/store/weeklyProgress";
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
-import { Link, Stack, useLocalSearchParams, router } from "expo-router";
-import { useState } from "react";
+import { Link, useLocalSearchParams, useNavigation } from "expo-router";
+import { useAtom } from "jotai";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -18,13 +25,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAtom } from "jotai";
-import {
-  individualMuscleProgressAtom,
-  getProgressColor,
-  getStreakEmoji,
-  getMuscleProgress,
-} from "@/store/weeklyProgress";
 
 const formatMuscleName = (svgId: string): string => {
   return svgId
@@ -36,11 +36,21 @@ const formatMuscleName = (svgId: string): string => {
 
 const Page = () => {
   const { group } = useLocalSearchParams<{ group: string }>();
+  const navigation = useNavigation();
   const majorGroup = group as MajorMuscleGroup;
   const muscles = useQuery(api.muscles.list);
   const exerciseCountsData = useQuery(api.muscles.getAllExerciseCounts);
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+
+  // Set the title dynamically based on majorGroup
+  useLayoutEffect(() => {
+    if (majorGroup) {
+      navigation.setOptions({
+        title: `${majorGroup.charAt(0).toUpperCase() + majorGroup.slice(1)}: Muscle Details`,
+      });
+    }
+  }, [navigation, majorGroup]);
 
   if (!muscles || !exerciseCountsData) {
     return (
@@ -133,25 +143,6 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          title: `${majorGroup.charAt(0).toUpperCase() + majorGroup.slice(1)}: Muscle Breakdown`,
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}

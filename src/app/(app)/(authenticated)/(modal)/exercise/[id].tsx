@@ -23,9 +23,15 @@ import {
 } from "@/store/weeklyProgress";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
-import { Link, router, Stack, useLocalSearchParams } from "expo-router";
+import {
+  Link,
+  router,
+  Stack,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import { useAtom } from "jotai";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -69,11 +75,21 @@ const cleanExerciseTitle = (title: string) => {
 
 const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const exerciseId = id as Id<"exercises">;
   const exerciseDetails = useQuery(api.exercises.getExerciseDetails, {
     exerciseId,
   });
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
+
+  // Set the title dynamically when exerciseDetails loads
+  useLayoutEffect(() => {
+    if (exerciseDetails?.title) {
+      navigation.setOptions({
+        title: cleanExerciseTitle(exerciseDetails.title),
+      });
+    }
+  }, [navigation, exerciseDetails?.title]);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
   const [getWorkoutSessionsByExercise] = useAtom(
     getWorkoutSessionsByExerciseAtom,
@@ -200,15 +216,6 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       <Stack.Screen
         options={{
-          title: cleanExerciseTitle(exerciseDetails.title),
-          headerStyle: {
-            backgroundColor: "#000000",
-          },
-          headerTintColor: "#ffffff",
-          headerTitleStyle: {
-            fontFamily: "Poppins_600SemiBold",
-            fontSize: 18,
-          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} className="ml-2">
               <Ionicons name="chevron-back" size={24} color="#ffffff" />
