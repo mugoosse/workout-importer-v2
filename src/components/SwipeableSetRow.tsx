@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
 import { TouchableOpacity, View } from "react-native";
-import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
 import Reanimated, {
   SharedValue,
   useAnimatedStyle,
@@ -20,7 +22,7 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
   canDelete,
   isCompleted,
 }) => {
-  const swipeableRef = useRef<typeof ReanimatedSwipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
 
   const RightActions = ({
     progress,
@@ -70,7 +72,6 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
       rightThreshold={50}
       friction={1.5}
       enableTrackpadTwoFingerGesture
-      snapToOffsets={[75]}
       onSwipeableOpen={(direction) => {
         if (direction === "right" && !canDelete) {
           // If can't delete, immediately close the swipeable

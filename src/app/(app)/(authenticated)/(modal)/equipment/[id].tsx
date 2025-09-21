@@ -37,9 +37,11 @@ const Page = () => {
   const exercisesByType =
     exercises?.reduce(
       (acc, exercise) => {
-        const type = exercise.exerciseType;
-        if (!acc[type]) acc[type] = 0;
-        acc[type]++;
+        if (exercise) {
+          const type = exercise.exerciseType;
+          if (!acc[type]) acc[type] = 0;
+          acc[type]++;
+        }
         return acc;
       },
       {} as Record<string, number>,
@@ -235,33 +237,35 @@ const Page = () => {
               </View>
 
               <View className="space-y-3">
-                {exercises.slice(0, 3).map((exercise) => (
-                  <TouchableOpacity
-                    key={exercise._id}
-                    onPress={() =>
-                      router.push(
-                        `/(app)/(authenticated)/(modal)/exercise/${exercise._id}`,
-                      )
-                    }
-                    className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between"
-                  >
-                    <View className="flex-1">
-                      <Text className="text-white font-Poppins_500Medium mb-1">
-                        {exercise.title}
-                      </Text>
-                      <Badge variant="outline">
-                        <Text className="text-white text-xs">
-                          {exercise.exerciseType}
+                {exercises?.slice(0, 3).map((exercise) =>
+                  exercise ? (
+                    <TouchableOpacity
+                      key={exercise._id}
+                      onPress={() =>
+                        router.push(
+                          `/(app)/(authenticated)/(modal)/exercise/${exercise._id}`,
+                        )
+                      }
+                      className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between"
+                    >
+                      <View className="flex-1">
+                        <Text className="text-white font-Poppins_500Medium mb-1">
+                          {exercise.title}
                         </Text>
-                      </Badge>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color="#6F2DBD"
-                    />
-                  </TouchableOpacity>
-                ))}
+                        <Badge variant="outline">
+                          <Text className="text-white text-xs">
+                            {exercise.exerciseType}
+                          </Text>
+                        </Badge>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color="#6F2DBD"
+                      />
+                    </TouchableOpacity>
+                  ) : null,
+                )}
               </View>
             </View>
           </View>

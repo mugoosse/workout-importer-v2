@@ -88,7 +88,7 @@ export const WeeklyProgressCard = () => {
     const color = getProgressColor(progress);
 
     highlightedMuscles.push({
-      muscleId: muscle.svgId,
+      muscleId: muscle.svgId as MuscleId,
       color,
     });
   });

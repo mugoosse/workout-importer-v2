@@ -1,6 +1,7 @@
 import {
   MuscleBody,
   type MuscleColorPair,
+  type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
 import { ExerciseSetsDisplay } from "@/components/ExerciseSetsDisplay";
 import { api } from "@/convex/_generated/api";
@@ -129,7 +130,7 @@ const Page = () => {
             ? Math.round((currentProgress.xp / currentProgress.goal) * 100)
             : 0;
         beforeColors.push({
-          muscleId,
+          muscleId: muscleId as MuscleId,
           color: getProgressColor(beforePercentage),
         });
 
@@ -140,7 +141,7 @@ const Page = () => {
             ? Math.round((afterXP / currentProgress.goal) * 100)
             : 0;
         afterColors.push({
-          muscleId,
+          muscleId: muscleId as MuscleId,
           color: getProgressColor(afterPercentage),
         });
       });

@@ -226,7 +226,7 @@ const Page = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/(app)/(authenticated)/(tabs)/")}
+              onPress={() => router.push("/(app)/(authenticated)/(tabs)/home")}
               className="bg-[#2c2c2e] rounded-xl p-3 flex-row items-center justify-between"
             >
               <View className="flex-row items-center">

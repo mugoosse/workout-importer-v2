@@ -135,7 +135,7 @@ const Page = () => {
 
     const queryString = searchParams.toString();
     router.replace(
-      `/(app)/(authenticated)/(modal)/exercises${queryString ? `?${queryString}` : ""}`,
+      `/(app)/(authenticated)/(modal)/exercises${queryString ? `?${queryString}` : ""}` as any,
     );
   };
 
@@ -249,7 +249,7 @@ const Page = () => {
 
               const queryString = filterParams.toString();
               router.replace(
-                `/(app)/(authenticated)/(modal)/exercises/filter${queryString ? `?${queryString}` : ""}`,
+                `/(app)/(authenticated)/exercises/filter${queryString ? `?${queryString}` : ""}` as any,
               );
             }}
             className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
@@ -392,10 +392,6 @@ const Page = () => {
             data={filteredExercises}
             keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={20}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            recycleItems={true}
             style={{ flex: 1 }}
             renderItem={({ item: exercise, index }) => (
               <View className={index > 0 ? "mt-4" : ""}>
@@ -418,17 +414,24 @@ const Page = () => {
                           </Badge>
 
                           {/* Equipment tags inline */}
-                          {exercise.equipment.slice(0, 2).map((equip) => (
-                            <Badge key={equip._id} variant="outline">
-                              <Text className="text-white text-xs">
-                                {equip.name}
-                              </Text>
-                            </Badge>
-                          ))}
-                          {exercise.equipment.length > 2 && (
+                          {exercise.equipment
+                            .filter((equip) => equip !== null)
+                            .slice(0, 2)
+                            .map((equip) => (
+                              <Badge key={equip._id} variant="outline">
+                                <Text className="text-white text-xs">
+                                  {equip.name}
+                                </Text>
+                              </Badge>
+                            ))}
+                          {exercise.equipment.filter((equip) => equip !== null)
+                            .length > 2 && (
                             <Badge variant="outline">
                               <Text className="text-white text-xs">
-                                +{exercise.equipment.length - 2}
+                                +
+                                {exercise.equipment.filter(
+                                  (equip) => equip !== null,
+                                ).length - 2}
                               </Text>
                             </Badge>
                           )}

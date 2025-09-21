@@ -157,8 +157,10 @@ const Page = () => {
             newDetails[exercise._id] = {
               name: exercise.title,
               type: exercise.exerciseType,
-              equipment: exercise.equipment?.map((eq) => eq.name) || [],
-              instructions: exercise.instructions,
+              equipment:
+                exercise.equipment
+                  ?.filter((eq) => eq !== null)
+                  .map((eq) => eq.name) || [],
             };
             hasChanges = true;
           }
@@ -218,8 +220,10 @@ const Page = () => {
         newDetails[exerciseId] = {
           name: exercise.title,
           type: exercise.exerciseType,
-          equipment: exercise.equipment?.map((eq) => eq.name) || [],
-          instructions: exercise.instructions,
+          equipment:
+            exercise.equipment
+              ?.filter((eq) => eq !== null)
+              .map((eq) => eq.name) || [],
         };
       }
     }
@@ -370,7 +374,7 @@ const Page = () => {
 
               const queryString = filterParams.toString();
               router.replace(
-                `/exercises/filter${queryString ? `?${queryString}` : ""}`,
+                `/(app)/(authenticated)/exercises/filter${queryString ? `?${queryString}` : ""}` as any,
               );
             }}
             className="flex-row items-center bg-[#1c1c1e] rounded-xl px-3 py-3"
@@ -526,10 +530,6 @@ const Page = () => {
             data={filteredExercises}
             keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={20}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            recycleItems={true}
             style={{ flex: 1 }}
             extraData={selectionKey}
             renderItem={({ item: exercise, index }) => {
@@ -554,14 +554,21 @@ const Page = () => {
                             {exercise.exerciseType}
                           </Badge>
 
-                          {exercise.equipment.slice(0, 2).map((equip) => (
-                            <Badge key={equip._id} variant="outline">
-                              {equip.name}
-                            </Badge>
-                          ))}
-                          {exercise.equipment.length > 2 && (
+                          {exercise.equipment
+                            .filter((equip) => equip !== null)
+                            .slice(0, 2)
+                            .map((equip) => (
+                              <Badge key={equip._id} variant="outline">
+                                {equip.name}
+                              </Badge>
+                            ))}
+                          {exercise.equipment.filter((equip) => equip !== null)
+                            .length > 2 && (
                             <Badge variant="outline">
-                              +{exercise.equipment.length - 2}
+                              +
+                              {exercise.equipment.filter(
+                                (equip) => equip !== null,
+                              ).length - 2}
                             </Badge>
                           )}
                         </View>

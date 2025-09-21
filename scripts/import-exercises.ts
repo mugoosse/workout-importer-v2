@@ -104,7 +104,7 @@ async function main() {
 
   try {
     console.log("🌱 Seeding equipment...");
-    const seedResult = await client.mutation(api.seedEquipment.seedEquipment);
+    const seedResult = await client.mutation(api.seedEquipment.seedEquipment, {});
     console.log(`✅ ${seedResult.message}`);
 
     console.log("📖 Parsing CSV file...");

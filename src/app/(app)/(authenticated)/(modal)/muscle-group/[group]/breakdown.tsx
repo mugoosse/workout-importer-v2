@@ -116,7 +116,7 @@ const Page = () => {
     }
 
     highlightedMuscles.push({
-      muscleId: svgId,
+      muscleId: svgId as MuscleId,
       color,
     });
   });
@@ -201,10 +201,6 @@ const Page = () => {
             data={displayMuscles}
             keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={20}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            recycleItems={true}
             style={{ flex: 1 }}
             renderItem={({ item: muscle, index }) => {
               const exerciseCounts = exerciseCountsData[muscle._id];

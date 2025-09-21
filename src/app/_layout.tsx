@@ -65,10 +65,7 @@ function RootLayout() {
           : undefined
       }
     >
-      <ConvexQueryCacheProvider
-        expireTime={60 * 60 * 1000} // 1 hour cache as requested
-        maxIdleTime={5 * 60 * 1000} // 5 minutes idle time before cache cleanup
-      >
+      <ConvexQueryCacheProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}

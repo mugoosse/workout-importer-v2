@@ -117,8 +117,11 @@ const Page = () => {
     const queryString = searchParams.toString();
 
     // Use returnRoute if provided, otherwise default to /exercises
-    const targetRoute = params.returnRoute || "/exercises";
-    router.replace(`${targetRoute}${queryString ? `?${queryString}` : ""}`);
+    const targetRoute =
+      params.returnRoute || "/(app)/(authenticated)/(modal)/exercises";
+    router.replace(
+      `${targetRoute}${queryString ? `?${queryString}` : ""}` as any,
+    );
   };
 
   const handleClearAll = () => {

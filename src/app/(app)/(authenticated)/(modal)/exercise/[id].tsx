@@ -100,7 +100,6 @@ const Page = () => {
         title: exerciseDetails?.title,
         exerciseType: exerciseDetails?.exerciseType,
         equipment: exerciseDetails?.equipment,
-        instructions: exerciseDetails?.instructions,
       },
     });
 
@@ -165,7 +164,7 @@ const Page = () => {
     const color = MUSCLE_ROLE_COLORS[role];
 
     highlightedMuscles.push({
-      muscleId: muscle.svgId,
+      muscleId: muscle.svgId as MuscleId,
       color,
     });
   });
@@ -235,20 +234,24 @@ const Page = () => {
 
             {/* Equipment tags - clickable */}
             {exerciseDetails.equipment &&
-              exerciseDetails.equipment.map((equipment) => (
-                <TouchableOpacity
-                  key={equipment._id}
-                  onPress={() =>
-                    router.push(
-                      `/(app)/(authenticated)/(modal)/exercises?equipmentIds=${equipment._id}`,
-                    )
-                  }
-                >
-                  <Badge variant="outline">
-                    <Text className="text-white text-xs">{equipment.name}</Text>
-                  </Badge>
-                </TouchableOpacity>
-              ))}
+              exerciseDetails.equipment
+                .filter((equipment) => equipment !== null)
+                .map((equipment) => (
+                  <TouchableOpacity
+                    key={equipment._id}
+                    onPress={() =>
+                      router.push(
+                        `/(app)/(authenticated)/(modal)/exercises?equipmentIds=${equipment._id}`,
+                      )
+                    }
+                  >
+                    <Badge variant="outline">
+                      <Text className="text-white text-xs">
+                        {equipment.name}
+                      </Text>
+                    </Badge>
+                  </TouchableOpacity>
+                ))}
           </View>
 
           <View className="bg-[#1c1c1e] rounded-2xl p-4">
@@ -363,7 +366,18 @@ const Page = () => {
                       {/* Exercise Sets Details */}
                       <View className="mt-3">
                         <ExerciseSetsDisplay
-                          exerciseDetail={exerciseDetails}
+                          exerciseDetail={{
+                            _id: exerciseDetails._id,
+                            title: exerciseDetails.title,
+                            exerciseType: exerciseDetails.exerciseType,
+                            equipment:
+                              exerciseDetails.equipment
+                                ?.filter((eq) => eq !== null)
+                                .map((eq) => ({
+                                  _id: eq._id,
+                                  name: eq.name,
+                                })) || [],
+                          }}
                           exerciseSets={sessionSets}
                           exerciseNotes={undefined}
                           showHeader={false}

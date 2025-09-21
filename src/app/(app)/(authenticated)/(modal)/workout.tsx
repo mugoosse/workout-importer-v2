@@ -137,7 +137,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
         : previousData.weight;
 
     const distanceInDisplayUnit =
-      unitsConfig.distance === "mi" && previousData.distance
+      unitsConfig.distance === "miles" && previousData.distance
         ? previousData.distance / 1000 / 1.609344 // Convert meters to miles
         : previousData.distance;
 
@@ -429,7 +429,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                           previousData,
                           exerciseDetails.exerciseType as ExerciseType,
                           unitsConfig.weight,
-                          unitsConfig.distance,
+                          unitsConfig.distance === "miles" ? "mi" : "km",
                         )
                       : "-"}
                   </Text>
@@ -461,7 +461,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "weight",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance,
+                              unitsConfig.distance === "miles" ? "mi" : "km",
                             )
                           : "0"
                       }
@@ -525,14 +525,14 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                     <TextInput
                       value={
                         set.distance
-                          ? unitsConfig.distance === "mi"
+                          ? unitsConfig.distance === "miles"
                             ? (set.distance / 1000 / 1.609344).toString() // Convert meters to miles
                             : set.distance.toString()
                           : ""
                       }
                       onChangeText={(value) => {
                         const distanceInMeters =
-                          unitsConfig.distance === "mi" && value
+                          unitsConfig.distance === "miles" && value
                             ? parseFloat(value) * 1000 * 1.609344 // Convert miles to meters
                             : value
                               ? parseFloat(value)
@@ -545,7 +545,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "distance",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance,
+                              unitsConfig.distance === "miles" ? "mi" : "km",
                             )
                           : "100"
                       }
