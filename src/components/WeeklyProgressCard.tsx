@@ -10,7 +10,7 @@ import {
 } from "@/store/weeklyProgress";
 import { getMajorGroupFromMuscle } from "@/utils/muscleMapping";
 import { useQuery } from "convex/react";
-import { router } from "expo-router";
+import { router, usePathname, useSegments } from "expo-router";
 import { useAtom } from "jotai";
 import { Text, View } from "react-native";
 
@@ -68,15 +68,35 @@ const getCurrentWeekRange = () => {
 export const WeeklyProgressCard = () => {
   const muscles = useQuery(api.muscles.list);
   const [individualProgress] = useAtom(individualMuscleProgressAtom);
+  const segments = useSegments();
+  const pathname = usePathname();
+
+  // Check if we're currently viewing a muscle group modal
+  const muscleGroupIndex = (segments as string[]).findIndex(
+    (segment) => segment === "muscle-group",
+  );
+  const isInMuscleGroupModal = muscleGroupIndex !== -1;
+
+  // Extract muscle group from pathname
+  let activeMuscleGroup: string | null = null;
+  if (isInMuscleGroupModal && pathname) {
+    const match = pathname.match(/\/muscle-group\/([^\/]+)/);
+    activeMuscleGroup = match ? match[1] : null;
+  }
 
   if (!muscles) {
     return null;
   }
 
+  // Filter muscles by major group if modal is open, similar to muscles.tsx
+  const filteredMuscles = activeMuscleGroup
+    ? muscles.filter((muscle) => muscle.majorGroup === activeMuscleGroup)
+    : muscles;
+
   const highlightedMuscles: MuscleColorPair[] = [];
   const seenMuscleIds = new Set<string>();
 
-  muscles.forEach((muscle) => {
+  filteredMuscles.forEach((muscle) => {
     if (seenMuscleIds.has(muscle.svgId)) {
       return;
     }
