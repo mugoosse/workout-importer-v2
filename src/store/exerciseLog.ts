@@ -1,5 +1,6 @@
-import { atom } from "jotai";
 import { type Id } from "@/convex/_generated/dataModel";
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 
 export type ExerciseType =
   | "Weight Reps"
@@ -24,6 +25,21 @@ export interface LoggedSet {
   date: string; // YYYY-MM-DD format for grouping
 }
 
+export interface WorkoutProgressSnapshot {
+  individualMuscleProgress: Record<
+    string,
+    {
+      xp: number;
+      percentage: number;
+    }
+  >;
+  weeklyProgress: {
+    majorGroup: string;
+    xp: number;
+    percentage: number;
+  }[];
+}
+
 export interface WorkoutSession {
   id: string; // Unique workout session ID
   name?: string;
@@ -34,6 +50,10 @@ export interface WorkoutSession {
   totalVolume: number;
   totalXP: number;
   date: string; // YYYY-MM-DD
+  progressSnapshot?: {
+    before: WorkoutProgressSnapshot;
+    after: WorkoutProgressSnapshot;
+  };
 }
 
 export interface ExerciseLog {
@@ -52,14 +72,20 @@ export interface ExerciseLogSummary {
   notes?: string; // Most recent exercise notes
 }
 
-// Simple atom for logged sets (will be enhanced with persistence later)
-export const loggedSetsAtom = atom<LoggedSet[]>([]);
+// Persistent atom for logged sets
+export const loggedSetsAtom = atomWithStorage<LoggedSet[]>("loggedSets.v1", []);
 
-// Simple atom for exercise logs (client-side only)
-export const exerciseLogsAtom = atom<ExerciseLog[]>([]);
+// Persistent atom for exercise logs
+export const exerciseLogsAtom = atomWithStorage<ExerciseLog[]>(
+  "exerciseLogs.v1",
+  [],
+);
 
-// Atom for workout sessions
-export const workoutSessionsAtom = atom<WorkoutSession[]>([]);
+// Persistent atom for workout sessions
+export const workoutSessionsAtom = atomWithStorage<WorkoutSession[]>(
+  "workoutSessions.v1",
+  [],
+);
 
 // Derived atom for exercise log summaries
 export const exerciseLogSummariesAtom = atom<ExerciseLogSummary[]>((get) => {

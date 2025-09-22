@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { type Id } from "@/convex/_generated/dataModel";
 import { type ExerciseType } from "@/store/exerciseLog";
+import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import {
   calculateXPDistribution,
   extractMuscleInvolvement,
@@ -105,10 +106,6 @@ const getRequiredFields = (exerciseType: ExerciseType) => {
         needsDistance: false,
       };
   }
-};
-
-const cleanExerciseTitle = (title: string) => {
-  return title.replace(/\s*\([^)]*\)\s*$/, "").trim();
 };
 
 export const ExerciseSetsDisplay = ({

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { useCachedStableQuery } from "@/hooks/cachedHooks";
+import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
@@ -72,11 +73,6 @@ const useDebounce = (value: string, delay: number) => {
   }, [value, delay]);
 
   return debouncedValue;
-};
-
-const cleanExerciseTitle = (title: string) => {
-  // Remove equipment suffix pattern " (Equipment Name)"
-  return title.replace(/\s*\([^)]*\)\s*$/, "").trim();
 };
 
 const Page = () => {

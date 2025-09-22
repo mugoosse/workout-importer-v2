@@ -21,6 +21,7 @@ import {
   getStreakEmoji,
   individualMuscleProgressAtom,
 } from "@/store/weeklyProgress";
+import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
 import {
@@ -66,11 +67,6 @@ const formatMuscleName = (svgId: string): string => {
 
 const formatRoleName = (role: MuscleRole): string => {
   return role.charAt(0).toUpperCase() + role.slice(1);
-};
-
-const cleanExerciseTitle = (title: string) => {
-  // Remove equipment suffix pattern " (Equipment Name)"
-  return title.replace(/\s*\([^)]*\)\s*$/, "").trim();
 };
 
 const Page = () => {

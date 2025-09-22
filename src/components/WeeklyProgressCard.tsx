@@ -5,10 +5,14 @@ import {
 } from "@/components/muscle-body/MuscleBody";
 import { api } from "@/convex/_generated/api";
 import {
+  getGroupProgressForMuscle,
   getProgressColor,
-  individualMuscleProgressAtom,
+  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
-import { getMajorGroupFromMuscle } from "@/utils/muscleMapping";
+import {
+  getMajorGroupFromMuscle,
+  muscleToGroupMapping,
+} from "@/utils/muscleMapping";
 import { useQuery } from "convex/react";
 import { router, usePathname, useSegments } from "expo-router";
 import { useAtom } from "jotai";
@@ -67,7 +71,7 @@ const getCurrentWeekRange = () => {
 
 export const WeeklyProgressCard = () => {
   const muscles = useQuery(api.muscles.list);
-  const [individualProgress] = useAtom(individualMuscleProgressAtom);
+  const [weeklyProgress] = useAtom(weeklyProgressAtom);
   const segments = useSegments();
   const pathname = usePathname();
 
@@ -102,10 +106,13 @@ export const WeeklyProgressCard = () => {
     }
     seenMuscleIds.add(muscle.svgId);
 
-    // Get individual muscle progress or default to 0
-    const muscleProgress = individualProgress[muscle.svgId];
-    const progress = muscleProgress?.percentage || 0;
-    const color = getProgressColor(progress);
+    // Use group progress percentage instead of individual muscle progress
+    const groupProgress = getGroupProgressForMuscle(
+      muscle.svgId,
+      weeklyProgress,
+      muscleToGroupMapping,
+    );
+    const color = getProgressColor(groupProgress);
 
     highlightedMuscles.push({
       muscleId: muscle.svgId as MuscleId,

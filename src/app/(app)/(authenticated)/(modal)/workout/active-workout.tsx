@@ -61,6 +61,10 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
     isEdit: boolean;
   }>({ visible: false, setId: null, isEdit: false });
 
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string[]>
+  >({});
+
   // Get previous workout data
   const previousSets = getLastWorkoutSets(exercise.exerciseId);
 
@@ -98,6 +102,24 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
       Pick<WorkoutSet, "weight" | "reps" | "duration" | "distance">
     >,
   ) => {
+    // Clear validation errors for fields that are being updated
+    if (validationErrors[setId]) {
+      const updatedFields = Object.keys(updates);
+      const remainingErrors = validationErrors[setId].filter(
+        (field) => !updatedFields.includes(field),
+      );
+
+      if (remainingErrors.length !== validationErrors[setId].length) {
+        const newValidationErrors = { ...validationErrors };
+        if (remainingErrors.length === 0) {
+          delete newValidationErrors[setId];
+        } else {
+          newValidationErrors[setId] = remainingErrors;
+        }
+        setValidationErrors(newValidationErrors);
+      }
+    }
+
     updateSet(exercise.exerciseId, setId, updates);
   };
 
@@ -112,74 +134,30 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   const handleRPESelect = (rpe: number) => {
     if (!drawerState.setId) return;
 
+    // Double-check validation before completing (safety check)
     const currentSet = exercise.sets.find((s) => s.id === drawerState.setId);
     if (!currentSet) return;
 
-    // Get exercise type from details
     const exerciseType = exerciseDetails?.exerciseType || "Weight Reps";
     const requiredFields = getRequiredFields(exerciseType as any);
 
-    // Check what fields are empty
-    const emptyFields: string[] = [];
-    if (requiredFields.needsWeight && !currentSet.weight)
-      emptyFields.push("weight");
-    if (requiredFields.needsReps && !currentSet.reps) emptyFields.push("reps");
-    if (requiredFields.needsDuration && !currentSet.duration)
-      emptyFields.push("duration");
-    if (requiredFields.needsDistance && !currentSet.distance)
-      emptyFields.push("distance");
+    // Validate that all required fields have meaningful values (> 0)
+    const hasValidValues =
+      (!requiredFields.needsWeight ||
+        (currentSet.weight && currentSet.weight > 0)) &&
+      (!requiredFields.needsReps || (currentSet.reps && currentSet.reps > 0)) &&
+      (!requiredFields.needsDuration ||
+        (currentSet.duration && currentSet.duration > 0)) &&
+      (!requiredFields.needsDistance ||
+        (currentSet.distance && currentSet.distance > 0));
 
-    // If there are empty fields, try to auto-fill them
-    let autoFillValues: Partial<WorkoutSet> = {};
-
-    if (emptyFields.length > 0) {
-      // First, try to get values from the most recent completed set in this exercise
-      const completedSets = exercise.sets.filter(
-        (s) => s.isCompleted && s.id !== drawerState.setId,
-      );
-      const lastCompletedSet = completedSets[completedSets.length - 1];
-
-      if (lastCompletedSet) {
-        // Auto-fill from last completed set
-        if (emptyFields.includes("weight") && lastCompletedSet.weight) {
-          autoFillValues.weight = lastCompletedSet.weight;
-        }
-        if (emptyFields.includes("reps") && lastCompletedSet.reps) {
-          autoFillValues.reps = lastCompletedSet.reps;
-        }
-        if (emptyFields.includes("duration") && lastCompletedSet.duration) {
-          autoFillValues.duration = lastCompletedSet.duration;
-        }
-        if (emptyFields.includes("distance") && lastCompletedSet.distance) {
-          autoFillValues.distance = lastCompletedSet.distance;
-        }
-      } else if (previousSets.length > 0) {
-        // No completed sets in current workout, try previous workout data
-        const currentSetIndex = exercise.sets.findIndex(
-          (s) => s.id === drawerState.setId,
-        );
-        const previousData = previousSets[currentSetIndex] || previousSets[0];
-
-        if (previousData) {
-          if (emptyFields.includes("weight") && previousData.weight) {
-            autoFillValues.weight = previousData.weight;
-          }
-          if (emptyFields.includes("reps") && previousData.reps) {
-            autoFillValues.reps = previousData.reps;
-          }
-          if (emptyFields.includes("duration") && previousData.duration) {
-            autoFillValues.duration = previousData.duration;
-          }
-          if (emptyFields.includes("distance") && previousData.distance) {
-            autoFillValues.distance = previousData.distance;
-          }
-        }
-      }
+    if (!hasValidValues) {
+      closeDrawer();
+      return;
     }
 
-    // Update the set with auto-filled values and completion status
+    // Complete the set
     updateSet(exercise.exerciseId, drawerState.setId, {
-      ...autoFillValues,
       rpe,
       isCompleted: true,
     });
@@ -195,6 +173,179 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   };
 
   const handleCompleteSet = (setId: string) => {
+    const currentSet = exercise.sets.find((s) => s.id === setId);
+    if (!currentSet) return;
+
+    // Get exercise type from details
+    const exerciseType = exerciseDetails?.exerciseType || "Weight Reps";
+    const requiredFields = getRequiredFields(exerciseType as any);
+
+    // Check what fields are empty or invalid (0 values)
+    console.log(`[Complete] Set ${setId} current values:`, currentSet);
+    const emptyFields: string[] = [];
+    if (
+      requiredFields.needsWeight &&
+      (!currentSet.weight || currentSet.weight <= 0)
+    )
+      emptyFields.push("weight");
+    if (requiredFields.needsReps && (!currentSet.reps || currentSet.reps <= 0))
+      emptyFields.push("reps");
+    if (
+      requiredFields.needsDuration &&
+      (!currentSet.duration || currentSet.duration <= 0)
+    )
+      emptyFields.push("duration");
+    if (
+      requiredFields.needsDistance &&
+      (!currentSet.distance || currentSet.distance <= 0)
+    )
+      emptyFields.push("distance");
+
+    console.log(`[Complete] Empty fields detected:`, emptyFields);
+
+    // If there are empty fields, check if we can auto-fill them
+    if (emptyFields.length > 0) {
+      let autoFillValues: Partial<WorkoutSet> = {};
+
+      // First, try to get values from the most recent completed set in this exercise
+      const completedSets = exercise.sets.filter(
+        (s) => s.isCompleted && s.id !== setId,
+      );
+      const lastCompletedSet = completedSets[completedSets.length - 1];
+
+      if (lastCompletedSet) {
+        // Auto-fill from last completed set (only meaningful values > 0)
+        if (
+          emptyFields.includes("weight") &&
+          lastCompletedSet.weight &&
+          lastCompletedSet.weight > 0
+        ) {
+          autoFillValues.weight = lastCompletedSet.weight;
+        }
+        if (
+          emptyFields.includes("reps") &&
+          lastCompletedSet.reps &&
+          lastCompletedSet.reps > 0
+        ) {
+          autoFillValues.reps = lastCompletedSet.reps;
+        }
+        if (
+          emptyFields.includes("duration") &&
+          lastCompletedSet.duration &&
+          lastCompletedSet.duration > 0
+        ) {
+          autoFillValues.duration = lastCompletedSet.duration;
+        }
+        if (
+          emptyFields.includes("distance") &&
+          lastCompletedSet.distance &&
+          lastCompletedSet.distance > 0
+        ) {
+          autoFillValues.distance = lastCompletedSet.distance;
+        }
+      } else if (previousSets.length > 0) {
+        // No completed sets in current workout, try previous workout data
+        const currentSetIndex = exercise.sets.findIndex((s) => s.id === setId);
+        const previousData = previousSets[currentSetIndex] || previousSets[0];
+
+        if (previousData) {
+          if (
+            emptyFields.includes("weight") &&
+            previousData.weight &&
+            previousData.weight > 0
+          ) {
+            autoFillValues.weight = previousData.weight;
+          }
+          if (
+            emptyFields.includes("reps") &&
+            previousData.reps &&
+            previousData.reps > 0
+          ) {
+            autoFillValues.reps = previousData.reps;
+          }
+          if (
+            emptyFields.includes("duration") &&
+            previousData.duration &&
+            previousData.duration > 0
+          ) {
+            autoFillValues.duration = previousData.duration;
+          }
+          if (
+            emptyFields.includes("distance") &&
+            previousData.distance &&
+            previousData.distance > 0
+          ) {
+            autoFillValues.distance = previousData.distance;
+          }
+        }
+      }
+
+      // Check if we have auto-fill values for all empty required fields
+      const remainingEmptyFields = emptyFields.filter((field) => {
+        return !(field in autoFillValues);
+      });
+
+      // For remaining empty fields, try to get values from smart placeholders
+      if (remainingEmptyFields.length > 0) {
+        // Get smart default values from current exercise sets (most recent set with values)
+        const getSmartDefault = (field: string): number | undefined => {
+          // Look for the most recent set before current set that has a value for this field
+          const currentSetIndex = exercise.sets.findIndex(
+            (s) => s.id === setId,
+          );
+          for (let i = currentSetIndex - 1; i >= 0; i--) {
+            const prevSet = exercise.sets[i] as any;
+            if (
+              prevSet?.[field] !== undefined &&
+              prevSet?.[field] !== null &&
+              prevSet?.[field] > 0
+            ) {
+              return prevSet[field];
+            }
+          }
+          return undefined;
+        };
+
+        remainingEmptyFields.forEach((field) => {
+          const smartDefault = getSmartDefault(field);
+          if (smartDefault !== undefined && smartDefault > 0) {
+            (autoFillValues as any)[field] = smartDefault;
+          }
+        });
+
+        // Check again which fields still have no values after smart defaults
+        const finalEmptyFields = remainingEmptyFields.filter((field) => {
+          return !(field in autoFillValues);
+        });
+
+        // Only show validation errors for fields that truly have no meaningful defaults
+        if (finalEmptyFields.length > 0) {
+          setValidationErrors({
+            ...validationErrors,
+            [setId]: finalEmptyFields,
+          });
+          return; // Don't open drawer, just show validation errors
+        }
+      }
+
+      // If we have auto-fill values for all empty fields, apply them now
+      if (Object.keys(autoFillValues).length > 0) {
+        console.log(
+          `[AutoFill] Applying auto-fill values for set ${setId}:`,
+          autoFillValues,
+        );
+        updateSet(exercise.exerciseId, setId, autoFillValues);
+      }
+    }
+
+    // Clear any existing validation errors for this set
+    if (validationErrors[setId]) {
+      const newValidationErrors = { ...validationErrors };
+      delete newValidationErrors[setId];
+      setValidationErrors(newValidationErrors);
+    }
+
+    // Open the RPE drawer
     openDrawer(setId, false);
   };
 
@@ -225,6 +376,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
         onCompleteSet={handleCompleteSet}
         onUndoComplete={handleDirectUndo}
         isTemplateExercise={isTemplateExercise}
+        validationErrors={validationErrors}
       />
 
       {/* RPE Drawer */}

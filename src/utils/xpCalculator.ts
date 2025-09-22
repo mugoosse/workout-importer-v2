@@ -1,13 +1,13 @@
 import { type MuscleId } from "@/components/muscle-body/MuscleBody";
+import { RPE_SCALE } from "@/constants/rpe";
+import {
+  type IndividualMuscleProgress,
+  type WeeklyProgressData,
+} from "@/store/weeklyProgress";
 import {
   type MajorMuscleGroup,
   muscleToGroupMapping,
 } from "@/utils/muscleMapping";
-import {
-  type WeeklyProgressData,
-  type IndividualMuscleProgress,
-} from "@/store/weeklyProgress";
-import { RPE_SCALE } from "@/constants/rpe";
 
 export type MuscleRole = "target" | "synergist" | "stabilizer" | "lengthening";
 
@@ -128,26 +128,27 @@ export const calculateMajorGroupProgress = (
   const groupedData: Record<
     MajorMuscleGroup,
     {
-      totalXP: number;
-      totalGoal: number;
+      maxXP: number;
       totalSets: number;
       muscles: string[];
     }
   > = {
-    chest: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
-    back: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
-    legs: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
-    shoulders: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
-    arms: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
-    core: { totalXP: 0, totalGoal: 0, totalSets: 0, muscles: [] },
+    chest: { maxXP: 0, totalSets: 0, muscles: [] },
+    back: { maxXP: 0, totalSets: 0, muscles: [] },
+    legs: { maxXP: 0, totalSets: 0, muscles: [] },
+    shoulders: { maxXP: 0, totalSets: 0, muscles: [] },
+    arms: { maxXP: 0, totalSets: 0, muscles: [] },
+    core: { maxXP: 0, totalSets: 0, muscles: [] },
   };
 
-  // Aggregate individual muscle data to major groups
+  // Find maximum XP among muscles in each major group
   Object.entries(individualProgress).forEach(([muscleId, progress]) => {
     const majorGroup = muscleToGroupMapping[muscleId as MuscleId];
     if (majorGroup && progress.hasExercises) {
-      groupedData[majorGroup].totalXP += progress.xp;
-      groupedData[majorGroup].totalGoal += progress.goal;
+      groupedData[majorGroup].maxXP = Math.max(
+        groupedData[majorGroup].maxXP,
+        progress.xp,
+      );
       groupedData[majorGroup].totalSets += progress.sets;
       groupedData[majorGroup].muscles.push(muscleId);
     }
@@ -159,16 +160,16 @@ export const calculateMajorGroupProgress = (
 
     // Fixed target of 100 XP for all major muscle groups
     const fixedTarget = 100;
-    const percentage = Math.round((data.totalXP / fixedTarget) * 100);
+    const percentage = Math.round((data.maxXP / fixedTarget) * 100);
 
-    // Simple level calculation based on total XP
-    const level = Math.max(1, Math.floor(data.totalXP / fixedTarget) + 1);
+    // Simple level calculation based on max XP
+    const level = Math.max(1, Math.floor(data.maxXP / fixedTarget) + 1);
     const nextLevel = fixedTarget; // Always 100 XP target
 
     return {
       majorGroup,
       level,
-      xp: data.totalXP,
+      xp: data.maxXP,
       nextLevel,
       percentage,
       streak: 0, // TODO: Implement streak calculation based on consecutive days

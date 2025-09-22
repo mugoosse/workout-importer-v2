@@ -12,9 +12,13 @@ import {
   getWorkoutSessionByIdAtom,
 } from "@/store/exerciseLog";
 import {
+  getGroupProgressForMuscle,
+  getGroupProgressWithAdditionalXP,
   getProgressColor,
   individualMuscleProgressAtom,
+  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
+import { muscleToGroupMapping } from "@/utils/muscleMapping";
 import {
   calculateXPDistribution,
   extractMuscleInvolvement,
@@ -66,6 +70,7 @@ const Page = () => {
   const [getSetsByWorkoutSession] = useAtom(getSetsByWorkoutSessionAtom);
   const [exerciseLogs] = useAtom(exerciseLogsAtom);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [weeklyProgress] = useAtom(weeklyProgressAtom);
 
   const [exerciseDetails, setExerciseDetails] = useState<
     Record<Id<"exercises">, any>
@@ -80,6 +85,7 @@ const Page = () => {
 
   // Get workout session data
   const workoutSession = sessionId ? getWorkoutSessionById(sessionId) : null;
+
   const sessionSets = useMemo(
     () => (sessionId ? getSetsByWorkoutSession(sessionId) : []),
     [sessionId, getSetsByWorkoutSession],
@@ -137,7 +143,65 @@ const Page = () => {
         });
       });
 
-      // Create muscle color pairs for visualization
+      // Check if we have stored progress snapshots
+      if (workoutSession.progressSnapshot) {
+        const { before, after } = workoutSession.progressSnapshot;
+
+        // Create muscle color pairs from stored snapshots
+        const beforeColors: MuscleColorPair[] = [];
+        const afterColors: MuscleColorPair[] = [];
+
+        // Get all muscles that were worked in this session
+        const workoutMuscles = new Set<string>();
+        Object.entries(workoutXPByMuscle).forEach(([muscleId]) => {
+          workoutMuscles.add(muscleId);
+        });
+
+        // Create color pairs for muscles that were worked
+        workoutMuscles.forEach((muscleId) => {
+          // Before: use stored before progress
+          const beforeGroupProgress = getGroupProgressForMuscle(
+            muscleId,
+            before.weeklyProgress.map((wp) => ({
+              majorGroup: wp.majorGroup as any,
+              level: 1,
+              xp: wp.xp,
+              nextLevel: 100,
+              percentage: wp.percentage,
+              streak: 0,
+            })),
+            muscleToGroupMapping,
+          );
+          beforeColors.push({
+            muscleId: muscleId as MuscleId,
+            color: getProgressColor(beforeGroupProgress),
+          });
+
+          // After: use stored after progress
+          const afterGroupProgress = getGroupProgressForMuscle(
+            muscleId,
+            after.weeklyProgress.map((wp) => ({
+              majorGroup: wp.majorGroup as any,
+              level: 1,
+              xp: wp.xp,
+              nextLevel: 100,
+              percentage: wp.percentage,
+              streak: 0,
+            })),
+            muscleToGroupMapping,
+          );
+          afterColors.push({
+            muscleId: muscleId as MuscleId,
+            color: getProgressColor(afterGroupProgress),
+          });
+        });
+
+        setBeforeMuscleColors(beforeColors);
+        setAfterMuscleColors(afterColors);
+        return;
+      }
+
+      // Fallback: use current calculation logic (for workouts saved before snapshots)
       const beforeColors: MuscleColorPair[] = [];
       const afterColors: MuscleColorPair[] = [];
 
@@ -145,22 +209,24 @@ const Page = () => {
         const currentProgress = individualMuscleProgress[muscleId];
         if (!currentProgress) return;
 
-        // Before: current progress
-        const beforePercentage =
-          currentProgress.goal > 0
-            ? Math.round((currentProgress.xp / currentProgress.goal) * 100)
-            : 0;
+        // Before: current group progress
+        const beforePercentage = getGroupProgressForMuscle(
+          muscleId,
+          weeklyProgress,
+          muscleToGroupMapping,
+        );
         beforeColors.push({
           muscleId: muscleId as MuscleId,
           color: getProgressColor(beforePercentage),
         });
 
-        // After: progress including this workout's XP
-        const afterXP = currentProgress.xp + workoutXP;
-        const afterPercentage =
-          currentProgress.goal > 0
-            ? Math.round((afterXP / currentProgress.goal) * 100)
-            : 0;
+        // After: group progress including this workout's XP
+        const afterPercentage = getGroupProgressWithAdditionalXP(
+          muscleId,
+          workoutXP,
+          individualMuscleProgress,
+          muscleToGroupMapping,
+        );
         afterColors.push({
           muscleId: muscleId as MuscleId,
           color: getProgressColor(afterPercentage),
@@ -170,7 +236,7 @@ const Page = () => {
       setBeforeMuscleColors(beforeColors);
       setAfterMuscleColors(afterColors);
     },
-    [workoutSession, sessionSets, individualMuscleProgress],
+    [workoutSession, sessionSets, individualMuscleProgress, weeklyProgress],
   );
 
   useEffect(() => {

@@ -1,9 +1,9 @@
-import { atom } from "jotai";
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import {
   calculateMajorGroupProgress,
   type XPCalculationResult,
 } from "@/utils/xpCalculator";
+import { atom } from "jotai";
 
 export interface WeeklyProgressData {
   majorGroup: MajorMuscleGroup;
@@ -488,6 +488,53 @@ export const getMuscleProgress = (
   };
 };
 
+// Helper function to get group progress percentage for a muscle based on its major muscle group
+export const getGroupProgressForMuscle = (
+  muscleId: string,
+  weeklyProgress: WeeklyProgressData[],
+  muscleToGroupMapping: Record<
+    string,
+    import("@/utils/muscleMapping").MajorMuscleGroup
+  >,
+): number => {
+  const majorGroup = muscleToGroupMapping[muscleId];
+  if (!majorGroup) return 0;
+
+  const groupData = weeklyProgress.find(
+    (group) => group.majorGroup === majorGroup,
+  );
+  return groupData?.percentage || 0;
+};
+
+// Helper function to calculate group progress with additional XP for a muscle
+export const getGroupProgressWithAdditionalXP = (
+  muscleId: string,
+  additionalXP: number,
+  individualProgress: Record<string, IndividualMuscleProgress>,
+  muscleToGroupMapping: Record<
+    string,
+    import("@/utils/muscleMapping").MajorMuscleGroup
+  >,
+): number => {
+  const majorGroup = muscleToGroupMapping[muscleId];
+  if (!majorGroup) return 0;
+
+  // Calculate what the group max XP would be with the additional XP
+  let maxGroupXP = 0;
+  Object.entries(individualProgress).forEach(([muscleSvgId, progress]) => {
+    const muscleMajorGroup = muscleToGroupMapping[muscleSvgId];
+    if (muscleMajorGroup === majorGroup && progress.hasExercises) {
+      const xpToAdd = muscleSvgId === muscleId ? additionalXP : 0;
+      const muscleXP = progress.xp + xpToAdd;
+      maxGroupXP = Math.max(maxGroupXP, muscleXP);
+    }
+  });
+
+  // Fixed target of 100 XP for all major muscle groups
+  const fixedTarget = 100;
+  return Math.round((maxGroupXP / fixedTarget) * 100);
+};
+
 // Action to update muscle progress when workout is completed
 export const updateMuscleProgressFromWorkoutAction = atom(
   null,
@@ -537,5 +584,11 @@ export const updateMuscleProgressFromWorkoutAction = atom(
     // Update both atoms
     set(individualMuscleProgressAtom, updatedIndividualProgress);
     set(weeklyProgressAtom, updatedWeeklyProgress);
+
+    // Return the updated progress for snapshot capture
+    return {
+      updatedIndividualProgress,
+      updatedWeeklyProgress,
+    };
   },
 );

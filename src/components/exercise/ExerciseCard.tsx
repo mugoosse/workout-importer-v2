@@ -4,6 +4,7 @@ import {
   getRequiredFields,
   getWeightUnitLabel,
 } from "@/utils/exerciseFieldHelpers";
+import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -57,11 +58,8 @@ interface ExerciseCardProps {
   onCompleteSet?: (setId: string) => void;
   onUndoComplete?: (setId: string) => void;
   isTemplateExercise?: boolean;
+  validationErrors?: Record<string, string[]>;
 }
-
-const cleanExerciseTitle = (title: string): string => {
-  return title?.replace(/^\d+\.\s*/, "") || "";
-};
 
 const getWeightLabel = (unitsConfig?: UnitsConfig): string => {
   return getWeightUnitLabel(unitsConfig?.weight === "kg");
@@ -85,10 +83,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onCompleteSet,
   onUndoComplete,
   isTemplateExercise = false,
+  validationErrors = {},
 }) => {
   const isWorkoutMode = mode === "workout";
 
   const exerciseDetails = exercise.exerciseDetails;
+
+  // Direct notes update - no debouncing needed for text fields
 
   if (!exerciseDetails) {
     return (
@@ -218,7 +219,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               onCompleteSet={onCompleteSet}
               onUndoComplete={onUndoComplete}
               completedSetsLength={exercise.sets.length}
-              validationErrors={[]}
+              validationErrors={validationErrors[set.id] || []}
+              allSets={exercise.sets}
             />
           );
         })}

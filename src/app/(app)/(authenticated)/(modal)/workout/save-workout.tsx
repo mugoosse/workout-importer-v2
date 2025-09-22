@@ -5,16 +5,25 @@ import {
   discardWorkoutAction,
   finishWorkoutAction,
 } from "@/store/activeWorkout";
-import { myRoutinesAtom, publicRoutinesAtom } from "@/store/routines";
-import { updateMuscleProgressFromWorkoutAction } from "@/store/weeklyProgress";
 import {
+  type WorkoutProgressSnapshot,
+  workoutSessionsAtom,
+} from "@/store/exerciseLog";
+import { myRoutinesAtom, publicRoutinesAtom } from "@/store/routines";
+import {
+  individualMuscleProgressAtom,
+  updateMuscleProgressFromWorkoutAction,
+  weeklyProgressAtom,
+} from "@/store/weeklyProgress";
+import {
+  calculateMajorGroupProgress,
   calculateXPDistribution,
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
 import { Ionicons } from "@expo/vector-icons";
 import { useConvex } from "convex/react";
 import { router, Stack } from "expo-router";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useState } from "react";
 import {
   Alert,
@@ -35,12 +44,18 @@ const SaveWorkoutPage = () => {
   const [, updateMuscleProgress] = useAtom(
     updateMuscleProgressFromWorkoutAction,
   );
+  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const workoutSessions = useAtomValue(workoutSessionsAtom);
+  const setWorkoutSessions = useSetAtom(workoutSessionsAtom);
 
   // Form state
   const [workoutTitle, setWorkoutTitle] = useState(activeWorkout.name || "");
   const [workoutNotes, setWorkoutNotes] = useState("");
   const [workoutDate] = useState(new Date(activeWorkout.startTime));
   const [workoutDuration] = useState(Date.now() - activeWorkout.startTime);
+
+  // No debouncing needed for title and notes - they're simple text inputs
 
   // Initialize notes with routine names if workout came from routines
   React.useEffect(() => {
@@ -58,7 +73,8 @@ const SaveWorkoutPage = () => {
 
       if (usedRoutines.length > 0) {
         const routineNames = usedRoutines.map((r) => r.title).join(", ");
-        setWorkoutNotes(`Based on routines: ${routineNames}`);
+        const initialNotes = `Based on routines: ${routineNames}`;
+        setWorkoutNotes(initialNotes);
       }
     }
   }, [activeWorkout, myRoutines, publicRoutines]);
@@ -84,7 +100,7 @@ const SaveWorkoutPage = () => {
   const handleSave = async () => {
     try {
       // Pass the workout details to finishWorkout
-      const { workoutSession, loggedSets } = await finishWorkout({
+      const { workoutSession, loggedSets } = finishWorkout({
         name: workoutTitle.trim() || placeholder,
         notes: workoutNotes,
         duration: workoutDuration,
@@ -159,20 +175,140 @@ const SaveWorkoutPage = () => {
           });
         });
 
-        // Update muscle progress if we have XP calculations
+        // Capture progress snapshots if we have XP calculations
+        let progressSnapshots:
+          | { before: WorkoutProgressSnapshot; after: WorkoutProgressSnapshot }
+          | undefined;
+
         if (xpCalculations.length > 0) {
+          // Capture "before" snapshot
+          const beforeSnapshot: WorkoutProgressSnapshot = {
+            individualMuscleProgress: Object.fromEntries(
+              Object.entries(individualMuscleProgress).map(
+                ([muscleId, progress]) => [
+                  muscleId,
+                  { xp: progress.xp, percentage: progress.percentage },
+                ],
+              ),
+            ),
+            weeklyProgress: weeklyProgress.map((group) => ({
+              majorGroup: group.majorGroup,
+              xp: group.xp,
+              percentage: group.percentage,
+            })),
+          };
+
+          // Update muscle progress
           updateMuscleProgress(xpCalculations);
+
+          // We need to manually calculate the "after" state since we can't get it from the action
+          // Calculate what the new individual progress would be
+          const updatedIndividualProgress = { ...individualMuscleProgress };
+
+          // Aggregate all XP distributions
+          const totalXPByMuscle: Record<string, number> = {};
+          const setsCountByMuscle: Record<string, number> = {};
+
+          xpCalculations.forEach((xpResult) => {
+            xpResult.muscleXPDistribution.forEach((muscle: any) => {
+              totalXPByMuscle[muscle.muscleId] =
+                (totalXPByMuscle[muscle.muscleId] || 0) + muscle.xpAwarded;
+              setsCountByMuscle[muscle.muscleId] =
+                (setsCountByMuscle[muscle.muscleId] || 0) + 1;
+            });
+          });
+
+          // Update individual muscle progress
+          Object.entries(totalXPByMuscle).forEach(([muscleId, totalXP]) => {
+            const currentMuscleProgress = updatedIndividualProgress[muscleId];
+            if (currentMuscleProgress) {
+              const newXP = currentMuscleProgress.xp + totalXP;
+              const newPercentage =
+                currentMuscleProgress.goal > 0
+                  ? Math.round((newXP / currentMuscleProgress.goal) * 100)
+                  : 0;
+
+              updatedIndividualProgress[muscleId] = {
+                ...currentMuscleProgress,
+                xp: newXP,
+                percentage: newPercentage,
+              };
+            }
+          });
+
+          // Calculate updated weekly progress
+          const updatedWeeklyProgress = calculateMajorGroupProgress(
+            updatedIndividualProgress,
+          );
+
+          // Capture "after" snapshot
+          const afterSnapshot: WorkoutProgressSnapshot = {
+            individualMuscleProgress: Object.fromEntries(
+              Object.entries(updatedIndividualProgress).map(
+                ([muscleId, progress]) => [
+                  muscleId,
+                  { xp: progress.xp, percentage: progress.percentage },
+                ],
+              ),
+            ),
+            weeklyProgress: updatedWeeklyProgress.map((group) => ({
+              majorGroup: group.majorGroup,
+              xp: group.xp,
+              percentage: group.percentage,
+            })),
+          };
+
+          progressSnapshots = {
+            before: beforeSnapshot,
+            after: afterSnapshot,
+          };
+        }
+
+        // Update the workout session with progress snapshots and navigate
+        if (progressSnapshots) {
+          // Get fresh workoutSessions from atom and find the existing session
+          const existingIndex = workoutSessions.findIndex(
+            (s) => s.id === workoutSession.id,
+          );
+
+          if (existingIndex >= 0) {
+            // Update existing session
+            const updatedSessions = [...workoutSessions];
+            updatedSessions[existingIndex] = {
+              ...workoutSession,
+              progressSnapshot: progressSnapshots,
+            };
+            setWorkoutSessions(updatedSessions);
+          } else {
+            // Session not found, add it with snapshots (fallback case)
+            setWorkoutSessions([
+              ...workoutSessions,
+              { ...workoutSession, progressSnapshot: progressSnapshots },
+            ]);
+          }
+
+          // Use requestAnimationFrame to ensure React state update is processed
+          requestAnimationFrame(() => {
+            router.dismissAll();
+            router.push(
+              `/(app)/(authenticated)/(modal)/workout/${workoutSession.id}`,
+            );
+          });
+        } else {
+          // No snapshots, navigate immediately
+          router.dismissAll();
+          router.push(
+            `/(app)/(authenticated)/(modal)/workout/${workoutSession.id}`,
+          );
         }
       } catch (xpError) {
         console.warn("Failed to calculate XP for workout:", xpError);
         // Don't block the workout save if XP calculation fails
+        router.dismissAll();
+        router.push(
+          `/(app)/(authenticated)/(modal)/workout/${workoutSession.id}`,
+        );
       }
-
-      // Clear the entire modal stack and navigate to workout details
-      router.dismissAll();
-      router.push(
-        `/(app)/(authenticated)/(modal)/workout/${workoutSession.id}`,
-      );
     } catch {
       Alert.alert("Error", "Failed to save workout");
     }

@@ -1,5 +1,4 @@
 import { ExerciseCard } from "@/components/exercise/ExerciseCard";
-import { useDebouncedInput } from "@/hooks/useDebouncedInput";
 import {
   createRoutineAction,
   generateId,
@@ -32,26 +31,18 @@ const CreateRoutinePage = () => {
   const [, setShouldReopenModal] = useAtom(shouldReopenModalAtom);
   const [unitsConfig] = useAtom(unitsConfigAtom);
 
-  // Setup debounced inputs for title and description
-  const titleInput = useDebouncedInput(
-    draft?.title || "",
-    (value) => {
-      if (draft) {
-        setDraft({ ...draft, title: value });
-      }
-    },
-    300,
-  );
+  // Direct state updates for title and description - no debouncing needed
+  const updateTitle = (title: string) => {
+    if (draft) {
+      setDraft({ ...draft, title });
+    }
+  };
 
-  const descriptionInput = useDebouncedInput(
-    draft?.description || "",
-    (value) => {
-      if (draft) {
-        setDraft({ ...draft, description: value });
-      }
-    },
-    500,
-  );
+  const updateDescription = (description: string) => {
+    if (draft) {
+      setDraft({ ...draft, description });
+    }
+  };
 
   // Initialize draft if not exists
   React.useEffect(() => {
@@ -250,8 +241,8 @@ const CreateRoutinePage = () => {
             Routine Title *
           </Text>
           <TextInput
-            value={titleInput.value}
-            onChangeText={titleInput.onChange}
+            value={draft.title}
+            onChangeText={updateTitle}
             placeholder="Enter routine name"
             placeholderTextColor="#6B7280"
             className="bg-zinc-800 text-white px-4 py-3 rounded-xl font-Poppins_400Regular"
@@ -270,8 +261,8 @@ const CreateRoutinePage = () => {
             Description (Optional)
           </Text>
           <TextInput
-            value={descriptionInput.value}
-            onChangeText={descriptionInput.onChange}
+            value={draft.description}
+            onChangeText={updateDescription}
             placeholder="Describe your routine"
             placeholderTextColor="#6B7280"
             multiline

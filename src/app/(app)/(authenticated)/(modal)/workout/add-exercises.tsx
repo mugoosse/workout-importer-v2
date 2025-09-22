@@ -7,6 +7,7 @@ import {
   addExercisesToWorkoutAction,
   discardWorkoutAction,
   replaceExerciseInWorkoutAction,
+  startWorkoutAction,
 } from "@/store/activeWorkout";
 import {
   addExercisesToRoutineAction,
@@ -184,12 +185,27 @@ const Page = () => {
   const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
   const [, replaceExerciseInWorkout] = useAtom(replaceExerciseInWorkoutAction);
   const [, discardWorkout] = useAtom(discardWorkoutAction);
+  const [, startWorkout] = useAtom(startWorkoutAction);
   const [routineDraft] = useAtom(routineEditorAtom);
   const [, addExercisesToRoutine] = useAtom(addExercisesToRoutineAction);
 
   const isRoutineMode = params.mode === "routine";
   const [searchText, setSearchText] = useState(params.search || "");
   const exercisesAddedRef = useRef(false);
+
+  // Auto-start workout if we're in workout mode but no active workout exists
+  useEffect(() => {
+    if (
+      !isRoutineMode &&
+      !activeWorkout.isActive &&
+      params.mode === "workout"
+    ) {
+      console.log(
+        "🚀 Auto-starting workout because no active workout found in workout mode",
+      );
+      startWorkout({ startMethod: "quick-start" });
+    }
+  }, [isRoutineMode, activeWorkout.isActive, params.mode, startWorkout]);
 
   // Cleanup empty workout on unmount if in workout mode
   useEffect(() => {
@@ -345,6 +361,9 @@ const Page = () => {
 
   const toggleExerciseSelection = useCallback(
     async (exerciseId: Id<"exercises">) => {
+      console.log("🎯 Exercise toggled:", exerciseId);
+      console.log("Current selected exercises:", selectedExercises.size);
+
       // In replacement mode, immediately replace the exercise
       if (isReplacementMode && params.replacingExercise) {
         try {
@@ -428,39 +447,80 @@ const Page = () => {
       params.replacingExercise,
       exercises,
       replaceExerciseInWorkout,
+      selectedExercises.size,
     ],
   );
 
   const handleAddExercises = async () => {
-    if (selectedExercises.size === 0) return;
+    console.log("🏋️ handleAddExercises called");
+    console.log("Selected exercises:", selectedExercises.size);
+    console.log("Is routine mode:", isRoutineMode);
+    console.log("Is replacement mode:", isReplacementMode);
+
+    if (selectedExercises.size === 0) {
+      console.log("❌ No exercises selected, returning");
+      return;
+    }
 
     try {
       // Use the stored exercise details
       const exercisesToAdd = Array.from(selectedExercises);
+      console.log("✅ Exercises to add:", exercisesToAdd);
 
       if (exercisesToAdd.length > 0) {
+        console.log("📝 Exercises to add length check passed");
+
         if (isRoutineMode) {
+          console.log("🔄 Routine mode - adding to routine draft");
           // Add to routine draft
           addExercisesToRoutine(exercisesToAdd, selectedExerciseDetails);
 
+          console.log("🔙 Navigating back to create routine screen");
           // Navigate back to create routine screen
           router.back();
         } else {
+          console.log("💪 Workout mode - adding to workout");
+          console.log("Selected exercise details:", selectedExerciseDetails);
+          console.log("Active workout:", activeWorkout);
+          console.log("Active workout is active:", activeWorkout.isActive);
+
           // Add to workout (existing behavior)
-          addExercisesToWorkout(exercisesToAdd, selectedExerciseDetails);
+          console.log("🚀 Calling addExercisesToWorkout...");
+          try {
+            addExercisesToWorkout(exercisesToAdd, selectedExerciseDetails);
+            console.log("✅ addExercisesToWorkout completed");
+          } catch (addError) {
+            console.log("💥 Error in addExercisesToWorkout:", addError);
+            throw addError;
+          }
 
           // Mark that exercises were added to prevent cleanup
           exercisesAddedRef.current = true;
+          console.log("🏁 Set exercisesAddedRef to true");
 
           // Navigate directly to the workout page instead of using router.back()
           // to avoid navigation stack issues when filters were used
           // Use replace to maintain proper back button behavior
-          router.replace(
-            "/(app)/(authenticated)/(modal)/workout/active-workout",
-          );
+          console.log("🧭 About to navigate to active-workout...");
+          console.log("Router object:", router);
+
+          try {
+            router.replace(
+              "/(app)/(authenticated)/(modal)/workout/active-workout",
+            );
+            console.log("🎯 Router.replace() called successfully");
+          } catch (navError) {
+            console.log("💥 Navigation error:", navError);
+          }
+
+          console.log("🏁 End of handleAddExercises function");
         }
+      } else {
+        console.log("❌ No exercises to add (length check failed)");
       }
-    } catch {}
+    } catch (error) {
+      console.log("💥 Error in handleAddExercises:", error);
+    }
   };
 
   const filteredExercises =
@@ -480,6 +540,12 @@ const Page = () => {
 
   // Count total selected exercises (including those not visible due to filters)
   const totalSelectedCount = selectedExercises.size;
+
+  // Debug button visibility (can be removed after testing)
+  // console.log("🔍 Button visibility check:");
+  // console.log("  totalSelectedCount:", totalSelectedCount);
+  // console.log("  isReplacementMode:", isReplacementMode);
+  // console.log("  Show button:", totalSelectedCount > 0 && !isReplacementMode);
 
   // Only show "No active workout" if we're explicitly NOT in routine mode AND not in workout mode AND there's no active workout
   if (!isRoutineMode && !activeWorkout.isActive && params.mode !== "workout") {
@@ -763,7 +829,10 @@ const Page = () => {
       {totalSelectedCount > 0 && !isReplacementMode && (
         <View className="absolute bottom-0 left-0 right-0 p-4 bg-dark border-t border-neutral-700">
           <TouchableOpacity
-            onPress={handleAddExercises}
+            onPress={() => {
+              console.log("🔴 Add exercises button pressed!");
+              handleAddExercises();
+            }}
             className="bg-[#6F2DBD] rounded-xl py-4 px-6 flex-row items-center justify-center"
           >
             <Text className="text-white font-Poppins_600SemiBold text-lg">

@@ -1,11 +1,12 @@
 import { SwipeableSetRow } from "@/components/SwipeableSetRow";
+import { useDebouncedNumericInput } from "@/hooks/useDebouncedInput";
 import { cn } from "@/utils/cn";
 import { getRequiredFields } from "@/utils/exerciseFieldHelpers";
 import {
   formatPreviousSet,
   getPreviousValuePlaceholder,
 } from "@/utils/previousWorkoutFormatter";
-import React from "react";
+import React, { useCallback } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export interface BaseSetData {
@@ -50,6 +51,9 @@ interface SetRowProps {
   onUndoComplete?: (setId: string) => void;
   completedSetsLength?: number;
   validationErrors?: string[]; // Field names that should be highlighted as errors
+
+  // Current workout context for smart defaults
+  allSets?: BaseSetData[]; // All sets in the current exercise for smart placeholder logic
 }
 
 // Unit conversion functions
@@ -64,7 +68,7 @@ const convertWeight = (
   return weight;
 };
 
-export const SetRow: React.FC<SetRowProps> = ({
+const SetRowComponent: React.FC<SetRowProps> = ({
   set,
   index,
   exerciseType,
@@ -78,22 +82,208 @@ export const SetRow: React.FC<SetRowProps> = ({
   onUndoComplete,
   completedSetsLength = 1,
   validationErrors = [],
+  allSets = [],
 }) => {
   const requiredFields = getRequiredFields(exerciseType as any);
   const isWorkoutMode = mode === "workout";
   const actualSet = workoutSet || set;
   const isCompleted = isWorkoutMode && workoutSet?.isCompleted;
 
-  const getInputBackground = (fieldName: string) => {
-    if (isCompleted) return "bg-green-600/90";
-    if (validationErrors.includes(fieldName))
-      return "bg-red-600/20 border border-red-500";
-    return "bg-neutral-800";
+  // Get smart default values from current exercise sets (most recent set with values)
+  const getSmartDefault = (field: keyof BaseSetData): number | undefined => {
+    if (!isWorkoutMode || !allSets) return undefined;
+
+    // Look for the most recent set before current index that has a value for this field
+    for (let i = index - 1; i >= 0; i--) {
+      const prevSet = allSets[i] as any;
+      if (prevSet?.[field] !== undefined && prevSet?.[field] !== null) {
+        return prevSet[field];
+      }
+    }
+
+    return undefined;
   };
 
-  const handleUpdateSet = (setId: string, updates: Partial<BaseSetData>) => {
-    onUpdateSet(setId, updates);
+  const getInputBackground = (fieldName: string) => {
+    if (isCompleted) return "bg-green-600/90 border border-green-600/90";
+    if (validationErrors.includes(fieldName)) {
+      return "bg-red-600/20 border border-red-500";
+    }
+    return "bg-neutral-800 border border-neutral-800";
   };
+
+  const handleUpdateSet = useCallback(
+    (setId: string, updates: Partial<BaseSetData>) => {
+      onUpdateSet(setId, updates);
+    },
+    [onUpdateSet],
+  );
+
+  // Memoize callback functions to prevent hook recreation
+  const handleWeightChange = useCallback(
+    (value: number | undefined) => {
+      const weightInKg =
+        unitsConfig.weight === "lbs" && value
+          ? convertWeight(value, "lbs", "kg")
+          : value;
+      handleUpdateSet(actualSet.id, { weight: weightInKg });
+    },
+    [actualSet.id, unitsConfig.weight, handleUpdateSet],
+  );
+
+  const handleRepsChange = useCallback(
+    (value: number | undefined) => {
+      handleUpdateSet(actualSet.id, {
+        reps: value ? Math.round(value) : undefined,
+      });
+    },
+    [actualSet.id, handleUpdateSet],
+  );
+
+  const handleDurationChange = useCallback(
+    (value: number | undefined) => {
+      handleUpdateSet(actualSet.id, {
+        duration: value ? Math.round(value) : undefined,
+      });
+    },
+    [actualSet.id, handleUpdateSet],
+  );
+
+  const handleDistanceChange = useCallback(
+    (value: number | undefined) => {
+      const distanceInMeters =
+        unitsConfig.distance === "miles" && value
+          ? value * 1000 * 1.609344
+          : value;
+      handleUpdateSet(actualSet.id, { distance: distanceInMeters });
+    },
+    [actualSet.id, unitsConfig.distance, handleUpdateSet],
+  );
+
+  // Calculate placeholders
+  const weightPlaceholder = (() => {
+    if (!isWorkoutMode) return "0";
+
+    // First try smart default from current workout
+    const smartDefault = getSmartDefault("weight");
+    if (smartDefault !== undefined) {
+      const displayValue =
+        unitsConfig.weight === "lbs"
+          ? convertWeight(smartDefault, "kg", "lbs")
+          : smartDefault;
+      return displayValue.toString();
+    }
+
+    // Fallback to previous workout data
+    if (previousData && previousData.rpe !== undefined) {
+      return getPreviousValuePlaceholder(
+        "weight",
+        { ...previousData, rpe: previousData.rpe },
+        unitsConfig.weight,
+        unitsConfig.distance === "miles" ? "mi" : "km",
+      );
+    }
+
+    return "0";
+  })();
+
+  // Setup debounced inputs for each field
+  const weightInput = useDebouncedNumericInput(
+    actualSet.weight
+      ? unitsConfig.weight === "lbs"
+        ? convertWeight(actualSet.weight, "kg", "lbs")
+        : actualSet.weight
+      : undefined,
+    handleWeightChange,
+    300, // 300ms debounce
+  );
+
+  const repsPlaceholder = (() => {
+    if (!isWorkoutMode) return "0";
+
+    const smartDefault = getSmartDefault("reps");
+    if (smartDefault !== undefined) {
+      return smartDefault.toString();
+    }
+
+    if (previousData && previousData.rpe !== undefined) {
+      return getPreviousValuePlaceholder("reps", {
+        ...previousData,
+        rpe: previousData.rpe,
+      });
+    }
+
+    return "0";
+  })();
+
+  const durationPlaceholder = (() => {
+    if (!isWorkoutMode) return "60";
+
+    const smartDefault = getSmartDefault("duration");
+    if (smartDefault !== undefined) {
+      return smartDefault.toString();
+    }
+
+    if (previousData && previousData.rpe !== undefined) {
+      return getPreviousValuePlaceholder("duration", {
+        ...previousData,
+        rpe: previousData.rpe,
+      });
+    }
+
+    return "60";
+  })();
+
+  const distancePlaceholder = (() => {
+    if (!isWorkoutMode) return "100";
+
+    const smartDefault = getSmartDefault("distance");
+    if (smartDefault !== undefined) {
+      const displayValue =
+        unitsConfig.distance === "miles"
+          ? smartDefault / 1000 / 1.609344
+          : smartDefault;
+      return displayValue.toString();
+    }
+
+    if (previousData && previousData.rpe !== undefined) {
+      return getPreviousValuePlaceholder(
+        "distance",
+        { ...previousData, rpe: previousData.rpe },
+        unitsConfig.weight,
+        unitsConfig.distance === "miles" ? "mi" : "km",
+      );
+    }
+
+    return "100";
+  })();
+
+  // Debug logging to track store vs UI state
+  console.log(
+    `[SetRow] Set ${index + 1} reps - Store: ${actualSet.reps}, Input will show: ${actualSet.reps?.toString() || "undefined"}`,
+  );
+
+  const repsInput = useDebouncedNumericInput(
+    actualSet.reps,
+    handleRepsChange,
+    300,
+  );
+
+  const durationInput = useDebouncedNumericInput(
+    actualSet.duration,
+    handleDurationChange,
+    300,
+  );
+
+  const distanceInput = useDebouncedNumericInput(
+    actualSet.distance
+      ? unitsConfig.distance === "miles"
+        ? actualSet.distance / 1000 / 1.609344
+        : actualSet.distance
+      : undefined,
+    handleDistanceChange,
+    300,
+  );
 
   const SetContent = () => (
     <View className="flex-row items-center">
@@ -127,32 +317,13 @@ export const SetRow: React.FC<SetRowProps> = ({
       {requiredFields.needsWeight && (
         <View className="flex-1 mx-1">
           <TextInput
-            value={
-              actualSet.weight
-                ? unitsConfig.weight === "lbs"
-                  ? convertWeight(actualSet.weight, "kg", "lbs").toString()
-                  : actualSet.weight.toString()
-                : ""
-            }
-            onChangeText={(value) => {
-              const weightInKg =
-                unitsConfig.weight === "lbs" && value
-                  ? convertWeight(parseFloat(value), "lbs", "kg")
-                  : value
-                    ? parseFloat(value)
-                    : undefined;
-              handleUpdateSet(actualSet.id, { weight: weightInKg });
-            }}
-            placeholder={
-              isWorkoutMode && previousData && previousData.rpe !== undefined
-                ? getPreviousValuePlaceholder(
-                    "weight",
-                    { ...previousData, rpe: previousData.rpe },
-                    unitsConfig.weight,
-                    unitsConfig.distance === "miles" ? "mi" : "km",
-                  )
-                : "0"
-            }
+            key={`weight-${actualSet.id}-${actualSet.weight || 0}`}
+            ref={weightInput.inputRef}
+            value={weightInput.value}
+            onChangeText={weightInput.onChange}
+            onFocus={weightInput.onFocus}
+            onBlur={weightInput.onBlur}
+            placeholder={weightPlaceholder}
             placeholderTextColor="#666"
             keyboardType="numeric"
             className={cn(
@@ -167,20 +338,13 @@ export const SetRow: React.FC<SetRowProps> = ({
       {requiredFields.needsReps && (
         <View className="flex-1 mx-1">
           <TextInput
-            value={actualSet.reps ? actualSet.reps.toString() : ""}
-            onChangeText={(value) =>
-              handleUpdateSet(actualSet.id, {
-                reps: value ? parseInt(value) : undefined,
-              })
-            }
-            placeholder={
-              isWorkoutMode && previousData && previousData.rpe !== undefined
-                ? getPreviousValuePlaceholder("reps", {
-                    ...previousData,
-                    rpe: previousData.rpe,
-                  })
-                : "0"
-            }
+            key={`reps-${actualSet.id}-${actualSet.reps || 0}`}
+            ref={repsInput.inputRef}
+            value={repsInput.value}
+            onChangeText={repsInput.onChange}
+            onFocus={repsInput.onFocus}
+            onBlur={repsInput.onBlur}
+            placeholder={repsPlaceholder}
             placeholderTextColor="#666"
             keyboardType="numeric"
             className={cn(
@@ -195,20 +359,13 @@ export const SetRow: React.FC<SetRowProps> = ({
       {requiredFields.needsDuration && (
         <View className="flex-1 mx-1">
           <TextInput
-            value={actualSet.duration ? actualSet.duration.toString() : ""}
-            onChangeText={(value) =>
-              handleUpdateSet(actualSet.id, {
-                duration: value ? parseInt(value) : undefined,
-              })
-            }
-            placeholder={
-              isWorkoutMode && previousData && previousData.rpe !== undefined
-                ? getPreviousValuePlaceholder("duration", {
-                    ...previousData,
-                    rpe: previousData.rpe,
-                  })
-                : "60"
-            }
+            key={`duration-${actualSet.id}-${actualSet.duration || 0}`}
+            ref={durationInput.inputRef}
+            value={durationInput.value}
+            onChangeText={durationInput.onChange}
+            onFocus={durationInput.onFocus}
+            onBlur={durationInput.onBlur}
+            placeholder={durationPlaceholder}
             placeholderTextColor="#666"
             keyboardType="numeric"
             className={cn(
@@ -223,32 +380,13 @@ export const SetRow: React.FC<SetRowProps> = ({
       {requiredFields.needsDistance && (
         <View className="flex-1 mx-1">
           <TextInput
-            value={
-              actualSet.distance
-                ? unitsConfig.distance === "miles"
-                  ? (actualSet.distance / 1000 / 1.609344).toString()
-                  : actualSet.distance.toString()
-                : ""
-            }
-            onChangeText={(value) => {
-              const distanceInMeters =
-                unitsConfig.distance === "miles" && value
-                  ? parseFloat(value) * 1000 * 1.609344
-                  : value
-                    ? parseFloat(value)
-                    : undefined;
-              handleUpdateSet(actualSet.id, { distance: distanceInMeters });
-            }}
-            placeholder={
-              isWorkoutMode && previousData && previousData.rpe !== undefined
-                ? getPreviousValuePlaceholder(
-                    "distance",
-                    { ...previousData, rpe: previousData.rpe },
-                    unitsConfig.weight,
-                    unitsConfig.distance === "miles" ? "mi" : "km",
-                  )
-                : "100"
-            }
+            key={`distance-${actualSet.id}-${actualSet.distance || 0}`}
+            ref={distanceInput.inputRef}
+            value={distanceInput.value}
+            onChangeText={distanceInput.onChange}
+            onFocus={distanceInput.onFocus}
+            onBlur={distanceInput.onBlur}
+            placeholder={distancePlaceholder}
             placeholderTextColor="#666"
             keyboardType="numeric"
             className={cn(
@@ -298,3 +436,48 @@ export const SetRow: React.FC<SetRowProps> = ({
     </SwipeableSetRow>
   );
 };
+
+export const SetRow = React.memo(SetRowComponent, (prevProps, nextProps) => {
+  // Only re-render if essential data has changed
+  const prevSet = prevProps.workoutSet || prevProps.set;
+  const nextSet = nextProps.workoutSet || nextProps.set;
+
+  // Check if any previous sets have changed (for placeholder calculation)
+  const prevSetsForPlaceholder =
+    prevProps.allSets?.slice(0, prevProps.index) || [];
+  const nextSetsForPlaceholder =
+    nextProps.allSets?.slice(0, nextProps.index) || [];
+
+  const placeholderDataChanged =
+    prevSetsForPlaceholder.length !== nextSetsForPlaceholder.length ||
+    prevSetsForPlaceholder.some((prevPrevSet, i) => {
+      const nextPrevSet = nextSetsForPlaceholder[i];
+      return (
+        prevPrevSet?.weight !== nextPrevSet?.weight ||
+        prevPrevSet?.reps !== nextPrevSet?.reps ||
+        prevPrevSet?.duration !== nextPrevSet?.duration ||
+        prevPrevSet?.distance !== nextPrevSet?.distance
+      );
+    });
+
+  // Check if validation errors changed
+  const validationErrorsChanged =
+    prevProps.validationErrors?.length !== nextProps.validationErrors?.length ||
+    prevProps.validationErrors?.some(
+      (error, i) => error !== nextProps.validationErrors?.[i],
+    );
+
+  return (
+    prevSet.id === nextSet.id &&
+    prevSet.weight === nextSet.weight &&
+    prevSet.reps === nextSet.reps &&
+    prevSet.duration === nextSet.duration &&
+    prevSet.distance === nextSet.distance &&
+    prevProps.index === nextProps.index &&
+    prevProps.exerciseType === nextProps.exerciseType &&
+    (prevProps.workoutSet?.isCompleted || false) ===
+      (nextProps.workoutSet?.isCompleted || false) &&
+    !placeholderDataChanged &&
+    !validationErrorsChanged
+  );
+});

@@ -1,12 +1,12 @@
 import { type Id } from "@/convex/_generated/dataModel";
 import {
-  type ExerciseLog,
-  type LoggedSet,
-  type WorkoutSession,
-  exerciseLogsAtom,
-  getLastWorkoutSetsAtom,
-  loggedSetsAtom,
-  workoutSessionsAtom,
+    type ExerciseLog,
+    type LoggedSet,
+    type WorkoutSession,
+    exerciseLogsAtom,
+    getLastWorkoutSetsAtom,
+    loggedSetsAtom,
+    workoutSessionsAtom,
 } from "@/store/exerciseLog";
 import { atom } from "jotai";
 
@@ -266,38 +266,9 @@ export const updateSetAction = atom(
     const updatedSets = [...updatedExercises[exerciseIndex].sets];
     updatedSets[setIndex] = { ...updatedSets[setIndex], ...updates };
 
-    // If updating exercise data (not completion status), propagate to subsequent uncompleted sets
-    const dataFields = ["weight", "reps", "duration", "distance"];
-    const hasDataUpdates = dataFields.some((field) => field in updates);
-
-    if (hasDataUpdates && !updates.isCompleted) {
-      // Only propagate values to subsequent sets that are not completed and don't have values from routine
-      for (let i = setIndex + 1; i < updatedSets.length; i++) {
-        const subsequentSet = updatedSets[i];
-        if (!subsequentSet.isCompleted) {
-          // Propagate values only if the subsequent set doesn't already have the value
-          const propagatedValues: Partial<WorkoutSet> = {};
-
-          dataFields.forEach((field) => {
-            const fieldKey = field as keyof Pick<
-              WorkoutSet,
-              "weight" | "reps" | "duration" | "distance"
-            >;
-            if (field in updates && updates[fieldKey] !== undefined) {
-              // Only propagate if the subsequent set doesn't have this value
-              if (!subsequentSet[fieldKey]) {
-                (propagatedValues as any)[fieldKey] = updates[fieldKey];
-              }
-            }
-          });
-
-          // Only update if there are values to propagate
-          if (Object.keys(propagatedValues).length > 0) {
-            updatedSets[i] = { ...subsequentSet, ...propagatedValues };
-          }
-        }
-      }
-    }
+    // Note: Removed automatic propagation to subsequent sets.
+    // Values should only be used as placeholders/defaults, not as actual set values.
+    // Placeholder logic will be handled in the UI layer using the most recent completed set.
 
     updatedExercises[exerciseIndex] = {
       ...updatedExercises[exerciseIndex],
