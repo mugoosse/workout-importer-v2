@@ -120,7 +120,7 @@ const Page = () => {
       });
     } else {
       // Start a new workout
-      startWorkout();
+      startWorkout({ startMethod: "quick-start" });
 
       // Add this exercise to the workout with exercise details
       addExercisesToWorkout([exerciseId], {
@@ -133,7 +133,7 @@ const Page = () => {
     }
 
     // Navigate to the workout page
-    router.push("/(app)/(authenticated)/(modal)/workout");
+    router.push("/(app)/(authenticated)/(modal)/workout/active-workout");
   };
 
   const toggleSection = (role: MuscleRole) => {
@@ -177,24 +177,31 @@ const Page = () => {
     {} as Record<MuscleRole, any[]>,
   );
 
-  // Create highlighted muscles for visualization
+  // Create highlighted muscles for visualization with role priority
   const highlightedMuscles: MuscleColorPair[] = [];
   const seenMuscleIds = new Set<string>();
 
-  exerciseDetails.muscles.forEach(({ muscle, role }) => {
-    if (!muscle || seenMuscleIds.has(muscle.svgId)) return;
-    seenMuscleIds.add(muscle.svgId);
+  // Define role priority (higher priority roles should override lower priority)
+  const rolePriority: MuscleRole[] = ["target", "lengthening", "synergist", "stabilizer"];
 
-    // If a muscle is selected, only highlight that one
-    if (selectedMuscleId && muscle.svgId !== selectedMuscleId) {
-      return;
-    }
+  // Process muscles by role priority
+  rolePriority.forEach(priorityRole => {
+    const musclesWithRole = musclesByRole[priorityRole] || [];
+    musclesWithRole.forEach(muscle => {
+      if (!muscle || seenMuscleIds.has(muscle.svgId)) return;
 
-    const color = MUSCLE_ROLE_COLORS[role];
+      // If a muscle is selected, only highlight that one
+      if (selectedMuscleId && muscle.svgId !== selectedMuscleId) {
+        return;
+      }
 
-    highlightedMuscles.push({
-      muscleId: muscle.svgId as MuscleId,
-      color,
+      seenMuscleIds.add(muscle.svgId);
+      const color = MUSCLE_ROLE_COLORS[priorityRole];
+
+      highlightedMuscles.push({
+        muscleId: muscle.svgId as MuscleId,
+        color,
+      });
     });
   });
 
@@ -388,9 +395,10 @@ const Page = () => {
                       <View className="flex-row justify-between items-start mb-3">
                         <View className="flex-1 mr-3">
                           <Text className="text-white font-Poppins_600SemiBold text-sm">
-                            {formatWorkoutDate(session.startTime)}
+                            {session.name || formatWorkoutDate(session.startTime)}
                           </Text>
                           <Text className="text-gray-400 text-xs">
+                            {formatWorkoutDate(session.startTime)} •{" "}
                             {formatTimeDisplay(session.startTime)} •{" "}
                             {durationMins}min
                           </Text>
