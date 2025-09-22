@@ -5,8 +5,13 @@ import { useCachedStableQuery } from "@/hooks/cachedHooks";
 import {
   activeWorkoutAtom,
   addExercisesToWorkoutAction,
+  discardWorkoutAction,
   replaceExerciseInWorkoutAction,
 } from "@/store/activeWorkout";
+import {
+  addExercisesToRoutineAction,
+  routineEditorAtom,
+} from "@/store/routines";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "convex/react";
@@ -17,7 +22,7 @@ import {
   useNavigation,
 } from "expo-router";
 import { useAtom } from "jotai";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -92,22 +97,66 @@ const Page = () => {
     search?: string;
     selectedExercises?: string;
     replacingExercise?: string;
+    mode?: "workout" | "routine";
   }>();
 
   const [activeWorkout] = useAtom(activeWorkoutAtom);
   const [, addExercisesToWorkout] = useAtom(addExercisesToWorkoutAction);
   const [, replaceExerciseInWorkout] = useAtom(replaceExerciseInWorkoutAction);
+  const [, discardWorkout] = useAtom(discardWorkoutAction);
+  const [routineDraft] = useAtom(routineEditorAtom);
+  const [, addExercisesToRoutine] = useAtom(addExercisesToRoutineAction);
+
+  const isRoutineMode = params.mode === "routine";
   const [searchText, setSearchText] = useState(params.search || "");
+  const exercisesAddedRef = useRef(false);
+
+  // Debug routine mode
+  useEffect(() => {
+    console.log("🔍 Add exercises screen loaded");
+    console.log("  - Mode:", params.mode);
+    console.log("  - Is routine mode:", isRoutineMode);
+    console.log("  - Routine draft:", routineDraft);
+  }, [params.mode, isRoutineMode, routineDraft]);
+
+  // Cleanup empty workout on unmount if in workout mode
+  useEffect(() => {
+    return () => {
+      // Only cleanup if we're in workout mode (not routine editing)
+      // and exercises were never added during this session
+      if (
+        !isRoutineMode &&
+        activeWorkout.isActive &&
+        activeWorkout.exercises.length === 0 &&
+        !exercisesAddedRef.current
+      ) {
+        console.log("🗑️ Cleaning up empty workout on navigation back");
+        discardWorkout();
+      }
+    };
+  }, [
+    isRoutineMode,
+    activeWorkout.isActive,
+    activeWorkout.exercises.length,
+    discardWorkout,
+  ]);
 
   // Check if we're in replacement mode
   const isReplacementMode = !!params.replacingExercise;
 
   // Set the title dynamically based on mode
   useLayoutEffect(() => {
+    let title = "Add Exercises";
+    if (isReplacementMode) {
+      title = "Replace Exercise";
+    } else if (isRoutineMode) {
+      title = "Add to Routine";
+    }
+
     navigation.setOptions({
-      title: isReplacementMode ? "Replace Exercise" : "Add Exercises",
+      title,
     });
-  }, [navigation, isReplacementMode]);
+  }, [navigation, isReplacementMode, isRoutineMode]);
 
   // Initialize selected exercises from URL params
   const initialSelectedExercises = params.selectedExercises
@@ -295,23 +344,44 @@ const Page = () => {
       const exercisesToAdd = Array.from(selectedExercises);
 
       if (exercisesToAdd.length > 0) {
-        addExercisesToWorkout(exercisesToAdd, selectedExerciseDetails);
-      }
+        if (isRoutineMode) {
+          // Add to routine draft
+          addExercisesToRoutine(exercisesToAdd, selectedExerciseDetails);
 
-      // Navigate directly to the workout page instead of using router.back()
-      // to avoid navigation stack issues when filters were used
-      // Use replace to maintain proper back button behavior
-      router.replace("/(app)/(authenticated)/(modal)/workout");
+          // Navigate back to create routine screen
+          router.back();
+        } else {
+          // Add to workout (existing behavior)
+          addExercisesToWorkout(exercisesToAdd, selectedExerciseDetails);
+
+          // Mark that exercises were added to prevent cleanup
+          exercisesAddedRef.current = true;
+
+          // Navigate directly to the workout page instead of using router.back()
+          // to avoid navigation stack issues when filters were used
+          // Use replace to maintain proper back button behavior
+          router.replace("/(app)/(authenticated)/(modal)/workout");
+        }
+      }
     } catch (error) {
       console.error("Error adding exercises:", error);
     }
   };
 
   const filteredExercises =
-    exercises?.filter(
-      (exercise) =>
-        !activeWorkout.exercises.some((we) => we.exerciseId === exercise._id),
-    ) || [];
+    exercises?.filter((exercise) => {
+      if (isRoutineMode) {
+        // For routine mode, exclude exercises already in the routine draft
+        return !routineDraft?.exercises.some(
+          (re) => re.exerciseId === exercise._id,
+        );
+      } else {
+        // For workout mode, exclude exercises already in the active workout
+        return !activeWorkout.exercises.some(
+          (we) => we.exerciseId === exercise._id,
+        );
+      }
+    }) || [];
 
   // Create a selection key for forcing re-renders
   const selectionKey = Array.from(selectedExercises).join(",");
@@ -648,7 +718,8 @@ const Page = () => {
             className="bg-[#6F2DBD] rounded-xl py-4 px-6 flex-row items-center justify-center"
           >
             <Text className="text-white font-Poppins_600SemiBold text-lg">
-              Add {totalSelectedCount} exercise
+              {isRoutineMode ? "Add to Routine" : "Add"} {totalSelectedCount}{" "}
+              exercise
               {totalSelectedCount !== 1 ? "s" : ""}
             </Text>
           </TouchableOpacity>
