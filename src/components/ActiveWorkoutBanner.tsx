@@ -2,7 +2,6 @@ import {
   activeWorkoutAtom,
   discardWorkoutAction,
   workoutDurationAtom,
-  workoutSetsCountAtom,
 } from "@/store/activeWorkout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
@@ -23,8 +22,13 @@ const formatDuration = (milliseconds: number): string => {
 export const ActiveWorkoutBanner = () => {
   const [activeWorkout] = useAtom(activeWorkoutAtom);
   const [duration] = useAtom(workoutDurationAtom);
-  const [setsCount] = useAtom(workoutSetsCountAtom);
   const [, discardWorkout] = useAtom(discardWorkoutAction);
+
+  // Calculate total sets
+  const totalSets = activeWorkout.exercises.reduce(
+    (total, exercise) => total + exercise.sets.length,
+    0,
+  );
 
   // Don't show banner if not active
   if (!activeWorkout.isActive) {
@@ -32,7 +36,7 @@ export const ActiveWorkoutBanner = () => {
   }
 
   const handleResume = () => {
-    router.push("/(app)/(authenticated)/(modal)/workout");
+    router.push("/(app)/(authenticated)/(modal)/workout/active-workout");
   };
 
   const handleDiscard = () => {
@@ -61,7 +65,7 @@ export const ActiveWorkoutBanner = () => {
             Workout in Progress
           </Text>
           <Text className="text-white/80 text-xs font-Poppins_400Regular">
-            {formatDuration(duration)} • {setsCount} sets
+            {formatDuration(duration)} • {totalSets} sets
           </Text>
         </View>
       </View>

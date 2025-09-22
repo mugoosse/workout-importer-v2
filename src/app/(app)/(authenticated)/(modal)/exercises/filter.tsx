@@ -40,6 +40,7 @@ const Page = () => {
     currentMuscleFunctions?: string;
     returnRoute?: string;
     selectedExercises?: string;
+    mode?: string;
   }>();
 
   // Parse current filters from params (support comma-separated values)
@@ -114,14 +115,17 @@ const Page = () => {
       searchParams.set("selectedExercises", params.selectedExercises);
     }
 
+    // Pass through mode to maintain context
+    if (params.mode) {
+      searchParams.set("mode", params.mode);
+    }
+
     const queryString = searchParams.toString();
 
     // Use returnRoute if provided, otherwise default to /exercises
     const targetRoute =
       params.returnRoute || "/(app)/(authenticated)/(modal)/exercises";
-    router.replace(
-      `${targetRoute}${queryString ? `?${queryString}` : ""}` as any,
-    );
+    router.push(`${targetRoute}${queryString ? `?${queryString}` : ""}` as any);
   };
 
   const handleClearAll = () => {

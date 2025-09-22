@@ -1,5 +1,9 @@
 import { atom } from "jotai";
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
+import {
+  calculateMajorGroupProgress,
+  type XPCalculationResult,
+} from "@/utils/xpCalculator";
 
 export interface WeeklyProgressData {
   majorGroup: MajorMuscleGroup;
@@ -483,3 +487,55 @@ export const getMuscleProgress = (
     hasExercises: hasExercises ?? false,
   };
 };
+
+// Action to update muscle progress when workout is completed
+export const updateMuscleProgressFromWorkoutAction = atom(
+  null,
+  (get, set, xpDistributions: XPCalculationResult[]) => {
+    const currentIndividualProgress = get(individualMuscleProgressAtom);
+
+    // Aggregate all XP distributions and count sets per muscle from the workout
+    const totalXPByMuscle: Record<string, number> = {};
+    const setsCountByMuscle: Record<string, number> = {};
+
+    xpDistributions.forEach((xpResult) => {
+      xpResult.muscleXPDistribution.forEach((muscle) => {
+        totalXPByMuscle[muscle.muscleId] =
+          (totalXPByMuscle[muscle.muscleId] || 0) + muscle.xpAwarded;
+        setsCountByMuscle[muscle.muscleId] =
+          (setsCountByMuscle[muscle.muscleId] || 0) + 1;
+      });
+    });
+
+    // Update individual muscle progress
+    let updatedIndividualProgress = { ...currentIndividualProgress };
+    Object.entries(totalXPByMuscle).forEach(([muscleId, totalXP]) => {
+      const currentMuscleProgress = updatedIndividualProgress[muscleId];
+      if (currentMuscleProgress) {
+        const newXP = currentMuscleProgress.xp + totalXP;
+        const newSets =
+          currentMuscleProgress.sets + (setsCountByMuscle[muscleId] || 0);
+        const newPercentage =
+          currentMuscleProgress.goal > 0
+            ? Math.round((newXP / currentMuscleProgress.goal) * 100)
+            : 0;
+
+        updatedIndividualProgress[muscleId] = {
+          ...currentMuscleProgress,
+          xp: newXP,
+          sets: newSets,
+          percentage: newPercentage,
+        };
+      }
+    });
+
+    // Recalculate major group progress
+    const updatedWeeklyProgress = calculateMajorGroupProgress(
+      updatedIndividualProgress,
+    );
+
+    // Update both atoms
+    set(individualMuscleProgressAtom, updatedIndividualProgress);
+    set(weeklyProgressAtom, updatedWeeklyProgress);
+  },
+);

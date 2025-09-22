@@ -29,9 +29,9 @@ const CreateButton = () => {
   const handleCreate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (activeWorkout.isActive) {
-      router.push("/(app)/(authenticated)/(modal)/workout");
+      router.push("/(app)/(authenticated)/(modal)/workout/active-workout");
     } else {
-      router.push("/(app)/(authenticated)/(modal)/create");
+      router.push("/(app)/(authenticated)/(modal)/create-workout-modal");
     }
   };
 
@@ -44,10 +44,13 @@ const CreateButton = () => {
         colors={["#6F2DBD", "#6F2DBD"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="rounded-xl items-center justify-center px-6 py-1"
+        className="rounded-xl items-center justify-center px-6 py-2"
       >
-        <Text className="text-white text-lg font-Poppins_600SemiBold p-2">
-          {activeWorkout.isActive ? "Resume" : "Workout"}
+        <Text className="text-white text-lg font-Poppins_500Medium">
+          {activeWorkout.isActive ? "Resume" : "Start"}
+        </Text>
+        <Text className="text-white text-lg font-Poppins_500Medium">
+          Workout
         </Text>
       </LinearGradient>
     </TouchableOpacity>

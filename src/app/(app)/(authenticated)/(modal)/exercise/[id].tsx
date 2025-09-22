@@ -182,12 +182,17 @@ const Page = () => {
   const seenMuscleIds = new Set<string>();
 
   // Define role priority (higher priority roles should override lower priority)
-  const rolePriority: MuscleRole[] = ["target", "lengthening", "synergist", "stabilizer"];
+  const rolePriority: MuscleRole[] = [
+    "target",
+    "lengthening",
+    "synergist",
+    "stabilizer",
+  ];
 
   // Process muscles by role priority
-  rolePriority.forEach(priorityRole => {
+  rolePriority.forEach((priorityRole) => {
     const musclesWithRole = musclesByRole[priorityRole] || [];
-    musclesWithRole.forEach(muscle => {
+    musclesWithRole.forEach((muscle) => {
       if (!muscle || seenMuscleIds.has(muscle.svgId)) return;
 
       // If a muscle is selected, only highlight that one
@@ -395,7 +400,8 @@ const Page = () => {
                       <View className="flex-row justify-between items-start mb-3">
                         <View className="flex-1 mr-3">
                           <Text className="text-white font-Poppins_600SemiBold text-sm">
-                            {session.name || formatWorkoutDate(session.startTime)}
+                            {session.name ||
+                              formatWorkoutDate(session.startTime)}
                           </Text>
                           <Text className="text-gray-400 text-xs">
                             {formatWorkoutDate(session.startTime)} •{" "}

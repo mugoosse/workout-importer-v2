@@ -184,6 +184,17 @@ const Page = () => {
         // Fetch details for all exercises in the workout
         const details: Record<Id<"exercises">, any> = {};
         for (const exerciseId of workoutSession.exercises) {
+          // Skip fallback/template exercises as they're not in the Convex database
+          if (
+            exerciseId.startsWith("template:") ||
+            exerciseId.startsWith("fallback:")
+          ) {
+            console.log(
+              `⚠️ Skipping exercise details query for ${exerciseId} (template/fallback exercise)`,
+            );
+            continue;
+          }
+
           const exerciseDetail = await convex.query(
             api.exercises.getExerciseDetails,
             { exerciseId },
@@ -362,7 +373,70 @@ const Page = () => {
               (note) => note.exerciseId === exerciseId,
             );
 
-            if (!exerciseDetail) return null;
+            // Handle fallback/template exercises that weren't queried from Convex
+            const isTemplateExercise =
+              exerciseId.startsWith("template:") ||
+              exerciseId.startsWith("fallback:");
+
+            if (!exerciseDetail && !isTemplateExercise) return null;
+
+            // For template exercises, create a basic display without detailed muscle data
+            if (isTemplateExercise && !exerciseDetail) {
+              return (
+                <View
+                  key={exerciseId}
+                  className={`bg-[#1c1c1e] rounded-xl p-4 ${exerciseIndex > 0 ? "mt-4" : ""}`}
+                >
+                  <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-white text-lg font-Poppins_600SemiBold flex-1">
+                      {exerciseId
+                        .replace("template:", "")
+                        .replace("fallback:", "")
+                        .replace(/-/g, " ")}
+                    </Text>
+                  </View>
+
+                  {exerciseSets.length > 0 && (
+                    <View className="mb-3">
+                      <Text className="text-gray-400 text-sm font-Poppins_500Medium mb-2">
+                        Sets ({exerciseSets.length})
+                      </Text>
+                      <View className="space-y-2">
+                        {exerciseSets.map((set, index) => (
+                          <View key={set.id} className="flex-row items-center">
+                            <Text className="text-gray-500 text-sm font-Poppins_400Regular w-8">
+                              {index + 1}
+                            </Text>
+                            <Text className="text-white text-sm font-Poppins_400Regular flex-1">
+                              {set.reps && `${set.reps} reps`}
+                              {set.weight && ` @ ${set.weight}kg`}
+                              {set.duration &&
+                                `${Math.round(set.duration / 60)} min`}
+                              {set.distance &&
+                                ` ${(set.distance / 1000).toFixed(1)}km`}
+                            </Text>
+                            <Text className="text-yellow-400 text-sm font-Poppins_500Medium">
+                              RPE {set.rpe}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {exerciseNotes?.notes && (
+                    <View className="mt-3 bg-[#2c2c2e] rounded-lg p-3">
+                      <Text className="text-gray-400 text-xs font-Poppins_500Medium mb-1">
+                        Notes
+                      </Text>
+                      <Text className="text-gray-300 text-sm font-Poppins_400Regular">
+                        {exerciseNotes.notes}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            }
 
             return (
               <View

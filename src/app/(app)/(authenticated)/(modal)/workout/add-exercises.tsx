@@ -465,7 +465,9 @@ const Page = () => {
           // Navigate directly to the workout page instead of using router.back()
           // to avoid navigation stack issues when filters were used
           // Use replace to maintain proper back button behavior
-          router.replace("/(app)/(authenticated)/(modal)/workout");
+          router.replace(
+            "/(app)/(authenticated)/(modal)/workout/active-workout",
+          );
         }
       }
     } catch (error) {
@@ -491,7 +493,9 @@ const Page = () => {
   // Count total selected exercises (including those not visible due to filters)
   const totalSelectedCount = selectedExercises.size;
 
-  if (!activeWorkout.isActive) {
+  // Only show "No active workout" if we're explicitly NOT in routine mode AND not in workout mode AND there's no active workout
+  const isWorkoutMode = params.mode === "workout" || !isRoutineMode;
+  if (!isRoutineMode && !activeWorkout.isActive && params.mode !== "workout") {
     return (
       <View className="flex-1 bg-dark justify-center items-center">
         <Text className="text-white text-lg">No active workout</Text>
@@ -587,8 +591,11 @@ const Page = () => {
                 );
               }
 
-              // Pass return route so filter page knows where to go back
+              // Pass return route and mode so filter page knows where to go back and maintains context
               filterParams.set("returnRoute", "/workout/add-exercises");
+              if (params.mode || !isRoutineMode) {
+                filterParams.set("mode", isRoutineMode ? "routine" : "workout");
+              }
 
               const queryString = filterParams.toString();
               router.replace(
@@ -773,8 +780,7 @@ const Page = () => {
             className="bg-[#6F2DBD] rounded-xl py-4 px-6 flex-row items-center justify-center"
           >
             <Text className="text-white font-Poppins_600SemiBold text-lg">
-              {isRoutineMode ? "Add to Routine" : "Add"} {totalSelectedCount}{" "}
-              exercise
+              Add {totalSelectedCount} exercise
               {totalSelectedCount !== 1 ? "s" : ""}
             </Text>
           </TouchableOpacity>

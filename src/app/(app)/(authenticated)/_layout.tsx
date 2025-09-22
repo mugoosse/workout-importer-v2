@@ -16,7 +16,7 @@ const Layout = () => {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="(modal)/create"
+          name="(modal)/create-workout-modal"
           options={{
             presentation: "formSheet",
             animation: "slide_from_bottom",
@@ -235,9 +235,20 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
-          name="(modal)/workout/index"
+          name="(modal)/workout/active-workout"
           options={{
-            title: "Log Workout",
+            title: "Active Workout",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/workout/save-workout"
+          options={{
+            title: "Save Workout",
             headerShown: true,
             presentation: "modal",
             headerStyle: { backgroundColor: "#000000" },
@@ -264,6 +275,17 @@ const Layout = () => {
           options={{
             title: "Workout Details",
             headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/create-routine"
+          options={{
+            title: "Create Routine",
+            headerShown: false, // We handle header in the component
             presentation: "modal",
             headerStyle: { backgroundColor: "#000000" },
             headerTintColor: "#ffffff",

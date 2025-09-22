@@ -1,3 +1,5 @@
+import { cn } from "@/utils/cn";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useRef } from "react";
 import { TouchableOpacity, View } from "react-native";
 import ReanimatedSwipeable, {
@@ -7,7 +9,6 @@ import Reanimated, {
   SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
 
 interface SwipeableSetRowProps {
   children: React.ReactNode;
@@ -24,13 +25,7 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
 }) => {
   const swipeableRef = useRef<SwipeableMethods>(null);
 
-  const RightActions = ({
-    progress,
-    dragX,
-  }: {
-    progress: SharedValue<number>;
-    dragX: SharedValue<number>;
-  }) => {
+  const RightActions = ({ progress }: { progress: SharedValue<number> }) => {
     const animatedStyle = useAnimatedStyle(() => {
       return {
         transform: [{ scale: progress.value }],
@@ -39,7 +34,7 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
     });
 
     return (
-      <View className="w-20 justify-center items-center mb-4">
+      <View className="w-16 justify-center items-center mb-2">
         <Reanimated.View style={animatedStyle}>
           <TouchableOpacity
             onPress={() => {
@@ -49,7 +44,7 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
               }
             }}
             activeOpacity={0.7}
-            className="rounded-xl p-4 justify-center items-center"
+            className="rounded-lg justify-center items-center"
           >
             <Ionicons name="trash" size={20} color="#dc2626" />
           </TouchableOpacity>
@@ -58,18 +53,16 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
     );
   };
 
-  const renderRightActions = (
-    progress: SharedValue<number>,
-    dragX: SharedValue<number>,
-    swipeableMethods: any,
-  ) => <RightActions progress={progress} dragX={dragX} />;
+  const renderRightActions = (progress: SharedValue<number>) => (
+    <RightActions progress={progress} />
+  );
 
   return (
     <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={canDelete ? renderRightActions : undefined}
       overshootRight={false}
-      rightThreshold={50}
+      rightThreshold={40}
       friction={1.5}
       enableTrackpadTwoFingerGesture
       onSwipeableOpen={(direction) => {
@@ -80,9 +73,10 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
       }}
     >
       <View
-        className={`border border-[#2c2c2e] rounded-xl p-3 mb-3 ${
-          isCompleted ? "bg-green-600/20" : "bg-[#1c1c1e]"
-        }`}
+        className={cn(
+          "rounded-xl px-3 py-2 mb-1",
+          isCompleted ? "bg-green-600/80" : "bg-[#1c1c1e]",
+        )}
       >
         {children}
       </View>
