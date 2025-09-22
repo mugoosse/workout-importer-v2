@@ -1,6 +1,7 @@
 import { RPEDrawer } from "@/components/RPEDrawer";
 import { SwipeableSetRow } from "@/components/SwipeableSetRow";
 import { Badge } from "@/components/ui/Badge";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { api } from "@/convex/_generated/api";
 import {
   activeWorkoutAtom,
@@ -68,9 +69,25 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   const [getLastWorkoutSets] = useAtom(getLastWorkoutSetsAtom);
   const [unitsConfig] = useAtom(unitsConfigAtom);
 
-  const exerciseDetails = useQuery(api.exercises.getExerciseDetails, {
-    exerciseId: exercise.exerciseId,
-  });
+  // Skip Convex query for template/fallback exercises from public routines
+  const isTemplateExercise =
+    exercise.exerciseId.startsWith("template:") ||
+    exercise.exerciseId.startsWith("fallback:");
+  const convexExerciseDetails = useQuery(
+    api.exercises.getExerciseDetails,
+    isTemplateExercise ? "skip" : { exerciseId: exercise.exerciseId }
+  );
+
+  // Use embedded exercise details for template exercises, otherwise use Convex data
+  const exerciseDetails = isTemplateExercise
+    ? exercise.exerciseDetails && {
+        title: exercise.exerciseDetails.name,
+        exerciseType: exercise.exerciseDetails.type,
+        equipment: exercise.exerciseDetails.equipment || [],
+        instructions: exercise.exerciseDetails.instructions,
+        muscles: [], // Template exercises don't have muscle data
+      }
+    : convexExerciseDetails;
 
   const [localNotes, setLocalNotes] = useState(exercise.notes || "");
   const [drawerState, setDrawerState] = useState<{
@@ -321,7 +338,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   }
 
   const requiredFields = getRequiredFields(
-    exerciseDetails.exerciseType as ExerciseType,
+    exerciseDetails.exerciseType as ExerciseType
   );
 
   return (
@@ -330,11 +347,14 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
       <View className="flex-row items-center justify-between mb-3">
         <TouchableOpacity
           className="flex-1"
-          onPress={() =>
-            router.push(
-              `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`,
-            )
-          }
+          onPress={() => {
+            // Don't navigate for template/fallback exercises
+            if (!isTemplateExercise) {
+              router.push(
+                `/(app)/(authenticated)/(modal)/exercise/${exercise.exerciseId}`
+              );
+            }
+          }}
         >
           <Text className="text-white text-lg font-Poppins_600SemiBold">
             {cleanExerciseTitle(exerciseDetails.title)}
@@ -429,7 +449,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                           previousData,
                           exerciseDetails.exerciseType as ExerciseType,
                           unitsConfig.weight,
-                          unitsConfig.distance === "miles" ? "mi" : "km",
+                          unitsConfig.distance === "miles" ? "mi" : "km"
                         )
                       : "-"}
                   </Text>
@@ -466,7 +486,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "weight",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km",
+                              unitsConfig.distance === "miles" ? "mi" : "km"
                             )
                           : "0"
                       }
@@ -513,7 +533,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                         previousData
                           ? getPreviousValuePlaceholder(
                               "duration",
-                              previousData,
+                              previousData
                             )
                           : "60"
                       }
@@ -550,7 +570,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
                               "distance",
                               previousData,
                               unitsConfig.weight,
-                              unitsConfig.distance === "miles" ? "mi" : "km",
+                              unitsConfig.distance === "miles" ? "mi" : "km"
                             )
                           : "100"
                       }
@@ -634,7 +654,7 @@ const Page = () => {
   const [, discardWorkout] = useAtom(discardWorkoutAction);
   const [, logSet] = useAtom(logSetAction);
   const [individualMuscleProgress, setIndividualMuscleProgress] = useAtom(
-    individualMuscleProgressAtom,
+    individualMuscleProgressAtom
   );
   const [weeklyProgress, setWeeklyProgress] = useAtom(weeklyProgressAtom);
 
@@ -642,7 +662,7 @@ const Page = () => {
     if (activeWorkout.exercises.length === 0) {
       Alert.alert(
         "Empty Workout",
-        "Add some exercises before finishing your workout.",
+        "Add some exercises before finishing your workout."
       );
       return;
     }
@@ -651,7 +671,7 @@ const Page = () => {
     if (totalCompletedSets === 0) {
       Alert.alert(
         "No Sets Completed",
-        "Complete at least one set before finishing your workout.",
+        "Complete at least one set before finishing your workout."
       );
       return;
     }
@@ -664,7 +684,7 @@ const Page = () => {
     if (setsWithoutRpe.length > 0) {
       Alert.alert(
         "Missing RPE Values",
-        "All completed sets must have an RPE (Rate of Perceived Exertion) value. Please set RPE for all completed sets.",
+        "All completed sets must have an RPE (Rate of Perceived Exertion) value. Please set RPE for all completed sets."
       );
       return;
     }
@@ -681,13 +701,21 @@ const Page = () => {
       let totalWorkoutXP = 0;
 
       for (const exercise of activeWorkout.exercises) {
+        // Skip XP calculation for template/fallback exercises from public routines
+        if (
+          exercise.exerciseId.startsWith("template:") ||
+          exercise.exerciseId.startsWith("fallback:")
+        ) {
+          continue;
+        }
+
         // Get exercise details with muscle data for each exercise
         try {
           const exerciseDetails = await convex.query(
             api.exercises.getExerciseDetails,
             {
               exerciseId: exercise.exerciseId,
-            },
+            }
           );
 
           if (
@@ -697,7 +725,7 @@ const Page = () => {
           ) {
             // Extract real muscle involvement from exercise details
             const muscleInvolvements = extractMuscleInvolvement(
-              exerciseDetails.muscles,
+              exerciseDetails.muscles
             );
 
             // Process each completed set
@@ -708,7 +736,7 @@ const Page = () => {
                   updatedIndividualProgress,
                   updatedWeeklyProgress,
                   muscleInvolvements,
-                  set.rpe,
+                  set.rpe
                 );
 
                 updatedIndividualProgress = result.updatedIndividualProgress;
@@ -719,7 +747,7 @@ const Page = () => {
         } catch (error) {
           console.error(
             `Failed to fetch exercise details for ${exercise.exerciseId}:`,
-            error,
+            error
           );
         }
       }
@@ -762,7 +790,7 @@ const Page = () => {
             router.back();
           },
         },
-      ],
+      ]
     );
   };
 
@@ -779,6 +807,17 @@ const Page = () => {
       </View>
     );
   }
+
+  // Calculate progress: completed sets vs total sets
+  const totalSets = activeWorkout.exercises.reduce(
+    (sum, exercise) => sum + exercise.sets.length,
+    0
+  );
+  const completedSets = activeWorkout.exercises.reduce(
+    (sum, exercise) => sum + exercise.sets.filter(set => set.isCompleted).length,
+    0
+  );
+  const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
     <>
@@ -807,89 +846,98 @@ const Page = () => {
       />
 
       <View className="flex-1 bg-dark">
-        {/* Workout Stats */}
-        <View className="px-4 py-3 border-b border-neutral-700">
-          <View className="flex-row items-center justify-around">
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                Duration
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {formatDuration(duration)}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                Sets
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {setsCount}
-              </Text>
+        <ScrollView
+          className="flex-1"
+          stickyHeaderIndices={[1]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Workout Stats - Scrollable */}
+          <View className="px-4 py-3">
+            <View className="flex-row items-center justify-around">
+              <View className="items-center">
+                <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
+                  Duration
+                </Text>
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  {formatDuration(duration)}
+                </Text>
+              </View>
+              <View className="items-center">
+                <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
+                  Sets
+                </Text>
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  {setsCount}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <ScrollView className="flex-1 px-4 py-4">
-          {activeWorkout.exercises.length === 0 ? (
-            // Empty State
-            <View className="flex-1 justify-center items-center py-20">
-              <Ionicons name="barbell-outline" size={64} color="#6B7280" />
-              <Text className="text-white text-xl font-Poppins_600SemiBold mt-4 mb-2">
-                Get started
-              </Text>
-              <Text className="text-gray-400 text-center mb-8 font-Poppins_400Regular">
-                Add an exercise to start your workout
-              </Text>
-              <Link
-                href="/(app)/(authenticated)/(modal)/workout/add-exercises"
-                asChild
-              >
-                <TouchableOpacity className="bg-[#6F2DBD] px-8 py-4 rounded-xl">
-                  <View className="flex-row items-center">
+          {/* Progress Bar - Sticky */}
+          <View className="bg-dark">
+            <ProgressBar value={progressPercentage} className="h-2 rounded-none" />
+          </View>
+
+          {/* Content Container */}
+          <View className="px-4 py-4">
+            {activeWorkout.exercises.length === 0 ? (
+              // Empty State
+              <View className="flex-1 justify-center items-center py-20">
+                <Ionicons name="barbell-outline" size={64} color="#6B7280" />
+                <Text className="text-white text-xl font-Poppins_600SemiBold mt-4 mb-2">
+                  Get started
+                </Text>
+                <Text className="text-gray-400 text-center mb-8 font-Poppins_400Regular">
+                  Add an exercise to start your workout
+                </Text>
+                <Link
+                  href="/(app)/(authenticated)/(modal)/workout/add-exercises"
+                  asChild
+                >
+                  <TouchableOpacity className="bg-[#6F2DBD] px-8 py-4 rounded-xl">
+                    <View className="flex-row items-center">
+                      <Ionicons name="add" size={20} color="white" />
+                      <Text className="text-white font-Poppins_600SemiBold ml-2">
+                        Add Exercise
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            ) : (
+              // Workout Content
+              <>
+                {activeWorkout.exercises.map((exercise) => (
+                  <WorkoutExerciseCard key={exercise.id} exercise={exercise} />
+                ))}
+
+                {/* Add Exercise Button */}
+                <Link
+                  href="/(app)/(authenticated)/(modal)/workout/add-exercises"
+                  asChild
+                >
+                  <TouchableOpacity className="bg-[#6F2DBD] rounded-xl p-4 mb-4 flex-row items-center justify-center">
                     <Ionicons name="add" size={20} color="white" />
                     <Text className="text-white font-Poppins_600SemiBold ml-2">
                       Add Exercise
                     </Text>
-                  </View>
-                </TouchableOpacity>
-              </Link>
-            </View>
-          ) : (
-            // Workout Content
-            <>
-              {activeWorkout.exercises.map((exercise) => (
-                <WorkoutExerciseCard
-                  key={exercise.exerciseId}
-                  exercise={exercise}
-                />
-              ))}
+                  </TouchableOpacity>
+                </Link>
 
-              {/* Add Exercise Button */}
-              <Link
-                href="/(app)/(authenticated)/(modal)/workout/add-exercises"
-                asChild
-              >
-                <TouchableOpacity className="bg-[#6F2DBD] rounded-xl p-4 mb-4 flex-row items-center justify-center">
-                  <Ionicons name="add" size={20} color="white" />
-                  <Text className="text-white font-Poppins_600SemiBold ml-2">
-                    Add Exercise
-                  </Text>
-                </TouchableOpacity>
-              </Link>
-
-              {/* Bottom Actions */}
-              <View className="flex-row gap-3 mt-4 mb-8">
-                <TouchableOpacity
-                  onPress={handleDiscardWorkout}
-                  className="flex-1 bg-neutral-800 py-4 rounded-xl"
-                >
-                  <Text className="text-center text-lg text-red-400 font-Poppins_600SemiBold">
-                    Discard Workout
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+                {/* Bottom Actions */}
+                <View className="flex-row gap-3 mt-4 mb-8">
+                  <TouchableOpacity
+                    onPress={handleDiscardWorkout}
+                    className="flex-1 bg-neutral-800 py-4 rounded-xl"
+                  >
+                    <Text className="text-center text-lg text-red-400 font-Poppins_600SemiBold">
+                      Discard Workout
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
         </ScrollView>
       </View>
     </>
