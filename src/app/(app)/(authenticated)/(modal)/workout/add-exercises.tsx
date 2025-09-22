@@ -22,7 +22,13 @@ import {
   useNavigation,
 } from "expo-router";
 import { useAtom } from "jotai";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -84,6 +90,80 @@ const useDebounce = (value: string, delay: number) => {
 const cleanExerciseTitle = (title: string) => {
   return title.replace(/\s*\([^)]*\)\s*$/, "").trim();
 };
+
+const ExerciseCard = React.memo(
+  ({
+    exercise,
+    isSelected,
+    onToggle,
+    index,
+  }: {
+    exercise: any;
+    isSelected: boolean;
+    onToggle: (id: Id<"exercises">) => void;
+    index: number;
+  }) => (
+    <View className={index > 0 ? "mt-4" : ""}>
+      <TouchableOpacity
+        onPress={() => onToggle(exercise._id)}
+        className={`bg-[#1c1c1e] rounded-2xl p-4 border-2 ${
+          isSelected ? "border-[#6F2DBD]" : "border-[#1c1c1e]"
+        }`}
+      >
+        <View className="flex-row items-start justify-between mb-3">
+          <View className="flex-1 mr-3">
+            <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
+              {cleanExerciseTitle(exercise.title)}
+            </Text>
+
+            <View className="flex-row items-center flex-wrap gap-2">
+              <Badge variant="outline">{exercise.exerciseType}</Badge>
+
+              {exercise.equipment
+                .filter((equip: any) => equip !== null)
+                .slice(0, 2)
+                .map((equip: any) => (
+                  <Badge key={equip._id} variant="outline">
+                    {equip.name}
+                  </Badge>
+                ))}
+              {exercise.equipment.filter((equip: any) => equip !== null)
+                .length > 2 && (
+                <Badge variant="outline">
+                  +
+                  {exercise.equipment.filter((equip: any) => equip !== null)
+                    .length - 2}
+                </Badge>
+              )}
+            </View>
+          </View>
+
+          <View
+            className={`w-10 h-10 rounded-xl items-center justify-center ${
+              isSelected ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+            }`}
+          >
+            <Ionicons
+              name={isSelected ? "checkmark" : "add"}
+              size={20}
+              color="#fff"
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
+  ),
+  (prevProps, nextProps) => {
+    // Only re-render if exercise, isSelected, or index changed
+    return (
+      prevProps.exercise._id === nextProps.exercise._id &&
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.index === nextProps.index
+    );
+  },
+);
+
+ExerciseCard.displayName = "ExerciseCard";
 
 const Page = () => {
   const navigation = useNavigation();
@@ -272,69 +352,94 @@ const Page = () => {
     setSearchText(text);
   };
 
-  const toggleExerciseSelection = async (exerciseId: Id<"exercises">) => {
-    // In replacement mode, immediately replace the exercise
-    if (isReplacementMode && params.replacingExercise) {
-      try {
-        // Find exercise details
-        let exerciseDetails = selectedExerciseDetails[exerciseId];
-        if (!exerciseDetails && exercises) {
-          const exercise = exercises.find((ex) => ex._id === exerciseId);
-          if (exercise) {
-            exerciseDetails = {
-              name: exercise.title,
-              type: exercise.exerciseType,
-              equipment:
-                exercise.equipment
-                  ?.filter((eq) => eq !== null)
-                  .map((eq) => eq.name) || [],
-            };
+  const toggleExerciseSelection = useCallback(
+    async (exerciseId: Id<"exercises">) => {
+      // In replacement mode, immediately replace the exercise
+      if (isReplacementMode && params.replacingExercise) {
+        try {
+          // Find exercise details - use current state
+          let exerciseDetails: any = null;
+          setSelectedExerciseDetails((current) => {
+            exerciseDetails = current[exerciseId];
+            return current;
+          });
+
+          if (!exerciseDetails && exercises) {
+            const exercise = exercises.find((ex) => ex._id === exerciseId);
+            if (exercise) {
+              exerciseDetails = {
+                name: exercise.title,
+                type: exercise.exerciseType,
+                equipment:
+                  exercise.equipment
+                    ?.filter((eq) => eq !== null)
+                    .map((eq) => eq.name) || [],
+              };
+            }
           }
+
+          // Replace the exercise
+          replaceExerciseInWorkout(
+            params.replacingExercise as Id<"exercises">,
+            exerciseId,
+            exerciseDetails,
+          );
+
+          // Navigate back to existing workout screen
+          router.back();
+          return;
+        } catch (error) {
+          console.error("Error replacing exercise:", error);
+          return;
+        }
+      }
+
+      // Normal selection mode - use functional setState to avoid stale closures
+      setSelectedExercises((prevSelected) => {
+        const newSelection = new Set(prevSelected);
+
+        if (newSelection.has(exerciseId)) {
+          // Remove from selection
+          newSelection.delete(exerciseId);
+          // Also remove from details
+          setSelectedExerciseDetails((prevDetails) => {
+            const newDetails = { ...prevDetails };
+            delete newDetails[exerciseId];
+            return newDetails;
+          });
+        } else {
+          // Add to selection
+          newSelection.add(exerciseId);
+          // Also add to details
+          setSelectedExerciseDetails((prevDetails) => {
+            const exercise = exercises?.find((ex) => ex._id === exerciseId);
+            if (exercise) {
+              return {
+                ...prevDetails,
+                [exerciseId]: {
+                  name: exercise.title,
+                  type: exercise.exerciseType,
+                  equipment:
+                    exercise.equipment
+                      ?.filter((eq) => eq !== null)
+                      .map((eq) => eq.name) || [],
+                },
+              };
+            }
+            return prevDetails;
+          });
         }
 
-        // Replace the exercise
-        replaceExerciseInWorkout(
-          params.replacingExercise as Id<"exercises">,
-          exerciseId,
-          exerciseDetails,
-        );
-
-        // Navigate back to existing workout screen
-        router.back();
-        return;
-      } catch (error) {
-        console.error("Error replacing exercise:", error);
-        return;
-      }
-    }
-
-    // Normal selection mode
-    const newSelection = new Set(selectedExercises);
-    const newDetails = { ...selectedExerciseDetails };
-
-    if (newSelection.has(exerciseId)) {
-      // Remove from selection and details
-      newSelection.delete(exerciseId);
-      delete newDetails[exerciseId];
-    } else {
-      // Add to selection and store details
-      newSelection.add(exerciseId);
-      const exercise = exercises?.find((ex) => ex._id === exerciseId);
-      if (exercise) {
-        newDetails[exerciseId] = {
-          name: exercise.title,
-          type: exercise.exerciseType,
-          equipment:
-            exercise.equipment
-              ?.filter((eq) => eq !== null)
-              .map((eq) => eq.name) || [],
-        };
-      }
-    }
-
-    setSelectedExercises(newSelection);
-    setSelectedExerciseDetails(newDetails);
-  };
+        return newSelection;
+      });
+    },
+    [
+      isReplacementMode,
+      params.replacingExercise,
+      exercises,
+      replaceExerciseInWorkout,
+    ],
+  );
 
   const handleAddExercises = async () => {
     if (selectedExercises.size === 0) return;
@@ -382,9 +487,6 @@ const Page = () => {
         );
       }
     }) || [];
-
-  // Create a selection key for forcing re-renders
-  const selectionKey = Array.from(selectedExercises).join(",");
 
   // Count total selected exercises (including those not visible due to filters)
   const totalSelectedCount = selectedExercises.size;
@@ -647,63 +749,16 @@ const Page = () => {
             keyExtractor={(item) => item._id}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
-            extraData={selectionKey}
+            extraData={selectedExercises}
             renderItem={({ item: exercise, index }) => {
               const isSelected = selectedExercises.has(exercise._id);
               return (
-                <View className={index > 0 ? "mt-4" : ""}>
-                  <TouchableOpacity
-                    key={`${exercise._id}-${isSelected}`}
-                    onPress={() => toggleExerciseSelection(exercise._id)}
-                    className={`bg-[#1c1c1e] rounded-2xl p-4 border-2 ${
-                      isSelected ? "border-[#6F2DBD]" : "border-[#1c1c1e]"
-                    }`}
-                  >
-                    <View className="flex-row items-start justify-between mb-3">
-                      <View className="flex-1 mr-3">
-                        <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
-                          {cleanExerciseTitle(exercise.title)}
-                        </Text>
-
-                        <View className="flex-row items-center flex-wrap gap-2">
-                          <Badge variant="outline">
-                            {exercise.exerciseType}
-                          </Badge>
-
-                          {exercise.equipment
-                            .filter((equip) => equip !== null)
-                            .slice(0, 2)
-                            .map((equip) => (
-                              <Badge key={equip._id} variant="outline">
-                                {equip.name}
-                              </Badge>
-                            ))}
-                          {exercise.equipment.filter((equip) => equip !== null)
-                            .length > 2 && (
-                            <Badge variant="outline">
-                              +
-                              {exercise.equipment.filter(
-                                (equip) => equip !== null,
-                              ).length - 2}
-                            </Badge>
-                          )}
-                        </View>
-                      </View>
-
-                      <View
-                        className={`w-10 h-10 rounded-xl items-center justify-center ${
-                          isSelected ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
-                        }`}
-                      >
-                        <Ionicons
-                          name={isSelected ? "checkmark" : "add"}
-                          size={20}
-                          color="#fff"
-                        />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </View>
+                <ExerciseCard
+                  exercise={exercise}
+                  isSelected={isSelected}
+                  onToggle={toggleExerciseSelection}
+                  index={index}
+                />
               );
             }}
           />
