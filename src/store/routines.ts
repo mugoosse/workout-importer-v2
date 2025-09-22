@@ -271,12 +271,8 @@ export const populateRealExerciseIdsAction = atom(
     if (isAlreadyPopulated) return;
 
     try {
-      console.log("🔧 Starting to populate real exercise IDs...");
-
       // Find real exercise IDs
       const realExercises = await findAllRealExercises(convex);
-
-      console.log("📊 Real exercise search results:", realExercises);
 
       // Map of template IDs to real exercise data
       const exerciseMapping: Record<
@@ -362,18 +358,6 @@ export const populateRealExerciseIdsAction = atom(
 
       set(publicRoutinesAtom, updatedRoutines);
       set(realExerciseIdsPopulatedAtom, true);
-
-      console.log("✅ Populated public routines with real exercise IDs");
-      console.log(
-        "📋 Updated routines:",
-        updatedRoutines.map((r) => ({
-          title: r.title,
-          exercises: r.exercises.map((e) => ({
-            name: e.exerciseDetails?.name,
-            exerciseId: e.exerciseId,
-          })),
-        })),
-      );
     } catch (error) {
       console.error("❌ Failed to populate real exercise IDs:", error);
       // Keep the template exercises as fallback
@@ -579,19 +563,15 @@ export const addExercisesToRoutineAction = atom(
     exerciseIds: Id<"exercises">[],
     exerciseDetails: Record<string, any>,
   ) => {
-    console.log("🔧 Adding exercises to routine:", exerciseIds);
     const currentDraft = get(routineEditorAtom);
-    console.log("📝 Current routine draft:", currentDraft);
 
     if (!currentDraft) {
-      console.error("❌ No routine draft found! Cannot add exercises.");
       return;
     }
 
     const newExercises: RoutineExercise[] = exerciseIds.map(
       (exerciseId, index) => {
         const details = exerciseDetails[exerciseId];
-        console.log(`  - Adding exercise ${exerciseId}:`, details);
         return {
           id: generateId(),
           exerciseId,
@@ -612,7 +592,6 @@ export const addExercisesToRoutineAction = atom(
       exercises: [...currentDraft.exercises, ...newExercises],
     };
 
-    console.log("✅ Updated routine draft:", updatedDraft);
     set(routineEditorAtom, updatedDraft);
   },
 );

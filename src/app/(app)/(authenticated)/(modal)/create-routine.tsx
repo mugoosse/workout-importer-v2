@@ -1,4 +1,5 @@
 import { ExerciseCard } from "@/components/exercise/ExerciseCard";
+import { useDebouncedInput } from "@/hooks/useDebouncedInput";
 import {
   createRoutineAction,
   generateId,
@@ -31,10 +32,30 @@ const CreateRoutinePage = () => {
   const [, setShouldReopenModal] = useAtom(shouldReopenModalAtom);
   const [unitsConfig] = useAtom(unitsConfigAtom);
 
+  // Setup debounced inputs for title and description
+  const titleInput = useDebouncedInput(
+    draft?.title || "",
+    (value) => {
+      if (draft) {
+        setDraft({ ...draft, title: value });
+      }
+    },
+    300,
+  );
+
+  const descriptionInput = useDebouncedInput(
+    draft?.description || "",
+    (value) => {
+      if (draft) {
+        setDraft({ ...draft, description: value });
+      }
+    },
+    500,
+  );
+
   // Initialize draft if not exists
   React.useEffect(() => {
     if (!draft) {
-      console.log("🔧 Initializing new routine draft");
       const newDraft: RoutineDraft = {
         title: "",
         description: "",
@@ -42,9 +63,6 @@ const CreateRoutinePage = () => {
         isUnsaved: true,
       };
       setDraft(newDraft);
-      console.log("✅ Routine draft initialized:", newDraft);
-    } else {
-      console.log("📝 Existing routine draft found:", draft);
     }
   }, [draft, setDraft]);
 
@@ -105,21 +123,9 @@ const CreateRoutinePage = () => {
     }
   };
 
-  const updateTitle = (title: string) => {
-    if (draft) {
-      setDraft({ ...draft, title });
-    }
-  };
-
-  const updateDescription = (description: string) => {
-    if (draft) {
-      setDraft({ ...draft, description });
-    }
-  };
+  // Remove the old direct update functions since we now use debounced inputs
 
   const addExercise = () => {
-    console.log("🚀 Add exercise button pressed");
-    console.log("📝 Current draft state:", draft);
     // Navigate to exercise selection in routine mode
     router.push(
       "/(app)/(authenticated)/(modal)/workout/add-exercises?mode=routine",
@@ -244,8 +250,8 @@ const CreateRoutinePage = () => {
             Routine Title *
           </Text>
           <TextInput
-            value={draft.title}
-            onChangeText={updateTitle}
+            value={titleInput.value}
+            onChangeText={titleInput.onChange}
             placeholder="Enter routine name"
             placeholderTextColor="#6B7280"
             className="bg-zinc-800 text-white px-4 py-3 rounded-xl font-Poppins_400Regular"
@@ -264,8 +270,8 @@ const CreateRoutinePage = () => {
             Description (Optional)
           </Text>
           <TextInput
-            value={draft.description}
-            onChangeText={updateDescription}
+            value={descriptionInput.value}
+            onChangeText={descriptionInput.onChange}
             placeholder="Describe your routine"
             placeholderTextColor="#6B7280"
             multiline

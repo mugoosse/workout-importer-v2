@@ -191,14 +191,6 @@ const Page = () => {
   const [searchText, setSearchText] = useState(params.search || "");
   const exercisesAddedRef = useRef(false);
 
-  // Debug routine mode
-  useEffect(() => {
-    console.log("🔍 Add exercises screen loaded");
-    console.log("  - Mode:", params.mode);
-    console.log("  - Is routine mode:", isRoutineMode);
-    console.log("  - Routine draft:", routineDraft);
-  }, [params.mode, isRoutineMode, routineDraft]);
-
   // Cleanup empty workout on unmount if in workout mode
   useEffect(() => {
     return () => {
@@ -210,7 +202,6 @@ const Page = () => {
         activeWorkout.exercises.length === 0 &&
         !exercisesAddedRef.current
       ) {
-        console.log("🗑️ Cleaning up empty workout on navigation back");
         discardWorkout();
       }
     };
@@ -388,8 +379,7 @@ const Page = () => {
           // Navigate back to existing workout screen
           router.back();
           return;
-        } catch (error) {
-          console.error("Error replacing exercise:", error);
+        } catch {
           return;
         }
       }
@@ -470,9 +460,7 @@ const Page = () => {
           );
         }
       }
-    } catch (error) {
-      console.error("Error adding exercises:", error);
-    }
+    } catch {}
   };
 
   const filteredExercises =
@@ -494,7 +482,6 @@ const Page = () => {
   const totalSelectedCount = selectedExercises.size;
 
   // Only show "No active workout" if we're explicitly NOT in routine mode AND not in workout mode AND there's no active workout
-  const isWorkoutMode = params.mode === "workout" || !isRoutineMode;
   if (!isRoutineMode && !activeWorkout.isActive && params.mode !== "workout") {
     return (
       <View className="flex-1 bg-dark justify-center items-center">

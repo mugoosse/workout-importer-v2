@@ -32,22 +32,14 @@ export async function findExerciseByNames(
   searchTerms: string[],
 ): Promise<ExerciseSearchResult | null> {
   try {
-    console.log("🔍 Searching for exercises with terms:", searchTerms);
-
     // Search for exercises using the searchTerm parameter
     for (const term of searchTerms) {
-      console.log(`  - Searching for: "${term}"`);
       const exercises = await convex.query(api.exercises.getFilteredExercises, {
         searchTerm: term,
       });
 
-      console.log(
-        `  - Found ${exercises?.length || 0} exercises for "${term}"`,
-      );
-
       if (exercises && exercises.length > 0) {
         const exercise = exercises[0]; // Take the first match
-        console.log(`  ✅ Using: "${exercise.title}" (${exercise._id})`);
         return {
           id: exercise._id,
           title: exercise.title,
@@ -56,7 +48,6 @@ export async function findExerciseByNames(
       }
     }
 
-    console.log(`  ❌ No exercises found for terms:`, searchTerms);
     return null;
   } catch (error) {
     console.error("❌ Error searching for exercise:", searchTerms, error);

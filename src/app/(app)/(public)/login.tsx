@@ -88,7 +88,6 @@ export default function LoginScreen() {
   };
 
   const handleLinkPress = (linkType: "terms" | "privacy") => {
-    console.log(`Link pressed: ${linkType}`);
     Linking.openURL(
       linkType === "terms"
         ? "https://mgo.rodeo/terms"
@@ -123,7 +122,6 @@ export default function LoginScreen() {
           className="flex-row items-center"
           onPress={() => {
             const newValue = !isTermsChecked;
-            console.log("Checkbox value changed:", newValue);
             setTermsChecked(newValue);
             if (showTermsError) {
               setShowTermsError(false);
@@ -133,7 +131,6 @@ export default function LoginScreen() {
           <Checkbox
             value={isTermsChecked}
             onValueChange={(newValue) => {
-              console.log("Checkbox value changed:", newValue);
               setTermsChecked(newValue);
               if (showTermsError) {
                 setShowTermsError(false);

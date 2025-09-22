@@ -21,7 +21,7 @@ export default function FAQ({ dom }: FAQProps) {
   const router = useRouter();
 
   const handleItemClick = (item: { icon: string; text: string }) => {
-    console.log(`Clicked: ${item.text}`);
+    // Handle item click - could navigate or open help content
   };
 
   return (

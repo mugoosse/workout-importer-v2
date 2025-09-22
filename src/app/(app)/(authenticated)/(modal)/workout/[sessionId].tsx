@@ -189,9 +189,6 @@ const Page = () => {
             exerciseId.startsWith("template:") ||
             exerciseId.startsWith("fallback:")
           ) {
-            console.log(
-              `⚠️ Skipping exercise details query for ${exerciseId} (template/fallback exercise)`,
-            );
             continue;
           }
 
