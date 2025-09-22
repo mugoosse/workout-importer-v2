@@ -103,8 +103,8 @@
 {"name":"Six Pack","svgId":"rectus_abdominis","majorGroup":"core"}
 {"name":"Soleus","svgId":"soleus","majorGroup":"legs"}
 {"name":"Spinalis (1)","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
-{"name":"Splenius Capitis","svgId":"trapezius","majorGroup":"core"}
-{"name":"Splenius Cervicis","svgId":"trapezius","majorGroup":"core"}
+{"name":"Splenius Capitis","svgId":"trapezius","majorGroup":"back"}
+{"name":"Splenius Cervicis","svgId":"trapezius","majorGroup":"back"}
 {"name":"Sternocleidomastoid","svgId":"sternocleidomastoid","majorGroup":"core"}
 {"name":"Subclavius","svgId":"pectoralis_major","majorGroup":"chest"}
 {"name":"Subscapularis","svgId":"infraspinatus","majorGroup":"shoulders"}
