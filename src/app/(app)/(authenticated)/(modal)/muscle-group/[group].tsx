@@ -1,5 +1,6 @@
 import { TopCreateOption } from "@/components/TopCreateOption";
 import { Badge } from "@/components/ui/Badge";
+import { GrabberHandle } from "@/components/ui/GrabberHandle";
 import {
   getProgressColor,
   getStreakEmoji,
@@ -48,10 +49,7 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark px-4 pt-2">
-      {/* Grabber Handle */}
-      <View className="items-center py-2">
-        <View className="w-12 h-1 bg-gray-500 rounded-full" />
-      </View>
+      <GrabberHandle />
       <View className="flex-1 p-4 rounded-2xl">
         {/* Progress Section - Compact */}
         <View className="mb-6">

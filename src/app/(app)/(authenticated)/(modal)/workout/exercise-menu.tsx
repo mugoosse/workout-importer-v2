@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSetAtom } from "jotai";
 import { removeExerciseFromWorkoutAction } from "@/store/activeWorkout";
+import { GrabberHandle } from "@/components/ui/GrabberHandle";
 
 const Page = () => {
   const { exerciseId, targetMuscleGroups } = useLocalSearchParams<{
@@ -35,10 +36,7 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark px-4 pt-2">
-      {/* Grabber Handle */}
-      <View className="items-center py-2">
-        <View className="w-12 h-1 bg-gray-500 rounded-full" />
-      </View>
+      <GrabberHandle />
       <View className="flex-1 p-4 rounded-2xl">
         {/* Replace Exercise */}
         <TouchableOpacity
