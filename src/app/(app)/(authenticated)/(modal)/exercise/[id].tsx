@@ -23,6 +23,7 @@ import {
 } from "@/store/weeklyProgress";
 import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Doc } from "convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import {
   Link,
@@ -40,6 +41,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+type Muscle = Doc<"muscles">;
 
 type MuscleRole = "target" | "synergist" | "stabilizer" | "lengthening";
 
@@ -170,7 +173,7 @@ const Page = () => {
       acc[role].push(muscle);
       return acc;
     },
-    {} as Record<MuscleRole, any[]>,
+    {} as Record<MuscleRole, Muscle[]>,
   );
 
   // Create highlighted muscles for visualization with role priority
