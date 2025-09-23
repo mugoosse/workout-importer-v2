@@ -19,22 +19,24 @@
 {"name":"Coracobrachialis","anatomicalGroup":"Upper Arm (Anterior)","svgId":"biceps_brachii","majorGroup":"arms"}
 {"name":"Deep Head","anatomicalGroup":"Upper Thigh (Anterior)","svgId":"rectus_femoris","majorGroup":"legs"}
 {"name":"Deltoids","svgId":"deltoids","majorGroup":"shoulders"}
-{"name":"Erector Spinae (1)","svgId":"erector_spinae","majorGroup":"back"}
-{"name":"Erector Spinae (2)","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
-{"name":"External Oblique","svgId":"external_obliques","majorGroup":"core"}
+{"name":"Diaphragm","svgId":"rectus_abdominis","majorGroup":"core"}
+{"name":"Erector Spinae","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Extensor Carpi Radialis Brevis","anatomicalGroup":"Posterior Compartment Forearm (Superficial)","svgId":"extensor_carpi_radialis","majorGroup":"arms"}
 {"name":"Extensor Carpi Radialis Longus","anatomicalGroup":"Posterior Compartment Forearm (Superficial)","svgId":"extensor_carpi_radialis","majorGroup":"arms"}
 {"name":"Extensor Carpi Ulnaris","anatomicalGroup":"Posterior Compartment Forearm (Superficial)","svgId":"extensor_carpi_radialis","majorGroup":"arms"}
 {"name":"Extensor Digitorum","anatomicalGroup":"Posterior Compartment Forearm (Superficial)","svgId":"extensor_carpi_radialis","majorGroup":"arms"}
 {"name":"Extensor Digitorum Longus","anatomicalGroup":"Anterior Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
+{"name":"External Oblique","svgId":"external_obliques","majorGroup":"core"}
 {"name":"External Rotators","svgId":"gluteus_medius","majorGroup":"legs"}
 {"name":"Fibularis Brevis","anatomicalGroup":"Lateral Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
 {"name":"Fibularis Longus","anatomicalGroup":"Lateral Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
 {"name":"Fibularis Tertius","anatomicalGroup":"Anterior Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
-{"name":"Flexor Carpi Radialis (1)","anatomicalGroup":"Anterior Compartment Forearm (Superficial)","svgId":"flexor_carpi_radialis","majorGroup":"arms"}
-{"name":"Flexor Carpi Ulnaris (1)","anatomicalGroup":"Anterior Compartment Forearm (Superficial)","svgId":"flexor_carpi_ulnaris","majorGroup":"arms"}
+{"name":"Flexor Carpi Radialis","anatomicalGroup":"Anterior Compartment Forearm (Superficial)","svgId":"flexor_carpi_radialis","majorGroup":"arms"}
+{"name":"Flexor Carpi Ulnaris","anatomicalGroup":"Anterior Compartment Forearm (Superficial)","svgId":"flexor_carpi_ulnaris","majorGroup":"arms"}
+{"name":"Flexor Digitorum Longus","svgId":"gastrocnemius","majorGroup":"legs"}
 {"name":"Flexor Digitorum Profundus","anatomicalGroup":"Anterior Compartment Forearm (Deep)","svgId":"flexor_carpi_radialis","majorGroup":"arms"}
 {"name":"Flexor Digitorum Superficialis","anatomicalGroup":"Anterior Compartment Forearm (Intermediate)","svgId":"flexor_carpi_radialis","majorGroup":"arms"}
+{"name":"Flexor Hallucis Longus","svgId":"gastrocnemius","majorGroup":"legs"}
 {"name":"Gastrocnemius","svgId":"gastrocnemius","majorGroup":"legs"}
 {"name":"Gastrocnemius (Lateral Head)","anatomicalGroup":"Posterior Compartment Lower Leg (Superficial)","svgId":"gastrocnemius","majorGroup":"legs"}
 {"name":"Gastrocnemius (Medial Head)","anatomicalGroup":"Posterior Compartment Lower Leg (Superficial)","svgId":"gastrocnemius","majorGroup":"legs"}
@@ -44,17 +46,20 @@
 {"name":"Gluteus Minimus","anatomicalGroup":"Superficial Muscles of Gluteal Region","svgId":"gluteus_medius","majorGroup":"legs"}
 {"name":"Gracilis","svgId":"gracilis","majorGroup":"legs"}
 {"name":"Hamstrings","svgId":"biceps_femoris","majorGroup":"legs"}
+{"name":"Hip Adductor Muscles","svgId":"adductor_longus_and_pectineus","majorGroup":"legs"}
+{"name":"Hip External Rotators (Deep Layer)","svgId":"gluteus_medius","majorGroup":"legs"}
 {"name":"Iliacus","anatomicalGroup":"Lower Thigh (Anterior)","svgId":"rectus_femoris","majorGroup":"legs"}
-{"name":"Iliocostalis (1)","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
+{"name":"Iliocostalis","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Iliopsoas","svgId":"rectus_femoris","majorGroup":"legs"}
 {"name":"Infraspinatus","svgId":"infraspinatus","majorGroup":"back"}
 {"name":"Intercostals","svgId":"serratus_anterior","majorGroup":"core"}
 {"name":"Internal Oblique","svgId":"external_obliques","majorGroup":"core"}
+{"name":"Intersegmental Muscles","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Intrinsic Back Muscles","anatomicalGroup":"Deep Back Muscles (Deepest)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Lateral Deltoid","svgId":"deltoids","majorGroup":"shoulders"}
 {"name":"Latissimus Dorsi","svgId":"latissimus_dorsi","majorGroup":"back"}
 {"name":"Levator Scapulae","svgId":"trapezius","majorGroup":"back"}
-{"name":"Longissimus (1)","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
+{"name":"Longissimus","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Lower Trapezius","svgId":"lower_trapezius","majorGroup":"back"}
 {"name":"Medial Deltoid","svgId":"deltoids","majorGroup":"shoulders"}
 {"name":"Middle Deltoid","svgId":"deltoids","majorGroup":"shoulders"}
@@ -71,6 +76,7 @@
 {"name":"Pectoralis Major (Clavicular Part)","svgId":"pectoralis_major","majorGroup":"chest"}
 {"name":"Pectoralis Major (Sternal Part)","svgId":"pectoralis_major","majorGroup":"chest"}
 {"name":"Pectoralis Minor","svgId":"pectoralis_major","majorGroup":"chest"}
+{"name":"Pelvic Diaphragm","svgId":"rectus_abdominis","majorGroup":"core"}
 {"name":"Peroneus","svgId":"peroneus_longus","majorGroup":"legs"}
 {"name":"Peroneus Longus","anatomicalGroup":"Lateral Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
 {"name":"Piriformis","anatomicalGroup":"Deep Muscles of Gluteal Region","svgId":"gluteus_medius","majorGroup":"legs"}
@@ -85,11 +91,10 @@
 {"name":"Quadratus Femoris","anatomicalGroup":"Deep Muscles of Gluteal Region","svgId":"gluteus_medius","majorGroup":"legs"}
 {"name":"Quadratus Lumborum","svgId":"erector_spinae","majorGroup":"core"}
 {"name":"Quadriceps","svgId":"rectus_femoris","majorGroup":"legs"}
+{"name":"Quadriceps Femoris","svgId":"rectus_femoris","majorGroup":"legs"}
 {"name":"Rear Deltoid","svgId":"deltoids","majorGroup":"shoulders"}
 {"name":"Rectus Abdominis","svgId":"rectus_abdominis","majorGroup":"core"}
 {"name":"Rectus Femoris","svgId":"rectus_femoris","majorGroup":"legs"}
-{"name":"Rhomboid Major","svgId":"rhomboid_muscles","majorGroup":"back"}
-{"name":"Rhomboid Minor","svgId":"rhomboid_muscles","majorGroup":"back"}
 {"name":"Rotator Cuff","svgId":"infraspinatus","majorGroup":"shoulders"}
 {"name":"Rotatores","anatomicalGroup":"Deep Back Muscles (Deepest)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Sartorius","svgId":"sartorius","majorGroup":"legs"}
@@ -102,7 +107,7 @@
 {"name":"Serratus Posterior Superior","svgId":"rhomboid_muscles","majorGroup":"back"}
 {"name":"Six Pack","svgId":"rectus_abdominis","majorGroup":"core"}
 {"name":"Soleus","svgId":"soleus","majorGroup":"legs"}
-{"name":"Spinalis (1)","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
+{"name":"Spinalis","anatomicalGroup":"Deep Back Muscles (Intermediate)","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Splenius Capitis","svgId":"trapezius","majorGroup":"back"}
 {"name":"Splenius Cervicis","svgId":"trapezius","majorGroup":"back"}
 {"name":"Sternocleidomastoid","svgId":"sternocleidomastoid","majorGroup":"core"}
@@ -118,7 +123,9 @@
 {"name":"Tibialis Anterior","anatomicalGroup":"Anterior Compartment Lower Leg","svgId":"peroneus_longus","majorGroup":"legs"}
 {"name":"Tibialis Posterior","anatomicalGroup":"Posterior Compartment Lower Leg (Deep)","svgId":"soleus","majorGroup":"legs"}
 {"name":"Transverse Abdominis","svgId":"external_obliques","majorGroup":"core"}
+{"name":"Transversospinales Muscles","svgId":"erector_spinae","majorGroup":"back"}
 {"name":"Transversospinalis Group","svgId":"erector_spinae","majorGroup":"back"}
+{"name":"Transversus Abdominis","svgId":"rectus_abdominis","majorGroup":"core"}
 {"name":"Trapezius","svgId":"trapezius","majorGroup":"back"}
 {"name":"Triceps Brachii","svgId":"triceps_brachii","majorGroup":"arms"}
 {"name":"Triceps Brachii (Lateral Head)","anatomicalGroup":"Upper Arm (Posterior)","svgId":"triceps_brachii","majorGroup":"arms"}
@@ -129,3 +136,8 @@
 {"name":"Vastus Lateralis","svgId":"vastus_lateralis","majorGroup":"legs"}
 {"name":"Vastus Medialis","svgId":"vastus_medialis","majorGroup":"legs"}
 {"name":"Vastus Medialis (VMO)","anatomicalGroup":"Upper Thigh (Anterior)","svgId":"vastus_medialis","majorGroup":"legs"}
+{"name":"Wrist Extensors","svgId":"extensor_carpi_radialis","majorGroup":"arms"}
+{"name":"Wrist Flexors","svgId":"flexor_carpi_radialis","majorGroup":"arms"}
+{"name":"Rhomboid Muscles","svgId":"rhomboid_muscles","majorGroup":"back"}
+{"name":"Pectoralis Major (Costal Part)","svgId":"pectoralis_major","majorGroup":"chest"}
+{"name":"Scalene Muscles","svgId":"sternocleidomastoid","majorGroup":"core"}

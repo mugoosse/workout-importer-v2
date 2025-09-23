@@ -16,35 +16,8 @@ export type MuscleRole = "target" | "lengthening" | "synergist" | "stabilizer";
 export function normalizeMuscleName(name: string): string {
   if (!name || typeof name !== 'string') return '';
 
-  // Handle common variations and mappings to match database format
-  const mappings: Record<string, string> = {
-    "Deltoid": "Deltoids",
-    "Quadriceps Femoris": "Rectus Femoris", // Check if this mapping is correct
-    "Abdominal Muscles": "Rectus Abdominis",
-    "Hip Adductor Muscles": "Adductor Longus And Pectineus", // Approximate mapping
-    "Hip External Rotators (Deep Layer)": "Gluteus Medius", // Approximate mapping
-    "Anterior Deltoid": "Deltoids",
-    "Pectoralis Major, Clavicular Head": "Pectoralis Major",
-    "Clavicular Head": "Pectoralis Major"
-  };
-
-  // Clean the name first
-  let cleaned = name
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[,;].*$/, '') // Remove everything after comma or semicolon
-    .trim();
-
-  // Apply mappings
-  if (mappings[cleaned]) {
-    return mappings[cleaned];
-  }
-
-  // Convert to Title Case if needed
-  return cleaned
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  // Direct 1:1 matching - just clean up whitespace
+  return name.trim().replace(/\s+/g, ' ');
 }
 
 export function normalizeEquipmentName(name: string): string {

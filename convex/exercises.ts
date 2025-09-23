@@ -68,6 +68,104 @@ export const getExercisesByIds = query({
   },
 });
 
+export const previewExerciseImport = query({
+  args: {
+    exercises: v.array(v.object({
+      title: v.string(),
+      url: v.optional(v.string()),
+      description: v.optional(v.string()),
+      exerciseType: v.string(),
+      equipmentNames: v.array(v.string()),
+      muscles: v.object({
+        target: v.array(v.string()),
+        lengthening: v.array(v.string()),
+        synergist: v.array(v.string()),
+        stabilizer: v.array(v.string()),
+      }),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Load all reference data ONCE
+    const [allMuscles, allEquipment, existingExercises] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("equipment").collect(),
+      ctx.db.query("exercises").collect(),
+    ]);
+
+    // Create lookup maps
+    const muscleMap = new Map(allMuscles.map(m => [m.name, m._id]));
+    const equipmentMap = new Map(allEquipment.map(e => [e.name, e._id]));
+    const exerciseMap = new Map(existingExercises.map(e => [e.title, e]));
+
+    // Analyze import data
+    const stats = {
+      totalExercises: args.exercises.length,
+      existingExercises: [] as string[],
+      newExercises: [] as string[],
+      unmappedMuscles: new Set<string>(),
+      unmappedEquipment: new Set<string>(),
+      muscleStats: {
+        total: 0,
+        mapped: 0,
+        unmapped: 0,
+      },
+      equipmentStats: {
+        total: 0,
+        mapped: 0,
+        unmapped: 0,
+      },
+    };
+
+    // Check each exercise and collect unmapped items
+    for (const exercise of args.exercises) {
+      if (exerciseMap.has(exercise.title)) {
+        stats.existingExercises.push(exercise.title);
+      } else {
+        stats.newExercises.push(exercise.title);
+      }
+
+      // Check all muscles from all roles
+      const allMuscleNames = [
+        ...exercise.muscles.target,
+        ...exercise.muscles.lengthening,
+        ...exercise.muscles.synergist,
+        ...exercise.muscles.stabilizer,
+      ].filter(name => name && name.trim());
+
+      for (const muscleName of allMuscleNames) {
+        const normalized = normalizeMuscleName(muscleName);
+        stats.muscleStats.total++;
+
+        if (muscleMap.has(normalized)) {
+          stats.muscleStats.mapped++;
+        } else {
+          stats.muscleStats.unmapped++;
+          stats.unmappedMuscles.add(muscleName);
+        }
+      }
+
+      // Check equipment
+      for (const equipName of exercise.equipmentNames) {
+        if (!equipName || !equipName.trim()) continue;
+
+        stats.equipmentStats.total++;
+        if (equipmentMap.has(equipName.trim())) {
+          stats.equipmentStats.mapped++;
+        } else {
+          stats.equipmentStats.unmapped++;
+          stats.unmappedEquipment.add(equipName);
+        }
+      }
+    }
+
+    return {
+      ...stats,
+      unmappedMuscles: Array.from(stats.unmappedMuscles),
+      unmappedEquipment: Array.from(stats.unmappedEquipment),
+    };
+  },
+});
+
 export const importExercise = mutation({
   args: {
     title: v.string(),
@@ -126,6 +224,129 @@ export const importExercise = mutation({
       exerciseId,
       errors,
     };
+  },
+});
+
+export const importExercisesBulk = mutation({
+  args: {
+    exercises: v.array(v.object({
+      title: v.string(),
+      url: v.optional(v.string()),
+      description: v.optional(v.string()),
+      exerciseType: v.string(),
+      equipmentNames: v.array(v.string()),
+      muscles: v.object({
+        target: v.array(v.string()),
+        lengthening: v.array(v.string()),
+        synergist: v.array(v.string()),
+        stabilizer: v.array(v.string()),
+      }),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Load all reference data ONCE
+    const [allMuscles, allEquipment, existingExercises, existingMuscleRels, existingEquipRels] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("equipment").collect(),
+      ctx.db.query("exercises").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+      ctx.db.query("exerciseEquipment").collect(),
+    ]);
+
+    // Create lookup maps
+    const muscleMap = new Map(allMuscles.map(m => [m.name, m._id]));
+    const equipmentMap = new Map(allEquipment.map(e => [e.name, e._id]));
+    const exerciseMap = new Map(existingExercises.map(e => [e.title, e._id]));
+
+    // Create relationship lookup sets for duplicate prevention
+    const muscleRelKeys = new Set(
+      existingMuscleRels.map(r => `${r.exerciseId}:${r.muscleId}:${r.role}`)
+    );
+    const equipRelKeys = new Set(
+      existingEquipRels.map(r => `${r.exerciseId}:${r.equipmentId}`)
+    );
+
+    const results = {
+      created: 0,
+      skipped: 0,
+      muscleRelationsCreated: 0,
+      equipmentRelationsCreated: 0,
+      errors: [] as string[],
+    };
+
+    // Process each exercise
+    for (const exercise of args.exercises) {
+      try {
+        // Check if exercise already exists
+        let exerciseId = exerciseMap.get(exercise.title);
+
+        if (exerciseId) {
+          results.skipped++;
+        } else {
+          // Create new exercise
+          exerciseId = await ctx.db.insert("exercises", {
+            title: exercise.title,
+            url: exercise.url,
+            description: exercise.description,
+            source: "muscleandmotion.com",
+            exerciseType: parseExerciseType(exercise.exerciseType),
+          });
+
+          // Add to our local map for subsequent lookups
+          exerciseMap.set(exercise.title, exerciseId);
+          results.created++;
+        }
+
+        // Process equipment relationships
+        for (const equipName of exercise.equipmentNames) {
+          if (!equipName || !equipName.trim()) continue;
+
+          const equipmentId = equipmentMap.get(equipName.trim());
+          if (equipmentId) {
+            const relKey = `${exerciseId}:${equipmentId}`;
+            if (!equipRelKeys.has(relKey)) {
+              await ctx.db.insert("exerciseEquipment", {
+                exerciseId,
+                equipmentId,
+              });
+              equipRelKeys.add(relKey);
+              results.equipmentRelationsCreated++;
+            }
+          } else {
+            results.errors.push(`Equipment not found: ${equipName} (exercise: ${exercise.title})`);
+          }
+        }
+
+        // Process muscle relationships
+        for (const [role, muscleNames] of Object.entries(exercise.muscles)) {
+          for (const muscleName of muscleNames) {
+            if (!muscleName || !muscleName.trim()) continue;
+
+            const normalized = normalizeMuscleName(muscleName);
+            const muscleId = muscleMap.get(normalized);
+
+            if (muscleId) {
+              const relKey = `${exerciseId}:${muscleId}:${role}`;
+              if (!muscleRelKeys.has(relKey)) {
+                await ctx.db.insert("exerciseMuscles", {
+                  exerciseId,
+                  muscleId,
+                  role: role as MuscleRole,
+                });
+                muscleRelKeys.add(relKey);
+                results.muscleRelationsCreated++;
+              }
+            } else {
+              results.errors.push(`Muscle not found: ${muscleName} (role: ${role}, exercise: ${exercise.title})`);
+            }
+          }
+        }
+      } catch (error) {
+        results.errors.push(`Failed to process exercise "${exercise.title}": ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    return results;
   },
 });
 
