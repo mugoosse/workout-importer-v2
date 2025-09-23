@@ -1,3 +1,4 @@
+import { exerciseThumbnails } from "@/assets/images/exercises/thumbnails";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
@@ -10,6 +11,7 @@ import { Link, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   Text,
   TextInput,
@@ -373,9 +375,26 @@ const Page = () => {
                   asChild
                 >
                   <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
-                    <View className="flex-row items-start justify-between mb-3">
+                    <View className="flex-row items-center justify-between">
+                      {/* Thumbnail Image */}
+                      <View className="mr-4 rounded-lg overflow-hidden shadow-lg">
+                        {exerciseThumbnails[exercise._id] ? (
+                          <Image
+                            source={exerciseThumbnails[exercise._id]}
+                            className="w-16 h-20"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="w-16 h-20 bg-[#2c2c2e] items-center justify-center">
+                            <Text className="text-gray-500 text-xs">
+                              No Image
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
                       <View className="flex-1 mr-3">
-                        <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
+                        <Text className="text-white text-xl font-Poppins_600SemiBold mb-3">
                           {cleanExerciseTitle(exercise.title)}
                         </Text>
 
@@ -389,7 +408,7 @@ const Page = () => {
                           {/* Equipment tags inline */}
                           {exercise.equipment
                             .filter((equip) => equip !== null)
-                            .slice(0, 2)
+                            .slice(0, 1)
                             .map((equip) => (
                               <Badge key={equip._id} variant="outline">
                                 <Text className="text-white text-xs">
@@ -398,23 +417,23 @@ const Page = () => {
                               </Badge>
                             ))}
                           {exercise.equipment.filter((equip) => equip !== null)
-                            .length > 2 && (
+                            .length > 1 && (
                             <Badge variant="outline">
                               <Text className="text-white text-xs">
                                 +
                                 {exercise.equipment.filter(
                                   (equip) => equip !== null,
-                                ).length - 2}
+                                ).length - 1}
                               </Text>
                             </Badge>
                           )}
                         </View>
                       </View>
 
-                      <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center">
+                      <View className="bg-[#2c2c2e] w-12 h-12 rounded-xl items-center justify-center shadow-md">
                         <Ionicons
                           name="chevron-forward"
-                          size={20}
+                          size={24}
                           color="#fff"
                         />
                       </View>
