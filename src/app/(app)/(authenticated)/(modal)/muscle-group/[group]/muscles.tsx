@@ -14,8 +14,8 @@ import {
 import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
-import { useQuery } from "convex/react";
 import { Link, useLocalSearchParams, useNavigation } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { useLayoutEffect, useState } from "react";
 import {
@@ -38,8 +38,11 @@ const Page = () => {
   const { group } = useLocalSearchParams<{ group: string }>();
   const navigation = useNavigation();
   const majorGroup = group as MajorMuscleGroup;
-  const muscles = useQuery(api.muscles.list);
-  const exerciseCountsData = useQuery(api.muscles.getAllExerciseCounts);
+  const { data: muscles } = useCachedQuery(api.muscles.list, {});
+  const { data: exerciseCountsData } = useCachedQuery(
+    api.muscles.getAllExerciseCounts,
+    {},
+  );
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
   const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
 

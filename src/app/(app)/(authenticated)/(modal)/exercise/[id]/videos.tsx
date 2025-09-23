@@ -1,8 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -27,13 +28,19 @@ const Page = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const exerciseDetails = useQuery(api.exercises.getExerciseDetails, {
-    exerciseId,
-  });
+  const { data: exerciseDetails } = useCachedQuery(
+    api.exercises.getExerciseDetails,
+    {
+      exerciseId,
+    },
+  );
 
-  const videos = useQuery(api.exerciseVideos.getVideosForExercise, {
-    exerciseId,
-  });
+  const { data: videos } = useCachedQuery(
+    api.exerciseVideos.getVideosForExercise,
+    {
+      exerciseId,
+    },
+  );
 
   const searchVideos = useAction(api.exerciseVideoActions.searchAndStoreVideos);
 

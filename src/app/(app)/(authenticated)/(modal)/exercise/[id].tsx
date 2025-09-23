@@ -24,7 +24,6 @@ import {
 import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Doc } from "convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import {
   Link,
   router,
@@ -32,6 +31,7 @@ import {
   useLocalSearchParams,
   useNavigation,
 } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { useLayoutEffect, useState } from "react";
 import {
@@ -76,9 +76,12 @@ const Page = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const exerciseId = id as Id<"exercises">;
-  const exerciseDetails = useQuery(api.exercises.getExerciseDetails, {
-    exerciseId,
-  });
+  const { data: exerciseDetails } = useCachedQuery(
+    api.exercises.getExerciseDetails,
+    {
+      exerciseId,
+    },
+  );
   const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
 
   // Set the title dynamically when exerciseDetails loads

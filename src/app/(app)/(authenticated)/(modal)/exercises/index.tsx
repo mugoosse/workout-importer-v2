@@ -2,7 +2,7 @@ import { exerciseThumbnails } from "@/assets/images/exercises/thumbnails";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
-import { useCachedStableQuery } from "@/hooks/cachedHooks";
+import { useCachedQuery } from "@/hooks/cache";
 import { cleanExerciseTitle } from "@/utils/exerciseUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
@@ -96,7 +96,7 @@ const Page = () => {
     api.muscles.get,
     params.muscleId ? { muscleId: params.muscleId as Id<"muscles"> } : "skip",
   );
-  const equipment = useQuery(api.exercises.getAllEquipment, {});
+  const { data: equipment } = useCachedQuery(api.exercises.getAllEquipment, {});
 
   // Parse multi-select parameters
   const majorGroups = params.majorGroups?.split(",");
@@ -109,7 +109,7 @@ const Page = () => {
   const exerciseTypes = params.exerciseTypes?.split(",");
 
   // Query exercises with current filters using cached stable query for persistent caching
-  const { data: exercises, isStale } = useCachedStableQuery(
+  const { data: exercises, isStale } = useCachedQuery(
     api.exercises.getFilteredExercises,
     {
       majorGroups,

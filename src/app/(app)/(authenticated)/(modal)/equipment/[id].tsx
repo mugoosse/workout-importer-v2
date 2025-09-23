@@ -2,8 +2,8 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useLayoutEffect } from "react";
 import {
   ActivityIndicator,
@@ -18,8 +18,8 @@ const Page = () => {
   const navigation = useNavigation();
   const equipmentId = id as Id<"equipment">;
 
-  // Get equipment details
-  const equipment = useQuery(api.exercises.getAllEquipment, {});
+  // Get equipment details with caching
+  const { data: equipment } = useCachedQuery(api.exercises.getAllEquipment, {});
   const selectedEquipment = equipment?.find((e) => e._id === equipmentId);
 
   // Set the title dynamically when equipment data loads
@@ -31,10 +31,13 @@ const Page = () => {
     }
   }, [navigation, selectedEquipment?.name]);
 
-  // Get exercises that use this equipment
-  const exercises = useQuery(api.exercises.getExercisesByEquipment, {
-    equipmentId,
-  });
+  // Get exercises that use this equipment with caching
+  const { data: exercises } = useCachedQuery(
+    api.exercises.getExercisesByEquipment,
+    {
+      equipmentId,
+    },
+  );
 
   if (!selectedEquipment) {
     return (

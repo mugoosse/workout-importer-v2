@@ -12,8 +12,8 @@ import {
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { router } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
@@ -25,13 +25,16 @@ const ExerciseLogItem = ({
   summary: ExerciseLogSummary;
   formatLastLoggedDate: (date: string) => string;
 }) => {
-  const exercise = useQuery(api.exercises.get, {
+  const { data: exercise } = useCachedQuery(api.exercises.get, {
     exerciseId: summary.exerciseId,
   });
 
-  const exerciseDetails = useQuery(api.exercises.getExerciseDetails, {
-    exerciseId: summary.exerciseId,
-  });
+  const { data: exerciseDetails } = useCachedQuery(
+    api.exercises.getExerciseDetails,
+    {
+      exerciseId: summary.exerciseId,
+    },
+  );
 
   const cleanExerciseTitle = (title: string) => {
     // Remove equipment suffix pattern " (Equipment Name)"
@@ -175,7 +178,7 @@ const WorkoutSessionCard = ({
 };
 
 const Page = () => {
-  const muscles = useQuery(api.muscles.list);
+  const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
   const [workoutSessions] = useAtom(workoutSessionsAtom);
 

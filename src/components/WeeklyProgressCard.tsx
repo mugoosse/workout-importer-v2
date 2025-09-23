@@ -13,7 +13,7 @@ import {
   getMajorGroupFromMuscle,
   muscleToGroupMapping,
 } from "@/utils/muscleMapping";
-import { useQuery } from "convex/react";
+import { useCachedQuery } from "@/hooks/cache";
 import { router, usePathname, useSegments } from "expo-router";
 import { useAtom } from "jotai";
 import { Text, View } from "react-native";
@@ -70,7 +70,7 @@ const getCurrentWeekRange = () => {
 };
 
 export const WeeklyProgressCard = () => {
-  const muscles = useQuery(api.muscles.list);
+  const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
   const segments = useSegments();
   const pathname = usePathname();

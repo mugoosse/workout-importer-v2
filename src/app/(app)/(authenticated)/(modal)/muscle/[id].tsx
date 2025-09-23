@@ -11,8 +11,8 @@ import {
 } from "@/store/weeklyProgress";
 import { calculateXPDistribution, type MuscleRole } from "@/utils/xpCalculator";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { useLayoutEffect } from "react";
 import {
@@ -73,7 +73,7 @@ const WorkoutLogItem = ({
   formatLastLoggedDate: (date: string) => string;
   notes?: string;
 }) => {
-  const exercise = useQuery(api.exercises.get, {
+  const { data: exercise } = useCachedQuery(api.exercises.get, {
     exerciseId: exerciseId as Id<"exercises">,
   });
 
@@ -241,13 +241,16 @@ const Page = () => {
   const [loggedSets] = useAtom(loggedSetsAtom);
   const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
 
-  const muscle = useQuery(api.muscles.get, {
+  const { data: muscle } = useCachedQuery(api.muscles.get, {
     muscleId: id as Id<"muscles">,
   });
 
-  const exerciseCounts = useQuery(api.muscles.getExerciseCounts, {
-    muscleId: id as Id<"muscles">,
-  });
+  const { data: exerciseCounts } = useCachedQuery(
+    api.muscles.getExerciseCounts,
+    {
+      muscleId: id as Id<"muscles">,
+    },
+  );
 
   // Set the title dynamically when muscle data loads
   useLayoutEffect(() => {

@@ -1,9 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useCachedQuery } from "@/hooks/cache";
 
 const MAJOR_MUSCLE_GROUPS = [
   { id: "chest", label: "Chest" },
@@ -61,8 +61,8 @@ const Page = () => {
     string[]
   >(currentMuscleFunctions);
 
-  // Get all equipment
-  const equipment = useQuery(api.exercises.getAllEquipment, {});
+  // Get all equipment with caching
+  const { data: equipment } = useCachedQuery(api.exercises.getAllEquipment, {});
 
   const handleMajorGroupToggle = (groupId: string) => {
     setSelectedMajorGroups((prev) =>

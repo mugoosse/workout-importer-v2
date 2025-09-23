@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { Link, router } from "expo-router";
+import { useCachedQuery } from "@/hooks/cache";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,8 +16,8 @@ import {
 const Page = () => {
   const [searchText, setSearchText] = useState("");
 
-  // Get all equipment
-  const equipment = useQuery(api.exercises.getAllEquipment, {});
+  // Get all equipment with caching
+  const { data: equipment } = useCachedQuery(api.exercises.getAllEquipment, {});
 
   // Filter equipment based on search
   const filteredEquipment = useMemo(() => {

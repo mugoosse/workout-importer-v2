@@ -1,12 +1,12 @@
 import { type Id } from "@/convex/_generated/dataModel";
 import {
-    type ExerciseLog,
-    type LoggedSet,
-    type WorkoutSession,
-    exerciseLogsAtom,
-    getLastWorkoutSetsAtom,
-    loggedSetsAtom,
-    workoutSessionsAtom,
+  type ExerciseLog,
+  type LoggedSet,
+  type WorkoutSession,
+  exerciseLogsAtom,
+  getLastWorkoutSetsAtom,
+  loggedSetsAtom,
+  workoutSessionsAtom,
 } from "@/store/exerciseLog";
 import { atom } from "jotai";
 
