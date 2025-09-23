@@ -131,16 +131,6 @@ const Layout = () => {
                 <Ionicons name="chevron-back" size={24} color="#ffffff" />
               </TouchableOpacity>
             ),
-            headerRight: () => (
-              <TouchableOpacity
-                onPress={() =>
-                  router.push("/(app)/(authenticated)/(modal)/exercises/filter")
-                }
-                style={{ marginRight: 8 }}
-              >
-                <Ionicons name="options-outline" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            ),
           }}
         />
         <Stack.Screen
