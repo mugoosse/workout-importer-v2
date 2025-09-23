@@ -10,7 +10,7 @@ import { type MajorMuscleGroup } from "@/utils/muscleMapping";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAtom } from "jotai";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 
 const Page = () => {
   const { group } = useLocalSearchParams<{ group: string }>();
@@ -43,14 +43,10 @@ const Page = () => {
     );
   };
 
-  const handleClose = () => {
-    router.back();
-  };
-
   return (
-    <View className="flex-1 bg-dark px-4 pt-2">
+    <View className="bg-dark px-4 pt-2 pb-8">
       <GrabberHandle />
-      <View className="flex-1 p-4 rounded-2xl">
+      <View className="p-4 rounded-2xl">
         {/* Progress Section - Compact */}
         <View className="mb-6">
           <View className="flex-row items-center justify-between mb-3">
@@ -106,16 +102,6 @@ const Page = () => {
             onPress={handleShowBreakdown}
           />
         </View>
-
-        {/* Cancel Button */}
-        <TouchableOpacity
-          onPress={handleClose}
-          className="w-full py-4 mb-8 bg-zinc-800 rounded-2xl"
-        >
-          <Text className="text-center text-lg text-gray-400 font-Poppins_600SemiBold">
-            Cancel
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

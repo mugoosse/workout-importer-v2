@@ -35,8 +35,7 @@ const Layout = () => {
           options={{
             presentation: "formSheet",
             animation: "slide_from_bottom",
-            sheetAllowedDetents: [0.5],
-            sheetInitialDetentIndex: 0,
+            sheetAllowedDetents: "fitToContents",
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
             headerShown: false,
