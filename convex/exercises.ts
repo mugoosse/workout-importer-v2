@@ -757,25 +757,32 @@ export const getFilteredExercises = query({
     searchTerm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let exerciseIds = new Set<Id<"exercises">>();
+    let filteredExerciseIds = new Set<Id<"exercises">>();
     let firstFilter = true;
+
+    // Pre-fetch data that might be needed for multiple filters
+    let allMuscles: any[] | null = null;
+    let allMuscleRelationships: any[] | null = null;
+    let allEquipmentRelationships: any[] | null = null;
 
     // Filter by major muscle groups
     if (args.majorGroups && args.majorGroups.length > 0) {
       const allMajorGroupExerciseIds = new Set<Id<"exercises">>();
 
+      // Batch fetch muscles and muscle relationships once
+      if (!allMuscles || !allMuscleRelationships) {
+        [allMuscles, allMuscleRelationships] = await Promise.all([
+          ctx.db.query("muscles").collect(),
+          ctx.db.query("exerciseMuscles").collect(),
+        ]);
+      }
+
       for (const majorGroup of args.majorGroups) {
-        const muscles = await ctx.db
-          .query("muscles")
-          .filter((q) => q.eq(q.field("majorGroup"), majorGroup))
-          .collect();
+        const muscleIds = allMuscles
+          .filter(m => m.majorGroup === majorGroup)
+          .map(m => m._id);
 
-        const muscleIds = muscles.map((m) => m._id);
-        const muscleRelationships = await ctx.db
-          .query("exerciseMuscles")
-          .collect();
-
-        const majorGroupExerciseIds = muscleRelationships
+        const majorGroupExerciseIds = allMuscleRelationships
           .filter((rel) => muscleIds.includes(rel.muscleId))
           .map((rel) => rel.exerciseId);
 
@@ -783,12 +790,12 @@ export const getFilteredExercises = query({
       }
 
       if (firstFilter) {
-        exerciseIds = allMajorGroupExerciseIds;
+        filteredExerciseIds = allMajorGroupExerciseIds;
         firstFilter = false;
       } else {
-        exerciseIds = new Set(
+        filteredExerciseIds = new Set(
           Array.from(allMajorGroupExerciseIds).filter((id) =>
-            exerciseIds.has(id),
+            filteredExerciseIds.has(id),
           ),
         );
       }
@@ -807,11 +814,11 @@ export const getFilteredExercises = query({
       );
 
       if (firstFilter) {
-        muscleExerciseIds.forEach((id) => exerciseIds.add(id));
+        muscleExerciseIds.forEach((id) => filteredExerciseIds.add(id));
         firstFilter = false;
       } else {
-        exerciseIds = new Set(
-          muscleExerciseIds.filter((id) => exerciseIds.has(id)),
+        filteredExerciseIds = new Set(
+          muscleExerciseIds.filter((id) => filteredExerciseIds.has(id)),
         );
       }
     }
@@ -820,25 +827,26 @@ export const getFilteredExercises = query({
     if (args.muscleFunctions && args.muscleFunctions.length > 0) {
       const allMuscleFunctionExerciseIds = new Set<Id<"exercises">>();
 
-      for (const role of args.muscleFunctions) {
-        const muscleRelationships = await ctx.db
-          .query("exerciseMuscles")
-          .filter((q) => q.eq(q.field("role"), role))
-          .collect();
+      // Reuse muscle relationships if already fetched, otherwise fetch once
+      if (!allMuscleRelationships) {
+        allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
+      }
 
-        const functionExerciseIds = muscleRelationships.map(
-          (rel) => rel.exerciseId,
-        );
+      for (const role of args.muscleFunctions) {
+        const functionExerciseIds = allMuscleRelationships
+          .filter((rel) => rel.role === role)
+          .map((rel) => rel.exerciseId);
+
         functionExerciseIds.forEach((id) => allMuscleFunctionExerciseIds.add(id));
       }
 
       if (firstFilter) {
-        exerciseIds = allMuscleFunctionExerciseIds;
+        filteredExerciseIds = allMuscleFunctionExerciseIds;
         firstFilter = false;
       } else {
-        exerciseIds = new Set(
+        filteredExerciseIds = new Set(
           Array.from(allMuscleFunctionExerciseIds).filter((id) =>
-            exerciseIds.has(id),
+            filteredExerciseIds.has(id),
           ),
         );
       }
@@ -848,25 +856,26 @@ export const getFilteredExercises = query({
     if (args.equipmentIds && args.equipmentIds.length > 0) {
       const allEquipmentExerciseIds = new Set<Id<"exercises">>();
 
-      for (const equipmentId of args.equipmentIds) {
-        const equipmentRelationships = await ctx.db
-          .query("exerciseEquipment")
-          .withIndex("by_equipment", (q) => q.eq("equipmentId", equipmentId))
-          .collect();
+      // Reuse equipment relationships if already fetched, otherwise fetch once
+      if (!allEquipmentRelationships) {
+        allEquipmentRelationships = await ctx.db.query("exerciseEquipment").collect();
+      }
 
-        const equipmentExerciseIds = equipmentRelationships.map(
-          (rel) => rel.exerciseId,
-        );
+      for (const equipmentId of args.equipmentIds) {
+        const equipmentExerciseIds = allEquipmentRelationships
+          .filter((rel) => rel.equipmentId === equipmentId)
+          .map((rel) => rel.exerciseId);
+
         equipmentExerciseIds.forEach((id) => allEquipmentExerciseIds.add(id));
       }
 
       if (firstFilter) {
-        exerciseIds = allEquipmentExerciseIds;
+        filteredExerciseIds = allEquipmentExerciseIds;
         firstFilter = false;
       } else {
-        exerciseIds = new Set(
+        filteredExerciseIds = new Set(
           Array.from(allEquipmentExerciseIds).filter((id) =>
-            exerciseIds.has(id),
+            filteredExerciseIds.has(id),
           ),
         );
       }
@@ -878,7 +887,7 @@ export const getFilteredExercises = query({
       exercises = await ctx.db.query("exercises").collect();
     } else {
       const exerciseResults = await Promise.all(
-        Array.from(exerciseIds).map((id) => ctx.db.get(id)),
+        Array.from(filteredExerciseIds).map((id) => ctx.db.get(id)),
       );
       exercises = exerciseResults.filter(
         (ex): ex is NonNullable<typeof ex> => ex !== null,
@@ -900,41 +909,65 @@ export const getFilteredExercises = query({
       );
     }
 
-    // Get exercise details with muscles and equipment
-    const exercisesWithDetails = await Promise.all(
-      exercises.map(async (exercise) => {
-        const [muscleRelationships, equipmentRelationships] = await Promise.all(
-          [
-            ctx.db
-              .query("exerciseMuscles")
-              .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
-              .collect(),
-            ctx.db
-              .query("exerciseEquipment")
-              .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
-              .collect(),
-          ],
-        );
+    // Get exercise details with muscles and equipment efficiently
+    const finalExerciseIds = exercises.map(ex => ex._id);
+    const exerciseIdSet = new Set(finalExerciseIds);
 
-        const [muscles, equipment] = await Promise.all([
-          Promise.all(
-            muscleRelationships.map(async (rel) => ({
-              muscle: await ctx.db.get(rel.muscleId),
-              role: rel.role,
-            })),
-          ),
-          Promise.all(
-            equipmentRelationships.map((rel) => ctx.db.get(rel.equipmentId)),
-          ),
-        ]);
+    // Batch fetch all relationships for these exercises (reuse if already fetched)
+    if (!allMuscleRelationships) {
+      allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
+    }
+    if (!allEquipmentRelationships) {
+      allEquipmentRelationships = await ctx.db.query("exerciseEquipment").collect();
+    }
+    if (!allMuscles) {
+      allMuscles = await ctx.db.query("muscles").collect();
+    }
+    const allEquipment = await ctx.db.query("equipment").collect();
 
-        return {
-          ...exercise,
-          muscles: muscles.filter((m) => m.muscle),
-          equipment: equipment.filter(Boolean),
-        };
-      }),
-    );
+    // Create lookup maps
+    const muscleMap = new Map(allMuscles.map(m => [m._id, m]));
+    const equipmentMap = new Map(allEquipment.map(e => [e._id, e]));
+
+    // Group relationships by exercise ID
+    const musclesByExercise = new Map<Id<"exercises">, Array<{muscle: any, role: string}>>();
+    const equipmentByExercise = new Map<Id<"exercises">, any[]>();
+
+    // Initialize maps for all exercises
+    finalExerciseIds.forEach(id => {
+      musclesByExercise.set(id, []);
+      equipmentByExercise.set(id, []);
+    });
+
+    // Populate muscle relationships
+    allMuscleRelationships
+      .filter(rel => exerciseIdSet.has(rel.exerciseId))
+      .forEach(rel => {
+        const muscle = muscleMap.get(rel.muscleId);
+        if (muscle) {
+          musclesByExercise.get(rel.exerciseId)?.push({
+            muscle,
+            role: rel.role,
+          });
+        }
+      });
+
+    // Populate equipment relationships
+    allEquipmentRelationships
+      .filter(rel => exerciseIdSet.has(rel.exerciseId))
+      .forEach(rel => {
+        const equipment = equipmentMap.get(rel.equipmentId);
+        if (equipment) {
+          equipmentByExercise.get(rel.exerciseId)?.push(equipment);
+        }
+      });
+
+    // Combine exercises with their relationships
+    const exercisesWithDetails = exercises.map(exercise => ({
+      ...exercise,
+      muscles: musclesByExercise.get(exercise._id) || [],
+      equipment: equipmentByExercise.get(exercise._id) || [],
+    }));
 
     return exercisesWithDetails;
   },
