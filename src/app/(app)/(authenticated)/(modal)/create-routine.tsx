@@ -273,7 +273,7 @@ const CreateRoutinePage = () => {
         </View>
 
         {/* Exercises Section */}
-        <View>
+        <View className="mb-4">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-white text-lg font-Poppins_600SemiBold">
               Exercises ({draft.exercises.length})
@@ -331,15 +331,17 @@ const CreateRoutinePage = () => {
 
         {/* Add Exercise / Discard Routine Buttons */}
         <View className="mb-4">
-          <TouchableOpacity
-            onPress={addExercise}
-            className="bg-[#1c1c1e] rounded-xl p-4 flex-row items-center justify-center mb-4"
-          >
-            <Ionicons name="add" size={20} color="white" />
-            <Text className="text-white font-Poppins_500Medium ml-2">
-              Add Exercise
-            </Text>
-          </TouchableOpacity>
+          {draft.exercises.length > 0 && (
+            <TouchableOpacity
+              onPress={addExercise}
+              className="bg-[#1c1c1e] rounded-xl p-4 flex-row items-center justify-center mb-4"
+            >
+              <Ionicons name="add" size={20} color="white" />
+              <Text className="text-white font-Poppins_500Medium ml-2">
+                Add Exercise
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             onPress={handleGoBack}
