@@ -595,7 +595,7 @@ const Page = () => {
         options={{
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} className="ml-2">
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              <Ionicons name="caret-down" size={24} color="#ffffff" />
             </TouchableOpacity>
           ),
         }}
