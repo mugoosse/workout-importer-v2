@@ -1,3 +1,4 @@
+import { exerciseThumbnails } from "@/assets/images/exercises/thumbnails";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
@@ -32,6 +33,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   Text,
   TextInput,
@@ -111,7 +113,24 @@ const ExerciseCard = React.memo(
           isSelected ? "border-[#6F2DBD]" : "border-[#1c1c1e]"
         }`}
       >
-        <View className="flex-row items-start justify-between mb-3">
+        <View className="flex-row items-center justify-between">
+          {/* Thumbnail Image */}
+          <View className="mr-4 rounded-lg overflow-hidden shadow-lg">
+            {exerciseThumbnails[exercise._id] ? (
+              <Image
+                source={exerciseThumbnails[exercise._id]}
+                className="w-16 h-20"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-16 h-20 bg-[#2c2c2e] items-center justify-center">
+                <Text className="text-gray-500 text-xs">
+                  No Image
+                </Text>
+              </View>
+            )}
+          </View>
+
           <View className="flex-1 mr-3">
             <Text className="text-white text-lg font-Poppins_600SemiBold mb-2">
               {cleanExerciseTitle(exercise.title)}
