@@ -231,6 +231,28 @@ const Page = () => {
           <WeeklyProgressCard />
         </View>
 
+        {/* Equipment Browser Card */}
+        <View className="mx-4 mt-6">
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/(authenticated)/(modal)/equipment")}
+            className="bg-[#1c1c1e] rounded-xl p-4"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  Browse Equipment
+                </Text>
+                <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
+                  Explore gym equipment and exercises
+                </Text>
+              </View>
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                <Ionicons name="barbell-outline" size={20} color="#6F2DBD" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Recent Workouts Section */}
         {(workoutSessions.length > 0 || exerciseLogSummaries.length > 0) && (
           <View className="mx-4 mb-6 mt-8">
