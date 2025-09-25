@@ -134,12 +134,12 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
   const renderContent = () => {
     if (view === "both") {
       // Both view - side by side, scale to fit half width each
-      const scaledWidth = width * 0.6; // 60% each to allow for more spacing
+      const scaledWidth = width * 0.45; // 45% each for tighter spacing
       const scaledHeight = height; // Keep full height for better visibility
 
       return (
         <View className="flex-row justify-center">
-          <View className="items-center mr-4">
+          <View className="items-center mr-1">
             <FrontBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}
@@ -148,7 +148,7 @@ export const MuscleBody: React.FC<MuscleBodyProps> = ({
               onMusclePress={handleMusclePress}
             />
           </View>
-          <View className="items-center ml-4">
+          <View className="items-center ml-1">
             <BackBodyMuscleMap
               width={scaledWidth}
               height={scaledHeight}

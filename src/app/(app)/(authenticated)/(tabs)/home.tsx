@@ -291,29 +291,52 @@ const Page = () => {
             </View>
           </TouchableOpacity>
 
-          {/* Recent Exercises */}
-          {exerciseLogSummaries.length > 0 && (
-            <TouchableOpacity
-              onPress={() =>
-                router.push("/(app)/(authenticated)/(modal)/exercises/recent")
+          {/* Recent Exercises - Always Show */}
+          <TouchableOpacity
+            onPress={() => {
+              if (exerciseLogSummaries.length > 0) {
+                router.push("/(app)/(authenticated)/(modal)/exercises/recent");
               }
-              className="bg-[#1c1c1e] rounded-xl p-4"
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-white text-lg font-Poppins_600SemiBold">
-                    Recent Exercises
-                  </Text>
-                  <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
-                    View your exercise history and progress
-                  </Text>
-                </View>
-                <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
-                  <Ionicons name="time-outline" size={20} color="#6F2DBD" />
-                </View>
+            }}
+            className={`rounded-xl p-4 ${
+              exerciseLogSummaries.length > 0
+                ? "bg-[#1c1c1e]"
+                : "bg-[#1c1c1e] opacity-50"
+            }`}
+            disabled={exerciseLogSummaries.length === 0}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text
+                  className={`text-lg font-Poppins_600SemiBold ${
+                    exerciseLogSummaries.length > 0
+                      ? "text-white"
+                      : "text-gray-500"
+                  }`}
+                >
+                  Recent Exercises
+                </Text>
+                <Text
+                  className={`text-sm font-Poppins_400Regular mt-1 ${
+                    exerciseLogSummaries.length > 0
+                      ? "text-gray-400"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {exerciseLogSummaries.length > 0
+                    ? "View your exercise history and progress"
+                    : "Complete workouts to see your exercise history"}
+                </Text>
               </View>
-            </TouchableOpacity>
-          )}
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={exerciseLogSummaries.length > 0 ? "#6F2DBD" : "#666"}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Recent Workouts Section - Always Show */}

@@ -93,7 +93,10 @@ const Page = () => {
             renderItem={({ item: equip, index }) => (
               <View className={index > 0 ? "mt-4" : ""}>
                 <Link
-                  href={`/(app)/(authenticated)/(modal)/equipment/${equip._id}`}
+                  href={{
+                    pathname: "/(app)/(authenticated)/(modal)/exercises/",
+                    params: { equipmentIds: equip._id },
+                  }}
                   asChild
                 >
                   <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
@@ -109,17 +112,33 @@ const Page = () => {
 
                         <View className="flex-1">
                           <Text className="text-white text-lg font-Poppins_600SemiBold mb-1">
-                            {equip.name}
+                            {equip.name} ({(equip as any).exerciseCount})
                           </Text>
 
-                          <View className="flex-row items-center gap-3">
-                            <Badge variant="outline">
-                              <Text className="text-white text-xs">
-                                {(equip as any).exerciseCount} exercise
-                                {(equip as any).exerciseCount !== 1 ? "s" : ""}
-                              </Text>
-                            </Badge>
-                          </View>
+                          {(equip as any).exerciseTypes &&
+                            (equip as any).exerciseTypes.length > 0 && (
+                              <View className="flex-row items-center gap-2 flex-wrap">
+                                {(equip as any).exerciseTypes
+                                  .slice(0, 3)
+                                  .map((type: string, index: number) => (
+                                    <Badge
+                                      key={type}
+                                      variant="outline"
+                                      className="bg-[#2c2c2e] border-[#444]"
+                                    >
+                                      <Text className="text-gray-400 text-xs">
+                                        {type}
+                                      </Text>
+                                    </Badge>
+                                  ))}
+                                {(equip as any).exerciseTypes.length > 3 && (
+                                  <Text className="text-gray-500 text-xs font-Poppins_400Regular">
+                                    +{(equip as any).exerciseTypes.length - 3}{" "}
+                                    more
+                                  </Text>
+                                )}
+                              </View>
+                            )}
                         </View>
                       </View>
 

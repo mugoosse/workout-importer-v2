@@ -379,21 +379,6 @@ export const getExercisesByMuscle = query({
   },
 });
 
-export const getExercisesByEquipment = query({
-  args: { equipmentId: v.id("equipment") },
-  handler: async (ctx, args) => {
-    const relationships = await ctx.db
-      .query("exerciseEquipment")
-      .withIndex("by_equipment", (q) => q.eq("equipmentId", args.equipmentId))
-      .collect();
-
-    const exercises = await Promise.all(
-      relationships.map((r) => ctx.db.get(r.exerciseId)),
-    );
-
-    return exercises.filter(Boolean);
-  },
-});
 
 export const getExercisesByType = query({
   args: {
@@ -500,25 +485,114 @@ export const getAllEquipment = query({
 export const getAllEquipmentWithCounts = query({
   args: {},
   handler: async (ctx) => {
-    const [equipment, exerciseEquipmentRelationships] = await Promise.all([
+    const [equipment, exerciseEquipmentRelationships, exercises] = await Promise.all([
       ctx.db.query("equipment").collect(),
       ctx.db.query("exerciseEquipment").collect(),
+      ctx.db.query("exercises").collect(),
     ]);
 
-    // Count exercises for each equipment
-    const equipmentCounts = new Map<string, number>();
+    // Create exercise ID to exercise map for quick lookup
+    const exerciseMap = new Map(exercises.map(ex => [ex._id, ex]));
+
+    // Count exercises and collect exercise types for each equipment
+    const equipmentData = new Map<string, { count: number; exerciseTypes: Set<string> }>();
+
     exerciseEquipmentRelationships.forEach((rel) => {
-      const count = equipmentCounts.get(rel.equipmentId) || 0;
-      equipmentCounts.set(rel.equipmentId, count + 1);
+      const existing = equipmentData.get(rel.equipmentId) || { count: 0, exerciseTypes: new Set() };
+      existing.count += 1;
+
+      // Get exercise type from the exercise
+      const exercise = exerciseMap.get(rel.exerciseId);
+      if (exercise?.exerciseType) {
+        existing.exerciseTypes.add(exercise.exerciseType);
+      }
+
+      equipmentData.set(rel.equipmentId, existing);
     });
 
-    // Combine equipment with their exercise counts
-    const equipmentWithCounts = equipment.map((equip) => ({
-      ...equip,
-      exerciseCount: equipmentCounts.get(equip._id) || 0,
-    }));
+    // Combine equipment with their exercise counts and types
+    const equipmentWithCounts = equipment.map((equip) => {
+      const data = equipmentData.get(equip._id) || { count: 0, exerciseTypes: new Set() };
+      return {
+        ...equip,
+        exerciseCount: data.count,
+        exerciseTypes: Array.from(data.exerciseTypes),
+      };
+    });
 
     return equipmentWithCounts;
+  },
+});
+
+export const getMuscleGroupsWithCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const [muscles, exerciseMuscleRelationships] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+    ]);
+
+    // Group muscles by major group and count unique exercises
+    const majorGroups = ["chest", "back", "legs", "shoulders", "arms", "core"];
+
+    const muscleGroupsWithCounts = majorGroups.map((majorGroup) => {
+      // Get all muscle IDs for this major group
+      const muscleIds = muscles
+        .filter(muscle => muscle.majorGroup === majorGroup)
+        .map(muscle => muscle._id);
+
+      // Get unique exercise IDs that use any muscle from this group
+      const uniqueExerciseIds = new Set(
+        exerciseMuscleRelationships
+          .filter(rel => muscleIds.includes(rel.muscleId))
+          .map(rel => rel.exerciseId)
+      );
+
+      return {
+        majorGroup,
+        exerciseCount: uniqueExerciseIds.size,
+      };
+    });
+
+    return muscleGroupsWithCounts;
+  },
+});
+
+export const getExerciseTypesWithCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const exercises = await ctx.db.query("exercises").collect();
+
+    // Count exercises by type
+    const typeCounts = new Map<string, number>();
+    exercises.forEach((exercise) => {
+      const count = typeCounts.get(exercise.exerciseType) || 0;
+      typeCounts.set(exercise.exerciseType, count + 1);
+    });
+
+    // Exercise type descriptions
+    const typeDescriptions: Record<string, string> = {
+      "Weight Reps": "Traditional weight training with sets and reps",
+      "Reps Only": "Bodyweight exercises counted by repetitions",
+      "Weighted Bodyweight": "Bodyweight exercises with added weight",
+      "Assisted Bodyweight": "Bodyweight exercises with assistance",
+      "Duration": "Time-based exercises like planks or holds",
+      "Weight & Duration": "Weighted exercises held for time",
+      "Distance & Duration": "Cardio exercises tracking distance and time",
+      "Weight & Distance": "Weighted exercises over distance",
+    };
+
+    // Create exercise types with counts
+    const exerciseTypesWithCounts = Array.from(typeCounts.entries()).map(([exerciseType, count]) => ({
+      exerciseType,
+      description: typeDescriptions[exerciseType] || "Exercise type",
+      exerciseCount: count,
+    }));
+
+    // Sort by count descending
+    exerciseTypesWithCounts.sort((a, b) => b.exerciseCount - a.exerciseCount);
+
+    return exerciseTypesWithCounts;
   },
 });
 

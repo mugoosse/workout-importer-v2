@@ -169,28 +169,6 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
-          name="(modal)/equipment/[id]"
-          options={{
-            title: "Equipment Details",
-            headerShown: true,
-            presentation: "modal",
-            headerStyle: { backgroundColor: "#000000" },
-            headerTintColor: "#ffffff",
-            headerTitleStyle: {
-              fontFamily: "Poppins_600SemiBold",
-              fontSize: 18,
-            },
-            headerLeft: () => (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ marginLeft: 8 }}
-              >
-                <Ionicons name="chevron-back" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-        <Stack.Screen
           name="(modal)/muscle/[id]"
           options={{
             title: "Muscle Details",
@@ -279,6 +257,72 @@ const Layout = () => {
             headerStyle: { backgroundColor: "#000000" },
             headerTintColor: "#ffffff",
             headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/muscle-groups/index"
+          options={{
+            title: "Muscle Groups",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/exercise-types/index"
+          options={{
+            title: "Exercise Types",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/exercises/recent"
+          options={{
+            title: "Recent Exercises",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
           }}
         />
       </Stack>
