@@ -497,6 +497,31 @@ export const getAllEquipment = query({
   },
 });
 
+export const getAllEquipmentWithCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const [equipment, exerciseEquipmentRelationships] = await Promise.all([
+      ctx.db.query("equipment").collect(),
+      ctx.db.query("exerciseEquipment").collect(),
+    ]);
+
+    // Count exercises for each equipment
+    const equipmentCounts = new Map<string, number>();
+    exerciseEquipmentRelationships.forEach((rel) => {
+      const count = equipmentCounts.get(rel.equipmentId) || 0;
+      equipmentCounts.set(rel.equipmentId, count + 1);
+    });
+
+    // Combine equipment with their exercise counts
+    const equipmentWithCounts = equipment.map((equip) => ({
+      ...equip,
+      exerciseCount: equipmentCounts.get(equip._id) || 0,
+    }));
+
+    return equipmentWithCounts;
+  },
+});
+
 export const linkExerciseToMuscle = mutation({
   args: {
     exerciseId: v.id("exercises"),
