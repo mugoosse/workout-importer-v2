@@ -19,6 +19,8 @@ export interface WorkoutSet {
   rpe?: number;
   timestamp: number;
   isCompleted: boolean;
+  isPR?: boolean;
+  prValue?: number;
 }
 
 export interface WorkoutExercise {
@@ -264,7 +266,16 @@ export const updateSetAction = atom(
 
     const updatedExercises = [...currentWorkout.exercises];
     const updatedSets = [...updatedExercises[exerciseIndex].sets];
-    updatedSets[setIndex] = { ...updatedSets[setIndex], ...updates };
+    const currentSet = updatedSets[setIndex];
+
+    // Update timestamp when set is marked as completed
+    const finalUpdates = {
+      ...updates,
+      ...(updates.isCompleted === true &&
+        !currentSet.isCompleted && { timestamp: Date.now() }),
+    };
+
+    updatedSets[setIndex] = { ...currentSet, ...finalUpdates };
 
     // Note: Removed automatic propagation to subsequent sets.
     // Values should only be used as placeholders/defaults, not as actual set values.
@@ -429,6 +440,8 @@ export const finishWorkoutAction = atom(
             rpe: workoutSet.rpe!, // We know it's not null due to filter
             timestamp: workoutSet.timestamp,
             date: currentDate,
+            isPR: workoutSet.isPR,
+            prValue: workoutSet.prValue,
           };
           loggedSets.push(loggedSet);
         });

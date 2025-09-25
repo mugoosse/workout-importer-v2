@@ -124,9 +124,7 @@ const ExerciseCard = React.memo(
               />
             ) : (
               <View className="w-16 h-20 bg-[#2c2c2e] items-center justify-center">
-                <Text className="text-gray-500 text-xs">
-                  No Image
-                </Text>
+                <Text className="text-gray-500 text-xs">No Image</Text>
               </View>
             )}
           </View>

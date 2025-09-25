@@ -20,6 +20,8 @@ export interface BaseSetData {
 export interface WorkoutSetData extends BaseSetData {
   isCompleted: boolean;
   rpe?: number;
+  isPR?: boolean;
+  prValue?: number;
 }
 
 export interface PreviousSetData {
@@ -105,7 +107,11 @@ const SetRowComponent: React.FC<SetRowProps> = ({
   };
 
   const getInputBackground = (fieldName: string) => {
-    if (isCompleted) return "bg-green-600/90 border border-green-600/90";
+    if (isCompleted) {
+      return workoutSet?.isPR
+        ? "bg-purple-600/90 border border-purple-600/90"
+        : "bg-green-600/90 border border-green-600/90";
+    }
     if (validationErrors.includes(fieldName)) {
       return "bg-red-600/20 border border-red-500";
     }
@@ -403,10 +409,20 @@ const SetRowComponent: React.FC<SetRowProps> = ({
           {workoutSet?.isCompleted ? (
             <TouchableOpacity
               onPress={() => onUndoComplete?.(actualSet.id)}
-              className="bg-green-800 bg-opacity-70 rounded-full py-2 px-3 items-center justify-center border border-green-600"
+              className={cn(
+                "rounded-full py-2 px-3 items-center justify-center border",
+                workoutSet.isPR
+                  ? "bg-purple-800 bg-opacity-70 border-purple-600"
+                  : "bg-green-800 bg-opacity-70 border-green-600",
+              )}
               activeOpacity={0.7}
             >
-              <Text className="text-green-100 text-xs font-Poppins_500Medium">
+              <Text
+                className={cn(
+                  "text-xs font-Poppins_500Medium",
+                  workoutSet.isPR ? "text-purple-100" : "text-green-100",
+                )}
+              >
                 RPE {workoutSet.rpe}
               </Text>
             </TouchableOpacity>
@@ -431,6 +447,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
       onDelete={() => onDeleteSet?.(actualSet.id)}
       canDelete={completedSetsLength > 1}
       isCompleted={workoutSet?.isCompleted || false}
+      isPR={workoutSet?.isPR || false}
     >
       <SetContent />
     </SwipeableSetRow>

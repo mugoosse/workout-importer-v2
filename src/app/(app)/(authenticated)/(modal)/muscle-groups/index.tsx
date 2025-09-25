@@ -29,7 +29,7 @@ const Page = () => {
   // Get all muscle groups with exercise counts and muscles data
   const { data: muscleGroups } = useCachedQuery(
     api.exercises.getMuscleGroupsWithCounts,
-    {}
+    {},
   );
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
@@ -46,7 +46,7 @@ const Page = () => {
 
     return sortedMuscleGroups.map((group) => {
       const groupProgress = weeklyProgress.find(
-        (progress) => progress.majorGroup === group.majorGroup
+        (progress) => progress.majorGroup === group.majorGroup,
       );
 
       return {
@@ -99,7 +99,7 @@ const Page = () => {
               const highlightedMuscles = generateMuscleHighlights(
                 muscles,
                 weeklyProgress,
-                muscleGroup.majorGroup
+                muscleGroup.majorGroup,
               );
               const progressColor = getProgressColor(muscleGroup.percentage);
 
@@ -119,7 +119,7 @@ const Page = () => {
                           <View className="w-16 h-16 items-center justify-center">
                             <MuscleBody
                               view={getOptimalViewForMuscleGroup(
-                                muscleGroup.majorGroup
+                                muscleGroup.majorGroup,
                               )}
                               highlightedMuscles={highlightedMuscles}
                               width={75}
@@ -134,7 +134,7 @@ const Page = () => {
                             <View className="flex-1 mr-3">
                               <Text className="text-white text-xl font-Poppins_600SemiBold">
                                 {getMuscleGroupDisplayName(
-                                  muscleGroup.majorGroup
+                                  muscleGroup.majorGroup,
                                 )}
                               </Text>
                               <Text className="text-gray-400 text-sm font-Poppins_400Regular">

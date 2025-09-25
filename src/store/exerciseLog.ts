@@ -23,6 +23,8 @@ export interface LoggedSet {
   rpe: number; // Rate of Perceived Exertion
   timestamp: number;
   date: string; // YYYY-MM-DD format for grouping
+  isPR?: boolean;
+  prValue?: number;
 }
 
 export interface WorkoutProgressSnapshot {

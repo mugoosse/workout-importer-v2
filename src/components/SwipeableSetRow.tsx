@@ -15,6 +15,7 @@ interface SwipeableSetRowProps {
   onDelete: () => void;
   canDelete: boolean;
   isCompleted: boolean;
+  isPR?: boolean;
 }
 
 export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
@@ -22,6 +23,7 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
   onDelete,
   canDelete,
   isCompleted,
+  isPR = false,
 }) => {
   const swipeableRef = useRef<SwipeableMethods>(null);
 
@@ -75,7 +77,11 @@ export const SwipeableSetRow: React.FC<SwipeableSetRowProps> = ({
       <View
         className={cn(
           "rounded-xl px-3 py-2 mb-1",
-          isCompleted ? "bg-green-600/80" : "bg-[#1c1c1e]",
+          isCompleted
+            ? isPR
+              ? "bg-purple-600/80"
+              : "bg-green-600/80"
+            : "bg-[#1c1c1e]",
         )}
       >
         {children}

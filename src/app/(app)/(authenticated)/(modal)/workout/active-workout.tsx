@@ -15,10 +15,14 @@ import {
   type WorkoutExercise,
   type WorkoutSet,
 } from "@/store/activeWorkout";
-import { getLastWorkoutSetsAtom } from "@/store/exerciseLog";
+import {
+  getLastWorkoutSetsAtom,
+  getSetsByExerciseAtom,
+} from "@/store/exerciseLog";
 import { type Routine } from "@/store/routines";
 import { unitsConfigAtom } from "@/store/units";
 import { getRequiredFields } from "@/utils/exerciseFieldHelpers";
+import { calculatePRValue, checkIfPR } from "@/utils/prCalculator";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "convex/react";
 import { router, Stack } from "expo-router";
@@ -33,6 +37,7 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
   const [, updateSet] = useAtom(updateSetAction);
   const [, removeSet] = useAtom(removeSetAction);
   const [getLastWorkoutSets] = useAtom(getLastWorkoutSetsAtom);
+  const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
   const [unitsConfig] = useAtom(unitsConfigAtom);
 
   // Skip Convex query for template/fallback exercises from public routines
@@ -156,19 +161,116 @@ const WorkoutExerciseCard = ({ exercise }: { exercise: WorkoutExercise }) => {
       return;
     }
 
-    // Complete the set
+    // Calculate PR information before completing the set
+    const exerciseTypeForPR = exerciseDetails?.exerciseType || "Weight Reps";
+    const historicalSets = !isTemplateExercise
+      ? getSetsByExercise(exercise.exerciseId)
+      : [];
+
+    // Get all previously completed sets in the current workout for this exercise
+    // Use sets completed before the current set (by index since timestamps aren't set yet)
+    const currentSetIndex = exercise.sets.findIndex(
+      (s) => s.id === drawerState.setId,
+    );
+    const currentWorkoutCompletedSets = exercise.sets
+      .slice(0, currentSetIndex) // Only sets before current one
+      .filter((s) => s.isCompleted && s.rpe !== undefined)
+      .map((set) => ({
+        ...set,
+        exerciseId: exercise.exerciseId,
+        workoutSessionId: "",
+        date: "",
+        rpe: set.rpe!,
+      }));
+
+    // Combine historical and current workout sets for PR calculation
+    const allPreviousSets = [...historicalSets, ...currentWorkoutCompletedSets];
+
+    // Create a temporary set object with the new RPE for PR calculation
+    const setForPRCalculation = {
+      ...currentSet,
+      rpe,
+      isCompleted: true,
+    };
+
+    const prValue = calculatePRValue(
+      setForPRCalculation,
+      exerciseTypeForPR as any,
+    );
+    const isPR = checkIfPR(
+      setForPRCalculation,
+      exerciseTypeForPR as any,
+      allPreviousSets as LoggedSet[],
+    );
+
+    // Complete the set with PR information
     updateSet(exercise.exerciseId, drawerState.setId, {
       rpe,
       isCompleted: true,
+      isPR,
+      prValue,
     });
 
     closeDrawer();
   };
 
   const handleDirectUndo = (setId: string) => {
+    const undoneSet = exercise.sets.find((s) => s.id === setId);
+    if (!undoneSet || !undoneSet.isCompleted) return;
+
+    // Clear completion and PR status for the undone set
     updateSet(exercise.exerciseId, setId, {
       isCompleted: false,
       rpe: undefined,
+      isPR: undefined,
+      prValue: undefined,
+    });
+
+    // Recalculate PRs for remaining completed sets in the current workout
+    const exerciseTypeForRecalc =
+      exerciseDetails?.exerciseType || "Weight Reps";
+    const historicalSetsForRecalc = !isTemplateExercise
+      ? getSetsByExercise(exercise.exerciseId)
+      : [];
+
+    // Get all currently completed sets in the workout (excluding the undone one)
+    const remainingCompletedSets = exercise.sets.filter(
+      (s) => s.id !== setId && s.isCompleted && s.rpe !== undefined,
+    );
+
+    // Recalculate PR status for each remaining completed set (in order)
+    remainingCompletedSets.forEach((workoutSet, setIndex) => {
+      // Get all sets that came before this one (historical + current workout sets before this index)
+      const currentWorkoutSetsBefore = remainingCompletedSets
+        .slice(0, setIndex) // Only sets before current one in the array
+        .map((set) => ({
+          ...set,
+          exerciseId: exercise.exerciseId,
+          workoutSessionId: "",
+          date: "",
+          rpe: set.rpe!,
+        }));
+
+      const allPreviousSets = [
+        ...historicalSetsForRecalc,
+        ...currentWorkoutSetsBefore,
+      ];
+
+      const prValue = calculatePRValue(
+        workoutSet,
+        exerciseTypeForRecalc as any,
+      );
+      const isPR = checkIfPR(
+        workoutSet,
+        exerciseTypeForRecalc as any,
+        allPreviousSets as any,
+      );
+
+      // Update the set with recalculated PR status
+      updateSet(exercise.exerciseId, workoutSet.id, {
+        isPR,
+        prValue,
+      });
     });
   };
 
