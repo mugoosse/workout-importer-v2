@@ -1,6 +1,7 @@
 import { ActiveWorkoutBanner } from "@/components/ActiveWorkoutBanner";
 import { WeeklyProgressCard } from "@/components/WeeklyProgressCard";
 import { api } from "@/convex/_generated/api";
+import { useCachedQuery } from "@/hooks/cache";
 import {
   exerciseLogSummariesAtom,
   workoutSessionsAtom,
@@ -11,20 +12,18 @@ import {
   calculateXPDistribution,
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
+import {
+  formatTime,
+  formatDuration,
+  formatLastLoggedDate,
+} from "@/utils/timeFormatters";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 // Component to display individual exercise log item with exercise name
-const ExerciseLogItem = ({
-  summary,
-  formatLastLoggedDate,
-}: {
-  summary: ExerciseLogSummary;
-  formatLastLoggedDate: (date: string) => string;
-}) => {
+const ExerciseLogItem = ({ summary }: { summary: ExerciseLogSummary }) => {
   const { data: exercise } = useCachedQuery(api.exercises.get, {
     exerciseId: summary.exerciseId,
   });
@@ -100,32 +99,7 @@ const ExerciseLogItem = ({
 };
 
 // Component to display workout session card
-const WorkoutSessionCard = ({
-  session,
-  formatLastLoggedDate,
-}: {
-  session: WorkoutSession;
-  formatLastLoggedDate: (dateString: string) => string;
-}) => {
-  const formatDuration = (milliseconds: number): string => {
-    const totalMinutes = Math.round(milliseconds / 60000);
-    if (totalMinutes < 60) {
-      return `${totalMinutes}min`;
-    }
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours}h ${minutes}min`;
-  };
-
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
+const WorkoutSessionCard = ({ session }: { session: WorkoutSession }) => {
   const duration = session.endTime - session.startTime;
 
   return (
@@ -182,16 +156,8 @@ const Page = () => {
   const [exerciseLogSummaries] = useAtom(exerciseLogSummariesAtom);
   const [workoutSessions] = useAtom(workoutSessionsAtom);
 
-  const formatLastLoggedDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const diffTime = today.getTime() - date.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+  const handleStartWorkout = () => {
+    router.push("/(app)/(authenticated)/(modal)/create-workout-modal");
   };
 
   if (muscles === undefined) {
@@ -231,19 +197,70 @@ const Page = () => {
           <WeeklyProgressCard />
         </View>
 
-        {/* Equipment Browser Card */}
+        {/* Exercises Section */}
         <View className="mx-4 mt-6">
+          <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
+            Exercises
+          </Text>
+
+          {/* All Exercises */}
           <TouchableOpacity
-            onPress={() => router.push("/(app)/(authenticated)/(modal)/equipment")}
-            className="bg-[#1c1c1e] rounded-xl p-4"
+            onPress={() =>
+              router.push("/(app)/(authenticated)/(modal)/exercises")
+            }
+            className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-white text-lg font-Poppins_600SemiBold">
-                  Browse Equipment
+                  All Exercises
                 </Text>
                 <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
-                  Explore gym equipment and exercises
+                  Browse the complete exercise database
+                </Text>
+              </View>
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                <Ionicons name="fitness-outline" size={20} color="#6F2DBD" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* By Target Muscle */}
+          <TouchableOpacity
+            onPress={() =>
+              router.push("/(app)/(authenticated)/(modal)/muscle-groups")
+            }
+            className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  By Target Muscle
+                </Text>
+                <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
+                  Find exercises by muscle groups
+                </Text>
+              </View>
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                <Ionicons name="body-outline" size={20} color="#6F2DBD" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* By Equipment */}
+          <TouchableOpacity
+            onPress={() =>
+              router.push("/(app)/(authenticated)/(modal)/equipment")
+            }
+            className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  By Equipment
+                </Text>
+                <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
+                  Explore exercises by gym equipment
                 </Text>
               </View>
               <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
@@ -251,61 +268,123 @@ const Page = () => {
               </View>
             </View>
           </TouchableOpacity>
+
+          {/* By Type */}
+          <TouchableOpacity
+            onPress={() =>
+              router.push("/(app)/(authenticated)/(modal)/exercise-types")
+            }
+            className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                  By Type
+                </Text>
+                <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
+                  Browse by exercise format and style
+                </Text>
+              </View>
+              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                <Ionicons name="list-outline" size={20} color="#6F2DBD" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Recent Exercises */}
+          {exerciseLogSummaries.length > 0 && (
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/(app)/(authenticated)/(modal)/exercises/recent")
+              }
+              className="bg-[#1c1c1e] rounded-xl p-4"
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="text-white text-lg font-Poppins_600SemiBold">
+                    Recent Exercises
+                  </Text>
+                  <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
+                    View your exercise history and progress
+                  </Text>
+                </View>
+                <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
+                  <Ionicons name="time-outline" size={20} color="#6F2DBD" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Recent Workouts Section */}
-        {(workoutSessions.length > 0 || exerciseLogSummaries.length > 0) && (
-          <View className="mx-4 mb-6 mt-8">
-            <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-              Recent Workouts
-            </Text>
+        {/* Recent Workouts Section - Always Show */}
+        <View className="mx-4 mb-6 mt-8">
+          <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
+            Recent Workouts
+          </Text>
 
-            {workoutSessions.length > 0 ? (
-              /* Show workout sessions if available */
-              <>
-                {workoutSessions
-                  .sort((a, b) => b.startTime - a.startTime)
-                  .slice(0, 4)
-                  .map((session) => (
-                    <WorkoutSessionCard
-                      key={session.id}
-                      session={session}
-                      formatLastLoggedDate={formatLastLoggedDate}
-                    />
-                  ))}
-                {workoutSessions.length > 4 && (
-                  <TouchableOpacity className="mt-2 p-2">
-                    <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
-                      View All ({workoutSessions.length} workouts)
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
-              /* Fallback to exercise summaries */
-              <>
-                {exerciseLogSummaries.slice(0, 6).map((summary, index) => (
-                  <View
-                    key={summary.exerciseId}
-                    className={index > 0 ? "mt-4" : ""}
-                  >
-                    <ExerciseLogItem
-                      summary={summary}
-                      formatLastLoggedDate={formatLastLoggedDate}
-                    />
-                  </View>
+          {/* Content */}
+          {workoutSessions.length > 0 ? (
+            /* Show workout sessions if available */
+            <>
+              {workoutSessions
+                .sort((a, b) => b.startTime - a.startTime)
+                .slice(0, 4)
+                .map((session) => (
+                  <WorkoutSessionCard key={session.id} session={session} />
                 ))}
-                {exerciseLogSummaries.length > 6 && (
-                  <TouchableOpacity className="mt-2 p-2">
-                    <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
-                      View All ({exerciseLogSummaries.length} exercises)
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-        )}
+              {workoutSessions.length > 4 && (
+                <TouchableOpacity className="mt-2 p-2">
+                  <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
+                    View All ({workoutSessions.length} workouts)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : exerciseLogSummaries.length > 0 ? (
+            /* Fallback to exercise summaries */
+            <>
+              {exerciseLogSummaries.slice(0, 6).map((summary, index) => (
+                <View
+                  key={summary.exerciseId}
+                  className={index > 0 ? "mt-4" : ""}
+                >
+                  <ExerciseLogItem summary={summary} />
+                </View>
+              ))}
+              {exerciseLogSummaries.length > 6 && (
+                <TouchableOpacity className="mt-2 p-2">
+                  <Text className="text-[#6F2DBD] text-center font-Poppins_500Medium">
+                    View All ({exerciseLogSummaries.length} exercises)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            /* Empty state */
+            <View className="bg-[#1c1c1e] rounded-xl p-8 items-center">
+              <View className="bg-[#2c2c2e] w-16 h-16 rounded-full items-center justify-center mb-4">
+                <Ionicons name="barbell-outline" size={28} color="#6F2DBD" />
+              </View>
+              <Text className="text-white text-lg font-Poppins_600SemiBold mb-2 text-center">
+                No workouts yet
+              </Text>
+              <Text className="text-gray-400 text-sm font-Poppins_400Regular mb-6 text-center">
+                Start your fitness journey today!
+              </Text>
+              <TouchableOpacity
+                onPress={handleStartWorkout}
+                className="bg-[#6F2DBD] rounded-xl p-4 w-full"
+              >
+                <View className="flex-row items-center justify-center">
+                  <Ionicons name="play" size={20} color="#ffffff" />
+                  <Text className="text-white font-Poppins_600SemiBold ml-2">
+                    Start workout
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
