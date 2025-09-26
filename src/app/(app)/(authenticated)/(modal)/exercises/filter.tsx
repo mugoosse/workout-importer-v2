@@ -25,6 +25,32 @@ const EXERCISE_TYPES = [
   "Weight & Distance",
 ];
 
+const SPECIFIC_MUSCLE_GROUPS = [
+  // Arms
+  { id: "biceps", label: "Biceps" },
+  { id: "triceps", label: "Triceps" },
+  { id: "forearms", label: "Forearms" },
+  // Back
+  { id: "lats", label: "Lats" },
+  { id: "traps", label: "Traps" },
+  { id: "upper_back", label: "Upper Back" },
+  { id: "lower_back", label: "Lower Back" },
+  // Chest
+  { id: "chest", label: "Chest" },
+  // Core
+  { id: "abdominals", label: "Abdominals" },
+  { id: "neck", label: "Neck" },
+  // Legs
+  { id: "quadriceps", label: "Quadriceps" },
+  { id: "hamstrings", label: "Hamstrings" },
+  { id: "calves", label: "Calves" },
+  { id: "glutes", label: "Glutes" },
+  { id: "adductors", label: "Adductors" },
+  { id: "abductors", label: "Abductors" },
+  // Shoulders
+  { id: "shoulders", label: "Shoulders" },
+];
+
 const MUSCLE_FUNCTIONS = [
   { id: "target", label: "Target" },
   { id: "synergist", label: "Synergist" },
@@ -35,6 +61,7 @@ const MUSCLE_FUNCTIONS = [
 const Page = () => {
   const params = useLocalSearchParams<{
     currentMajorGroups?: string;
+    currentGroups?: string;
     currentEquipmentIds?: string;
     currentExerciseTypes?: string;
     currentMuscleFunctions?: string;
@@ -45,6 +72,7 @@ const Page = () => {
 
   // Parse current filters from params (support comma-separated values)
   const currentMajorGroups = params.currentMajorGroups?.split(",") || [];
+  const currentGroups = params.currentGroups?.split(",") || [];
   const currentEquipmentIds = params.currentEquipmentIds?.split(",") || [];
   const currentExerciseTypes = params.currentExerciseTypes?.split(",") || [];
   const currentMuscleFunctions =
@@ -53,6 +81,7 @@ const Page = () => {
   // State for selected filters (now arrays for multi-selection)
   const [selectedMajorGroups, setSelectedMajorGroups] =
     useState<string[]>(currentMajorGroups);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(currentGroups);
   const [selectedEquipmentIds, setSelectedEquipmentIds] =
     useState<string[]>(currentEquipmentIds);
   const [selectedExerciseTypes, setSelectedExerciseTypes] =
@@ -66,6 +95,14 @@ const Page = () => {
 
   const handleMajorGroupToggle = (groupId: string) => {
     setSelectedMajorGroups((prev) =>
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId],
+    );
+  };
+
+  const handleGroupToggle = (groupId: string) => {
+    setSelectedGroups((prev) =>
       prev.includes(groupId)
         ? prev.filter((id) => id !== groupId)
         : [...prev, groupId],
@@ -100,6 +137,9 @@ const Page = () => {
     if (selectedMajorGroups.length > 0) {
       searchParams.set("majorGroups", selectedMajorGroups.join(","));
     }
+    if (selectedGroups.length > 0) {
+      searchParams.set("groups", selectedGroups.join(","));
+    }
     if (selectedEquipmentIds.length > 0) {
       searchParams.set("equipmentIds", selectedEquipmentIds.join(","));
     }
@@ -130,6 +170,7 @@ const Page = () => {
 
   const handleClearAll = () => {
     setSelectedMajorGroups([]);
+    setSelectedGroups([]);
     setSelectedEquipmentIds([]);
     setSelectedExerciseTypes([]);
     setSelectedMuscleFunctions([]);
@@ -141,6 +182,7 @@ const Page = () => {
 
   const hasActiveFilters =
     selectedMajorGroups.length > 0 ||
+    selectedGroups.length > 0 ||
     selectedEquipmentIds.length > 0 ||
     selectedExerciseTypes.length > 0 ||
     selectedMuscleFunctions.length > 0;
@@ -184,6 +226,32 @@ const Page = () => {
                 onPress={() => handleMajorGroupToggle(group.id)}
                 className={`px-4 py-3 rounded-xl ${
                   selectedMajorGroups.includes(group.id)
+                    ? "bg-[#6F2DBD]"
+                    : "bg-[#2c2c2e]"
+                }`}
+              >
+                <Text className="text-white font-Poppins_500Medium">
+                  {group.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Specific Muscle Groups */}
+        <View className="mb-6">
+          <Text className="text-white text-lg font-Poppins_600SemiBold mb-3">
+            Specific Muscle Groups
+            {selectedGroups.length > 0 &&
+              ` (${selectedGroups.length} selected)`}
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {SPECIFIC_MUSCLE_GROUPS.map((group) => (
+              <TouchableOpacity
+                key={group.id}
+                onPress={() => handleGroupToggle(group.id)}
+                className={`px-4 py-3 rounded-xl ${
+                  selectedGroups.includes(group.id)
                     ? "bg-[#6F2DBD]"
                     : "bg-[#2c2c2e]"
                 }`}

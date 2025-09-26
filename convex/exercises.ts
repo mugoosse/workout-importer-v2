@@ -596,6 +596,177 @@ export const getExerciseTypesWithCounts = query({
   },
 });
 
+export const getAllMusclesWithCountsByAllDetailLevels = query({
+  args: {},
+  handler: async (ctx) => {
+    const [muscles, exerciseMuscleRelationships] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+    ]);
+
+    // Pre-filter only target relationships for better performance
+    const targetRelationships = exerciseMuscleRelationships.filter(rel => rel.role === "target");
+
+    // Basic: Group by majorGroup (6 items)
+    const majorGroups = ["chest", "back", "legs", "shoulders", "arms", "core"];
+    const basicItems = majorGroups.map((majorGroup) => {
+      const muscleIds = muscles
+        .filter(muscle => muscle.majorGroup === majorGroup)
+        .map(muscle => muscle._id);
+
+      const uniqueExerciseIds = new Set(
+        targetRelationships
+          .filter(rel => muscleIds.includes(rel.muscleId))
+          .map(rel => rel.exerciseId)
+      );
+
+      return {
+        id: majorGroup,
+        name: majorGroup.charAt(0).toUpperCase() + majorGroup.slice(1),
+        type: "majorGroup" as const,
+        exerciseCount: uniqueExerciseIds.size,
+        muscleIds,
+      };
+    });
+
+    // Intermediate: Group by group (16 items)
+    const groups = [...new Set(muscles.map(m => m.group))].filter(Boolean);
+    const intermediateItems = groups.map((group) => {
+      const musclesInGroup = muscles.filter(muscle => muscle.group === group);
+      const muscleIds = musclesInGroup.map(muscle => muscle._id);
+
+      const uniqueExerciseIds = new Set(
+        targetRelationships
+          .filter(rel => muscleIds.includes(rel.muscleId))
+          .map(rel => rel.exerciseId)
+      );
+
+      return {
+        id: group,
+        name: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
+        type: "group" as const,
+        exerciseCount: uniqueExerciseIds.size,
+        muscleIds,
+        majorGroup: musclesInGroup[0]?.majorGroup,
+      };
+    }).sort((a, b) => b.exerciseCount - a.exerciseCount);
+
+    // Advanced: Individual muscles
+    const advancedItems = muscles
+      .filter(muscle => {
+        // Only include muscles that have target exercises
+        const targetExerciseCount = targetRelationships
+          .filter(rel => rel.muscleId === muscle._id).length;
+        return targetExerciseCount > 0;
+      })
+      .map((muscle) => {
+        const exerciseCount = targetRelationships
+          .filter(rel => rel.muscleId === muscle._id).length;
+
+        return {
+          id: muscle._id,
+          name: muscle.name,
+          type: "individual" as const,
+          exerciseCount,
+          muscleIds: [muscle._id],
+          majorGroup: muscle.majorGroup,
+          group: muscle.group,
+          svgId: muscle.svgId,
+        };
+      })
+      .sort((a, b) => b.exerciseCount - a.exerciseCount);
+
+    return {
+      basic: basicItems,
+      intermediate: intermediateItems,
+      advanced: advancedItems,
+    };
+  },
+});
+
+export const getMusclesWithCountsByDetailLevel = query({
+  args: { detailLevel: v.union(v.literal("basic"), v.literal("intermediate"), v.literal("advanced")) },
+  handler: async (ctx, args) => {
+    const [muscles, exerciseMuscleRelationships] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+    ]);
+
+    if (args.detailLevel === "basic") {
+      // Basic: Group by majorGroup (6 items) - filter by target function only
+      const majorGroups = ["chest", "back", "legs", "shoulders", "arms", "core"];
+
+      return majorGroups.map((majorGroup) => {
+        const muscleIds = muscles
+          .filter(muscle => muscle.majorGroup === majorGroup)
+          .map(muscle => muscle._id);
+
+        const uniqueExerciseIds = new Set(
+          exerciseMuscleRelationships
+            .filter(rel => muscleIds.includes(rel.muscleId) && rel.role === "target")
+            .map(rel => rel.exerciseId)
+        );
+
+        return {
+          id: majorGroup,
+          name: majorGroup.charAt(0).toUpperCase() + majorGroup.slice(1),
+          type: "majorGroup" as const,
+          exerciseCount: uniqueExerciseIds.size,
+          muscleIds,
+        };
+      });
+    } else if (args.detailLevel === "intermediate") {
+      // Intermediate: Group by group (16 items) - filter by target function only
+      const groups = [...new Set(muscles.map(m => m.group))].filter(Boolean);
+
+      return groups.map((group) => {
+        const musclesInGroup = muscles.filter(muscle => muscle.group === group);
+        const muscleIds = musclesInGroup.map(muscle => muscle._id);
+
+        const uniqueExerciseIds = new Set(
+          exerciseMuscleRelationships
+            .filter(rel => muscleIds.includes(rel.muscleId) && rel.role === "target")
+            .map(rel => rel.exerciseId)
+        );
+
+        return {
+          id: group,
+          name: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
+          type: "group" as const,
+          exerciseCount: uniqueExerciseIds.size,
+          muscleIds,
+          majorGroup: musclesInGroup[0]?.majorGroup,
+        };
+      }).sort((a, b) => b.exerciseCount - a.exerciseCount);
+    } else {
+      // Advanced: Individual muscles (36+ items) - filter by target function only
+      return muscles
+        .filter(muscle => {
+          // Only include muscles that have target exercises
+          const targetExerciseCount = exerciseMuscleRelationships
+            .filter(rel => rel.muscleId === muscle._id && rel.role === "target").length;
+          return targetExerciseCount > 0;
+        })
+        .map((muscle) => {
+          const exerciseCount = exerciseMuscleRelationships
+            .filter(rel => rel.muscleId === muscle._id && rel.role === "target").length;
+
+          return {
+            id: muscle._id,
+            name: muscle.name,
+            type: "individual" as const,
+            exerciseCount,
+            muscleIds: [muscle._id],
+            majorGroup: muscle.majorGroup,
+            group: muscle.group,
+            svgId: muscle.svgId,
+          };
+        })
+        .sort((a, b) => b.exerciseCount - a.exerciseCount);
+    }
+  },
+});
+
 export const linkExerciseToMuscle = mutation({
   args: {
     exerciseId: v.id("exercises"),
@@ -819,6 +990,8 @@ export const analyzeDuplicateRelationships = query({
 export const getFilteredExercises = query({
   args: {
     majorGroups: v.optional(v.array(v.string())),
+    groups: v.optional(v.array(v.string())),
+    muscleIds: v.optional(v.array(v.id("muscles"))),
     muscleId: v.optional(v.id("muscles")),
     muscleRole: v.optional(
       v.union(
@@ -882,7 +1055,13 @@ export const getFilteredExercises = query({
           .map(m => m._id);
 
         const majorGroupExerciseIds = allMuscleRelationships
-          .filter((rel) => muscleIds.includes(rel.muscleId))
+          .filter((rel) => {
+            const matchesMuscle = muscleIds.includes(rel.muscleId);
+            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
+              ? args.muscleFunctions.includes(rel.role as any)
+              : true;
+            return matchesMuscle && matchesFunction;
+          })
           .map((rel) => rel.exerciseId);
 
         majorGroupExerciseIds.forEach((id) => allMajorGroupExerciseIds.add(id));
@@ -894,6 +1073,83 @@ export const getFilteredExercises = query({
       } else {
         filteredExerciseIds = new Set(
           Array.from(allMajorGroupExerciseIds).filter((id) =>
+            filteredExerciseIds.has(id),
+          ),
+        );
+      }
+    }
+
+    // Filter by specific muscle groups (group field)
+    if (args.groups && args.groups.length > 0) {
+      const allGroupExerciseIds = new Set<Id<"exercises">>();
+
+      // Batch fetch muscles and muscle relationships if not already fetched
+      if (!allMuscles || !allMuscleRelationships) {
+        [allMuscles, allMuscleRelationships] = await Promise.all([
+          ctx.db.query("muscles").collect(),
+          ctx.db.query("exerciseMuscles").collect(),
+        ]);
+      }
+
+      for (const group of args.groups) {
+        const muscleIds = allMuscles
+          .filter(m => m.group === group)
+          .map(m => m._id);
+
+        const groupExerciseIds = allMuscleRelationships
+          .filter((rel) => {
+            const matchesMuscle = muscleIds.includes(rel.muscleId);
+            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
+              ? args.muscleFunctions.includes(rel.role as any)
+              : true;
+            return matchesMuscle && matchesFunction;
+          })
+          .map((rel) => rel.exerciseId);
+
+        groupExerciseIds.forEach((id) => allGroupExerciseIds.add(id));
+      }
+
+      if (firstFilter) {
+        filteredExerciseIds = allGroupExerciseIds;
+        firstFilter = false;
+      } else {
+        filteredExerciseIds = new Set(
+          Array.from(allGroupExerciseIds).filter((id) =>
+            filteredExerciseIds.has(id),
+          ),
+        );
+      }
+    }
+
+    // Filter by specific muscle IDs
+    if (args.muscleIds && args.muscleIds.length > 0) {
+      const allMuscleIdExerciseIds = new Set<Id<"exercises">>();
+
+      // Batch fetch muscle relationships if not already fetched
+      if (!allMuscleRelationships) {
+        allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
+      }
+
+      for (const muscleId of args.muscleIds) {
+        const muscleExerciseIds = allMuscleRelationships
+          .filter((rel) => {
+            const matchesMuscle = rel.muscleId === muscleId;
+            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
+              ? args.muscleFunctions.includes(rel.role as any)
+              : true;
+            return matchesMuscle && matchesFunction;
+          })
+          .map((rel) => rel.exerciseId);
+
+        muscleExerciseIds.forEach((id) => allMuscleIdExerciseIds.add(id));
+      }
+
+      if (firstFilter) {
+        filteredExerciseIds = allMuscleIdExerciseIds;
+        firstFilter = false;
+      } else {
+        filteredExerciseIds = new Set(
+          Array.from(allMuscleIdExerciseIds).filter((id) =>
             filteredExerciseIds.has(id),
           ),
         );

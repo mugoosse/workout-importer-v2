@@ -80,6 +80,8 @@ const useDebounce = (value: string, delay: number) => {
 const Page = () => {
   const params = useLocalSearchParams<{
     majorGroups?: string;
+    groups?: string;
+    muscleIds?: string;
     muscleId?: string;
     muscleRole?: MuscleRole;
     muscleFunctions?: string;
@@ -97,9 +99,12 @@ const Page = () => {
     params.muscleId ? { muscleId: params.muscleId as Id<"muscles"> } : "skip",
   );
   const { data: equipment } = useCachedQuery(api.exercises.getAllEquipment, {});
+  const { data: muscles } = useCachedQuery(api.muscles.list, {});
 
   // Parse multi-select parameters
   const majorGroups = params.majorGroups?.split(",");
+  const groups = params.groups?.split(",");
+  const muscleIds = params.muscleIds?.split(",") as Id<"muscles">[] | undefined;
   const muscleFunctions = params.muscleFunctions?.split(",") as
     | MuscleRole[]
     | undefined;
@@ -113,6 +118,8 @@ const Page = () => {
     api.exercises.getFilteredExercises,
     {
       majorGroups,
+      groups,
+      muscleIds,
       muscleId: params.muscleId as Id<"muscles"> | undefined,
       muscleRole: params.muscleRole,
       muscleFunctions,
@@ -148,6 +155,8 @@ const Page = () => {
 
   const hasActiveFilters = !!(
     params.majorGroups ||
+    params.groups ||
+    params.muscleIds ||
     params.muscleId ||
     params.muscleFunctions ||
     params.equipmentIds ||
@@ -212,6 +221,8 @@ const Page = () => {
               // Pass current filter values to filter page
               if (params.majorGroups)
                 filterParams.set("currentMajorGroups", params.majorGroups);
+              if (params.groups)
+                filterParams.set("currentGroups", params.groups);
               if (params.muscleFunctions)
                 filterParams.set(
                   "currentMuscleFunctions",
@@ -247,6 +258,38 @@ const Page = () => {
               <TouchableOpacity
                 onPress={() => handleClearFilter("majorGroups")}
               >
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {groups && groups.length > 0 && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {groups.length === 1
+                  ? groups[0].charAt(0).toUpperCase() +
+                    groups[0].slice(1).replace(/_/g, " ")
+                  : `${groups.length} Specific Groups`}
+              </Text>
+              <TouchableOpacity onPress={() => handleClearFilter("groups")}>
+                <Ionicons name="close" size={16} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {muscleIds && muscleIds.length > 0 && (
+            <View className="bg-[#6F2DBD] rounded-xl px-3 py-3 flex-row items-center">
+              <Text className="text-white text-sm font-Poppins_500Medium mr-2">
+                {muscleIds.length === 1
+                  ? (() => {
+                      const muscle = muscles?.find(
+                        (m) => m._id === muscleIds[0],
+                      );
+                      return muscle?.name || "Individual Muscle";
+                    })()
+                  : `${muscleIds.length} Individual Muscles`}
+              </Text>
+              <TouchableOpacity onPress={() => handleClearFilter("muscleIds")}>
                 <Ionicons name="close" size={16} color="#ffffff" />
               </TouchableOpacity>
             </View>

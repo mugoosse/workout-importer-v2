@@ -1,63 +1,141 @@
-import { MuscleBody } from "@/components/muscle-body/MuscleBody";
 import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
 import { getProgressColor, weeklyProgressAtom } from "@/store/weeklyProgress";
-import {
-  generateMuscleHighlights,
-  getOptimalViewForMuscleGroup,
-} from "@/utils/muscleBodyUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { Link } from "expo-router";
 import { useAtom } from "jotai";
-import { useMemo } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const getMuscleGroupDisplayName = (majorGroup: string) => {
-  const names: Record<string, string> = {
-    chest: "Chest",
-    back: "Back",
-    legs: "Legs",
-    shoulders: "Shoulders",
-    arms: "Arms",
-    core: "Core",
-  };
-  return names[majorGroup] || majorGroup;
+type DetailLevel = "basic" | "intermediate" | "advanced";
+
+// Mock thumbnail mappings - these would be actual image files in a real implementation
+const muscleMajorGroupThumbnails: Record<string, any> = {
+  chest: null,
+  back: null,
+  legs: null,
+  shoulders: null,
+  arms: null,
+  core: null,
 };
 
+const muscleGroupThumbnails: Record<string, any> = {
+  biceps: null,
+  triceps: null,
+  forearms: null,
+  lats: null,
+  traps: null,
+  upper_back: null,
+  lower_back: null,
+  chest: null,
+  abdominals: null,
+  neck: null,
+  quadriceps: null,
+  hamstrings: null,
+  calves: null,
+  glutes: null,
+  adductors: null,
+  abductors: null,
+  shoulders: null,
+};
+
+const muscleSvgIdThumbnails: Record<string, any> = {
+  // Mock thumbnails for individual muscle SVG IDs
+  // These would be mapped to actual muscle svgId values
+  "chest-upper": null,
+  "chest-middle": null,
+  "chest-lower": null,
+  "biceps-long": null,
+  "biceps-short": null,
+  "quadriceps-vastus-lateralis": null,
+  "quadriceps-vastus-medialis": null,
+  "quadriceps-rectus-femoris": null,
+  "quadriceus-vastus-intermedius": null,
+};
+
+const DetailButton = ({
+  label,
+  isActive,
+  onPress,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    className={`px-4 py-2 rounded-xl ${
+      isActive ? "bg-[#6F2DBD]" : "bg-[#2c2c2e]"
+    }`}
+  >
+    <Text
+      className={`text-sm font-Poppins_500Medium ${
+        isActive ? "text-white" : "text-gray-400"
+      }`}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
 const Page = () => {
-  // Get all muscle groups with exercise counts and muscles data
-  const { data: muscleGroups } = useCachedQuery(
-    api.exercises.getMuscleGroupsWithCounts,
+  // State for detail level
+  const [detailLevel, setDetailLevel] = useState<DetailLevel>("basic");
+
+  // Get all muscle data for all detail levels at once for instant switching
+  const { data: allMuscleData } = useCachedQuery(
+    api.exercises.getAllMusclesWithCountsByAllDetailLevels,
     {},
   );
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
 
-  // Sort muscle groups by exercise count (descending)
-  const sortedMuscleGroups = useMemo(() => {
-    if (!muscleGroups) return [];
-    return [...muscleGroups].sort((a, b) => b.exerciseCount - a.exerciseCount);
-  }, [muscleGroups]);
+  // Get current detail level data and calculate progress
+  const muscleItemsWithProgress = useMemo(() => {
+    if (!allMuscleData || !weeklyProgress) return [];
 
-  // Calculate progress data for each muscle group
-  const muscleGroupsWithProgress = useMemo(() => {
-    if (!sortedMuscleGroups || !weeklyProgress) return [];
+    // Select data based on current detail level
+    const muscleItems = allMuscleData[detailLevel];
+    if (!muscleItems) return [];
 
-    return sortedMuscleGroups.map((group) => {
-      const groupProgress = weeklyProgress.find(
-        (progress) => progress.majorGroup === group.majorGroup,
-      );
+    return muscleItems.map((item) => {
+      let xp = 0;
+      let percentage = 0;
+
+      if (item.type === "majorGroup") {
+        const groupProgress = weeklyProgress.find(
+          (progress) => progress.majorGroup === item.id,
+        );
+        xp = groupProgress?.xp || 0;
+        percentage = groupProgress?.percentage || 0;
+      } else {
+        // For intermediate and advanced, calculate based on majorGroup
+        const groupProgress = weeklyProgress.find(
+          (progress) => progress.majorGroup === item.majorGroup,
+        );
+        // Scale down XP for more specific groupings
+        const scaleFactor = item.type === "group" ? 0.6 : 0.3;
+        xp = Math.round((groupProgress?.xp || 0) * scaleFactor);
+        percentage = Math.round((groupProgress?.percentage || 0) * scaleFactor);
+      }
 
       return {
-        ...group,
-        xp: groupProgress?.xp || 0,
-        percentage: groupProgress?.percentage || 0,
+        ...item,
+        xp,
+        percentage,
       };
     });
-  }, [sortedMuscleGroups, weeklyProgress]);
+  }, [allMuscleData, detailLevel, weeklyProgress]);
 
-  if (!muscleGroups || !muscles) {
+  if (!allMuscleData || !muscles) {
     return (
       <View className="flex-1 bg-dark items-center justify-center">
         <ActivityIndicator size="large" />
@@ -75,57 +153,114 @@ const Page = () => {
         <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
           Find exercises targeting specific muscle groups
         </Text>
+
+        {/* Detail Level Filter */}
+        <View className="mt-4">
+          <Text className="text-white text-sm font-Poppins_500Medium mb-3">
+            Detail Level
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+          >
+            <DetailButton
+              label="Basic"
+              isActive={detailLevel === "basic"}
+              onPress={() => setDetailLevel("basic")}
+            />
+            <DetailButton
+              label="Intermediate"
+              isActive={detailLevel === "intermediate"}
+              onPress={() => setDetailLevel("intermediate")}
+            />
+            <DetailButton
+              label="Advanced"
+              isActive={detailLevel === "advanced"}
+              onPress={() => setDetailLevel("advanced")}
+            />
+          </ScrollView>
+        </View>
       </View>
 
-      {/* Muscle Groups List */}
+      {/* Muscle Items List */}
       <View className="px-4" style={{ flex: 1 }}>
-        {muscleGroupsWithProgress.length === 0 ? (
+        {muscleItemsWithProgress.length === 0 ? (
           <View className="bg-[#1c1c1e] rounded-2xl p-6 items-center">
             <Ionicons name="body-outline" size={48} color="#666" />
             <Text className="text-white text-lg font-Poppins_600SemiBold mt-4 mb-2">
-              No muscle groups found
+              No muscles found
             </Text>
             <Text className="text-gray-400 text-sm font-Poppins_400Regular text-center">
-              No exercises with muscle data available.
+              No exercises with muscle data available for this detail level.
             </Text>
           </View>
         ) : (
           <LegendList
-            data={muscleGroupsWithProgress}
-            keyExtractor={(item) => item.majorGroup}
+            data={muscleItemsWithProgress}
+            keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
-            renderItem={({ item: muscleGroup, index }) => {
-              const highlightedMuscles = generateMuscleHighlights(
-                muscles,
-                weeklyProgress,
-                muscleGroup.majorGroup,
-              );
-              const progressColor = getProgressColor(muscleGroup.percentage);
+            renderItem={({ item: muscleItem, index }) => {
+              const progressColor = getProgressColor(muscleItem.percentage);
+
+              // Get thumbnail based on detail level
+              const getThumbnail = () => {
+                if (muscleItem.type === "majorGroup") {
+                  return muscleMajorGroupThumbnails[muscleItem.id];
+                } else if (muscleItem.type === "group") {
+                  return muscleGroupThumbnails[muscleItem.id];
+                } else {
+                  // For advanced (individual muscles), use the first muscle's svgId
+                  const muscle = muscles?.find(
+                    (m) => m._id === muscleItem.muscleIds[0],
+                  );
+                  return muscle?.svgId
+                    ? muscleSvgIdThumbnails[muscle.svgId]
+                    : null;
+                }
+              };
+
+              // Determine link params based on type
+              const getLinkParams = () => {
+                const baseParams = { muscleFunctions: "target" };
+                if (muscleItem.type === "majorGroup") {
+                  return { ...baseParams, majorGroups: muscleItem.id };
+                } else if (muscleItem.type === "group") {
+                  return { ...baseParams, groups: muscleItem.id };
+                } else {
+                  return { ...baseParams, muscleIds: muscleItem.id };
+                }
+              };
 
               return (
                 <View className={index > 0 ? "mt-3" : ""}>
                   <Link
                     href={{
                       pathname: "/(app)/(authenticated)/(modal)/exercises",
-                      params: { majorGroups: muscleGroup.majorGroup },
+                      params: getLinkParams(),
                     }}
                     asChild
                   >
                     <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
                       <View className="flex-row items-center">
-                        {/* MuscleBody Thumbnail */}
-                        <View className="ml-3 mr-5 items-center">
-                          <View className="w-16 h-16 items-center justify-center">
-                            <MuscleBody
-                              view={getOptimalViewForMuscleGroup(
-                                muscleGroup.majorGroup,
-                              )}
-                              highlightedMuscles={highlightedMuscles}
-                              width={75}
-                              height={75}
+                        {/* Thumbnail Image */}
+                        <View className="mr-4 rounded-lg overflow-hidden shadow-lg">
+                          {getThumbnail() ? (
+                            <Image
+                              source={getThumbnail()}
+                              className="w-16 h-20"
+                              resizeMode="cover"
                             />
-                          </View>
+                          ) : (
+                            <View className="w-16 h-20 bg-[#2c2c2e] items-center justify-center">
+                              <Ionicons
+                                name="body-outline"
+                                size={24}
+                                color="#666"
+                              />
+                            </View>
+                          )}
                         </View>
 
                         {/* Content */}
@@ -133,13 +268,11 @@ const Page = () => {
                           <View className="flex-row items-start justify-between mb-2">
                             <View className="flex-1 mr-3">
                               <Text className="text-white text-xl font-Poppins_600SemiBold">
-                                {getMuscleGroupDisplayName(
-                                  muscleGroup.majorGroup,
-                                )}
+                                {muscleItem.name}
                               </Text>
                               <Text className="text-gray-400 text-sm font-Poppins_400Regular">
-                                {muscleGroup.exerciseCount} exercise
-                                {muscleGroup.exerciseCount !== 1 ? "s" : ""}
+                                {muscleItem.exerciseCount} exercise
+                                {muscleItem.exerciseCount !== 1 ? "s" : ""}
                               </Text>
                             </View>
 
@@ -158,18 +291,18 @@ const Page = () => {
                               <View
                                 className="h-full rounded-full"
                                 style={{
-                                  width: `${Math.min(100, muscleGroup.percentage)}%`,
+                                  width: `${Math.min(100, muscleItem.percentage)}%`,
                                   backgroundColor: progressColor,
                                 }}
                               />
                             </View>
                             <View className="flex-row justify-between items-center mt-1">
                               <Text className="text-gray-400 text-xs font-Poppins_400Regular">
-                                {muscleGroup.percentage}% weekly progress
+                                {muscleItem.percentage}% weekly progress
                               </Text>
-                              {muscleGroup.xp > 0 && (
+                              {muscleItem.xp > 0 && (
                                 <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium">
-                                  {muscleGroup.xp} XP
+                                  {muscleItem.xp} XP
                                 </Text>
                               )}
                             </View>
