@@ -119,13 +119,17 @@ const Page = () => {
     let color: string;
     if (selectedMuscleId === svgId) {
       // When filtered, show the original progress color (not bright purple)
-      color = hasAnyExercises ? getProgressColor(averageProgress) : "#404040";
+      color = hasAnyExercises
+        ? getProgressColor(averageProgress, true)
+        : "#404040";
     } else if (selectedMuscleId) {
       // Don't show other muscles when filtered
       return;
     } else {
       // Normal state - show progress color or gray for muscles without exercises
-      color = hasAnyExercises ? getProgressColor(averageProgress) : "#404040";
+      color = hasAnyExercises
+        ? getProgressColor(averageProgress, true)
+        : "#404040";
     }
 
     highlightedMuscles.push({
@@ -205,7 +209,10 @@ const Page = () => {
                 individualMuscleProgress,
                 hasExercises,
               );
-              const progressColor = getProgressColor(muscleProgress.percentage);
+              const progressColor = getProgressColor(
+                muscleProgress.percentage,
+                true,
+              );
 
               return (
                 <View className={index > 0 ? "mt-4" : ""}>

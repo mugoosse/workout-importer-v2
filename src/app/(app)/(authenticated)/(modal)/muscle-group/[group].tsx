@@ -29,7 +29,7 @@ const Page = () => {
     );
   }
 
-  const progressColor = getProgressColor(muscleGroupData.percentage);
+  const progressColor = getProgressColor(muscleGroupData.percentage, true);
 
   const handleShowExercises = () => {
     router.push(

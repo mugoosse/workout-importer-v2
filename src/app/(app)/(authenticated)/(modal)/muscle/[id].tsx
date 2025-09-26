@@ -359,7 +359,7 @@ const Page = () => {
   // Get muscle progress and color
   const muscleProgressData = individualMuscleProgress[muscle.svgId];
   const progressPercentage = muscleProgressData?.percentage || 0;
-  const progressColor = getProgressColor(progressPercentage);
+  const progressColor = getProgressColor(progressPercentage, true);
   const muscleColor = progressColor;
 
   return (

@@ -544,6 +544,7 @@ const Page = () => {
                       };
                       const progressColor = getProgressColor(
                         muscleProgress.percentage,
+                        true,
                       );
 
                       return (

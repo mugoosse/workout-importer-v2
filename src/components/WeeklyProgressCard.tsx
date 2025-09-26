@@ -112,7 +112,7 @@ export const WeeklyProgressCard = () => {
       weeklyProgress,
       muscleToGroupMapping,
     );
-    const color = getProgressColor(groupProgress);
+    const color = getProgressColor(groupProgress, true);
 
     highlightedMuscles.push({
       muscleId: muscle.svgId as MuscleId,

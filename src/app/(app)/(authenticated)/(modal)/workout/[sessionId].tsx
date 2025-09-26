@@ -174,7 +174,7 @@ const Page = () => {
           );
           beforeColors.push({
             muscleId: muscleId as MuscleId,
-            color: getProgressColor(beforeGroupProgress),
+            color: getProgressColor(beforeGroupProgress, true),
           });
 
           // After: use stored after progress
@@ -192,7 +192,7 @@ const Page = () => {
           );
           afterColors.push({
             muscleId: muscleId as MuscleId,
-            color: getProgressColor(afterGroupProgress),
+            color: getProgressColor(afterGroupProgress, true),
           });
         });
 
@@ -217,7 +217,7 @@ const Page = () => {
         );
         beforeColors.push({
           muscleId: muscleId as MuscleId,
-          color: getProgressColor(beforePercentage),
+          color: getProgressColor(beforePercentage, true),
         });
 
         // After: group progress including this workout's XP
@@ -229,7 +229,7 @@ const Page = () => {
         );
         afterColors.push({
           muscleId: muscleId as MuscleId,
-          color: getProgressColor(afterPercentage),
+          color: getProgressColor(afterPercentage, true),
         });
       });
 

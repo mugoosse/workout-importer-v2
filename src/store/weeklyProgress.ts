@@ -396,13 +396,13 @@ export const interpolateColor = (
   const hex1 = color1.replace("#", "");
   const hex2 = color2.replace("#", "");
 
-  const r1 = parseInt(hex1.substr(0, 2), 16);
-  const g1 = parseInt(hex1.substr(2, 2), 16);
-  const b1 = parseInt(hex1.substr(4, 2), 16);
+  const r1 = parseInt(hex1.substring(0, 2), 16);
+  const g1 = parseInt(hex1.substring(2, 4), 16);
+  const b1 = parseInt(hex1.substring(4, 6), 16);
 
-  const r2 = parseInt(hex2.substr(0, 2), 16);
-  const g2 = parseInt(hex2.substr(2, 2), 16);
-  const b2 = parseInt(hex2.substr(4, 2), 16);
+  const r2 = parseInt(hex2.substring(0, 2), 16);
+  const g2 = parseInt(hex2.substring(2, 4), 16);
+  const b2 = parseInt(hex2.substring(4, 6), 16);
 
   // Interpolate each channel
   const r = Math.round(r1 + (r2 - r1) * factor);
@@ -422,13 +422,24 @@ const LEGEND_COLORS = [
   "#1FD224", // 100%+
 ];
 
-// Utility function to get progress color with smooth interpolation
-export const getProgressColor = (progress: number): string => {
+// Utility function to get progress color with optional interpolation
+export const getProgressColor = (
+  progress: number,
+  interpolate: boolean = false,
+): string => {
   // Handle edge cases
   if (progress <= 0) return LEGEND_COLORS[0];
   if (progress >= 100) return LEGEND_COLORS[4];
 
-  // Determine which color range we're in
+  // If no interpolation requested, return color based on ranges
+  if (!interpolate) {
+    if (progress < 25) return LEGEND_COLORS[0];
+    if (progress < 50) return LEGEND_COLORS[1];
+    if (progress < 75) return LEGEND_COLORS[2];
+    return LEGEND_COLORS[3];
+  }
+
+  // Determine which color range we're in for interpolation
   let rangeIndex: number;
   let localProgress: number;
 
