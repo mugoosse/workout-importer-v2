@@ -2,8 +2,8 @@ import {
   ExerciseRoleCards,
   FilteredMuscleLibrary,
   MuscleBodyVisualization,
-  RecentWorkoutsSection,
 } from "@/components/muscle";
+import { MajorGroupRecentWorkouts } from "@/components/muscle/MajorGroupRecentWorkouts";
 import {
   type MuscleColorPair,
   type MuscleId,
@@ -20,7 +20,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useAtom } from "jotai";
 import { useLayoutEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const Page = () => {
   const { majorGroup } = useLocalSearchParams<{ majorGroup: string }>();
@@ -198,9 +204,19 @@ const Page = () => {
                 <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center mr-3">
                   <Ionicons name="trending-up" size={20} color="#6F2DBD" />
                 </View>
-                <Text className="text-white text-lg font-Poppins_600SemiBold">
+                <Text className="text-white text-lg font-Poppins_600SemiBold flex-1">
                   Progress Tracking
                 </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/xp-info")}
+                  className="ml-2"
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={20}
+                    color="#6F2DBD"
+                  />
+                </TouchableOpacity>
               </View>
 
               <View className="bg-[#2c2c2e] rounded-xl p-4">
@@ -244,7 +260,10 @@ const Page = () => {
             />
 
             {/* Recent Workouts Section */}
-            <RecentWorkoutsSection muscles={displayMuscles} maxWorkouts={6} />
+            <MajorGroupRecentWorkouts
+              majorGroup={majorGroup || ""}
+              maxWorkouts={6}
+            />
           </View>
         )}
 

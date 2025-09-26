@@ -299,9 +299,15 @@ export const MuscleProgressCard = ({
         <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center mr-3">
           <Ionicons name="trending-up" size={20} color="#6F2DBD" />
         </View>
-        <Text className="text-white text-lg font-Poppins_600SemiBold">
+        <Text className="text-white text-lg font-Poppins_600SemiBold flex-1">
           Progress Tracking
         </Text>
+        <TouchableOpacity
+          onPress={() => router.push("/xp-info")}
+          className="ml-2"
+        >
+          <Ionicons name="information-circle-outline" size={20} color="#6F2DBD" />
+        </TouchableOpacity>
       </View>
 
       <View className="bg-[#2c2c2e] rounded-xl p-4">

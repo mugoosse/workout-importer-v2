@@ -341,6 +341,20 @@ const Layout = () => {
             ),
           }}
         />
+        <Stack.Screen
+          name="(modal)/xp-info"
+          options={{
+            title: "XP & Progress Info",
+            headerShown: false,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+          }}
+        />
       </Stack>
     </WorkoutTimerProvider>
   );
