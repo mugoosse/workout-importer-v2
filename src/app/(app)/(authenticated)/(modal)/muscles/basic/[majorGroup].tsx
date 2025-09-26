@@ -3,7 +3,6 @@ import {
   FilteredMuscleLibrary,
   MuscleBodyVisualization,
 } from "@/components/muscle";
-import { MajorGroupRecentWorkouts } from "@/components/muscle/MajorGroupRecentWorkouts";
 import {
   type MuscleColorPair,
   type MuscleId,
@@ -257,12 +256,6 @@ const Page = () => {
                   `/(app)/(authenticated)/(modal)/exercises?majorGroups=${majorGroup}&muscleFunctions=${role}`,
                 )
               }
-            />
-
-            {/* Recent Workouts Section */}
-            <MajorGroupRecentWorkouts
-              majorGroup={majorGroup || ""}
-              maxWorkouts={6}
             />
           </View>
         )}

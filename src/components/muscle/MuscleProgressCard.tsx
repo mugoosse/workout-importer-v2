@@ -306,7 +306,11 @@ export const MuscleProgressCard = ({
           onPress={() => router.push("/xp-info")}
           className="ml-2"
         >
-          <Ionicons name="information-circle-outline" size={20} color="#6F2DBD" />
+          <Ionicons
+            name="information-circle-outline"
+            size={20}
+            color="#6F2DBD"
+          />
         </TouchableOpacity>
       </View>
 

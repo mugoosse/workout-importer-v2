@@ -3,7 +3,6 @@ import {
   FilteredMuscleLibrary,
   MuscleBodyVisualization,
 } from "@/components/muscle";
-import { GroupRecentWorkouts } from "@/components/muscle/GroupRecentWorkouts";
 import {
   type MuscleColorPair,
   type MuscleId,
@@ -268,9 +267,6 @@ const Page = () => {
                 )
               }
             />
-
-            {/* Recent Workouts Section */}
-            <GroupRecentWorkouts group={group || ""} maxWorkouts={6} />
           </View>
         )}
 
