@@ -1,5 +1,5 @@
 // Auto-generated exercises thumbnail index
-// Generated on 2025-09-26T13:16:08.168Z
+// Generated on 2025-09-26T14:38:24.040Z
 
 export const exerciseThumbnails: Record<string, any> = {
   kn7fr5880pfb3bsn2fn3expqss7qtnrh: require("./kn7fr5880pfb3bsn2fn3expqss7qtnrh.webp"),
