@@ -1,4 +1,4 @@
-import { exerciseThumbnails } from "@/assets/images/exercises/thumbnails";
+import { exerciseThumbnails } from "@/assets/images/thumbnails";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";

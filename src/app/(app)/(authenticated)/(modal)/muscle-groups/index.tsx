@@ -1,3 +1,8 @@
+import {
+  groupThumbnails,
+  majorGroupThumbnails,
+  svgIdThumbnails,
+} from "@/assets/images/thumbnails";
 import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
 import { getProgressColor, weeklyProgressAtom } from "@/store/weeklyProgress";
@@ -16,50 +21,6 @@ import {
 } from "react-native";
 
 type DetailLevel = "basic" | "intermediate" | "advanced";
-
-// Mock thumbnail mappings - these would be actual image files in a real implementation
-const muscleMajorGroupThumbnails: Record<string, any> = {
-  chest: null,
-  back: null,
-  legs: null,
-  shoulders: null,
-  arms: null,
-  core: null,
-};
-
-const muscleGroupThumbnails: Record<string, any> = {
-  biceps: null,
-  triceps: null,
-  forearms: null,
-  lats: null,
-  traps: null,
-  upper_back: null,
-  lower_back: null,
-  chest: null,
-  abdominals: null,
-  neck: null,
-  quadriceps: null,
-  hamstrings: null,
-  calves: null,
-  glutes: null,
-  adductors: null,
-  abductors: null,
-  shoulders: null,
-};
-
-const muscleSvgIdThumbnails: Record<string, any> = {
-  // Mock thumbnails for individual muscle SVG IDs
-  // These would be mapped to actual muscle svgId values
-  "chest-upper": null,
-  "chest-middle": null,
-  "chest-lower": null,
-  "biceps-long": null,
-  "biceps-short": null,
-  "quadriceps-vastus-lateralis": null,
-  "quadriceps-vastus-medialis": null,
-  "quadriceps-rectus-femoris": null,
-  "quadriceus-vastus-intermedius": null,
-};
 
 const DetailButton = ({
   label,
@@ -207,17 +168,15 @@ const Page = () => {
               // Get thumbnail based on detail level
               const getThumbnail = () => {
                 if (muscleItem.type === "majorGroup") {
-                  return muscleMajorGroupThumbnails[muscleItem.id];
+                  return majorGroupThumbnails[muscleItem.id];
                 } else if (muscleItem.type === "group") {
-                  return muscleGroupThumbnails[muscleItem.id];
+                  return groupThumbnails[muscleItem.id];
                 } else {
                   // For advanced (individual muscles), use the first muscle's svgId
                   const muscle = muscles?.find(
                     (m) => m._id === muscleItem.muscleIds[0],
                   );
-                  return muscle?.svgId
-                    ? muscleSvgIdThumbnails[muscle.svgId]
-                    : null;
+                  return muscle?.svgId ? svgIdThumbnails[muscle.svgId] : null;
                 }
               };
 
