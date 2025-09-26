@@ -54,7 +54,7 @@ const Page = () => {
   // Get all muscle data for all detail levels at once for instant switching
   const { data: allMuscleData } = useCachedQuery(
     api.exercises.getAllMusclesWithCountsByAllDetailLevels,
-    {},
+    {}
   );
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [weeklyProgress] = useAtom(weeklyProgressAtom);
@@ -73,14 +73,14 @@ const Page = () => {
 
       if (item.type === "majorGroup") {
         const groupProgress = weeklyProgress.find(
-          (progress) => progress.majorGroup === item.id,
+          (progress) => progress.majorGroup === item.id
         );
         xp = groupProgress?.xp || 0;
         percentage = groupProgress?.percentage || 0;
       } else {
         // For intermediate and advanced, calculate based on majorGroup
         const groupProgress = weeklyProgress.find(
-          (progress) => progress.majorGroup === item.majorGroup,
+          (progress) => progress.majorGroup === item.majorGroup
         );
         // Scale down XP for more specific groupings
         const scaleFactor = item.type === "group" ? 0.6 : 0.3;
@@ -108,15 +108,8 @@ const Page = () => {
     <View className="flex-1 bg-dark">
       {/* Header */}
       <View className="px-4 pt-4 pb-4">
-        <Text className="text-white text-xl font-Poppins_600SemiBold">
-          Browse by Muscle Groups
-        </Text>
-        <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
-          Find exercises targeting specific muscle groups
-        </Text>
-
         {/* Detail Level Filter */}
-        <View className="mt-4">
+        <View className="mt-0">
           <Text className="text-white text-sm font-Poppins_500Medium mb-3">
             Detail Level
           </Text>
@@ -174,7 +167,7 @@ const Page = () => {
                 } else {
                   // For advanced (individual muscles), use the first muscle's svgId
                   const muscle = muscles?.find(
-                    (m) => m._id === muscleItem.muscleIds[0],
+                    (m) => m._id === muscleItem.muscleIds[0]
                   );
                   return muscle?.svgId ? svgIdThumbnails[muscle.svgId] : null;
                 }

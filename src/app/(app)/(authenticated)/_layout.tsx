@@ -262,7 +262,7 @@ const Layout = () => {
         <Stack.Screen
           name="(modal)/muscle-groups/index"
           options={{
-            title: "Muscle Groups",
+            title: "Muscles",
             headerShown: true,
             presentation: "modal",
             headerStyle: { backgroundColor: "#000000" },

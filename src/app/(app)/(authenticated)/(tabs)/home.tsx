@@ -235,10 +235,10 @@ const Page = () => {
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-white text-lg font-Poppins_600SemiBold">
-                  By Target Muscle
+                  By Muscle
                 </Text>
                 <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
-                  Find exercises by muscle groups
+                  Browse muscles and related exercises
                 </Text>
               </View>
               <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">

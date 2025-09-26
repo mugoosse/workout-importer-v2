@@ -536,7 +536,7 @@ const Page = () => {
                 muscleId={muscle._id}
                 onPress={() =>
                   router.push(
-                    `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=target`,
+                    `/(app)/(authenticated)/(modal)/exercises?muscleIds=${muscle._id}&muscleFunctions=target`,
                   )
                 }
               />
@@ -550,7 +550,7 @@ const Page = () => {
                 muscleId={muscle._id}
                 onPress={() =>
                   router.push(
-                    `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=synergist`,
+                    `/(app)/(authenticated)/(modal)/exercises?muscleIds=${muscle._id}&muscleFunctions=synergist`,
                   )
                 }
               />
@@ -564,7 +564,7 @@ const Page = () => {
                 muscleId={muscle._id}
                 onPress={() =>
                   router.push(
-                    `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=stabilizer`,
+                    `/(app)/(authenticated)/(modal)/exercises?muscleIds=${muscle._id}&muscleFunctions=stabilizer`,
                   )
                 }
               />
@@ -578,7 +578,7 @@ const Page = () => {
                 muscleId={muscle._id}
                 onPress={() =>
                   router.push(
-                    `/(app)/(authenticated)/(modal)/exercises?muscleId=${muscle._id}&muscleRole=lengthening`,
+                    `/(app)/(authenticated)/(modal)/exercises?muscleIds=${muscle._id}&muscleFunctions=lengthening`,
                   )
                 }
               />
