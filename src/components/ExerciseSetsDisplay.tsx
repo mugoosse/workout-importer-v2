@@ -212,7 +212,11 @@ export const ExerciseSetsDisplay = ({
         const muscleInvolvements = exerciseDetail.muscles
           ? extractMuscleInvolvement(exerciseDetail.muscles)
           : [];
-        const xpResult = calculateXPDistribution(muscleInvolvements, set.rpe);
+        const xpResult = calculateXPDistribution(
+          muscleInvolvements,
+          set.rpe,
+          set.isPR,
+        );
 
         return (
           <View
@@ -226,34 +230,44 @@ export const ExerciseSetsDisplay = ({
 
             {/* Weight */}
             {requiredFields.needsWeight && (
-              <Text className="text-gray-300 text-sm font-Poppins_400Regular flex-1 text-center">
+              <Text
+                className={`text-gray-300 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} flex-1 text-center`}
+              >
                 {set.weight ? set.weight.toString() : "-"}
               </Text>
             )}
 
             {/* Reps */}
             {requiredFields.needsReps && (
-              <Text className="text-gray-300 text-sm font-Poppins_400Regular flex-1 text-center">
+              <Text
+                className={`text-gray-300 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} flex-1 text-center`}
+              >
                 {set.reps ? set.reps.toString() : "-"}
               </Text>
             )}
 
             {/* Duration */}
             {requiredFields.needsDuration && (
-              <Text className="text-gray-300 text-sm font-Poppins_400Regular flex-1 text-center">
+              <Text
+                className={`text-gray-300 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} flex-1 text-center`}
+              >
                 {set.duration ? set.duration.toString() : "-"}
               </Text>
             )}
 
             {/* Distance */}
             {requiredFields.needsDistance && (
-              <Text className="text-gray-300 text-sm font-Poppins_400Regular flex-1 text-center">
+              <Text
+                className={`text-gray-300 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} flex-1 text-center`}
+              >
                 {set.distance ? set.distance.toString() : "-"}
               </Text>
             )}
 
             {/* RPE */}
-            <Text className="text-gray-300 text-sm font-Poppins_400Regular w-12 text-center">
+            <Text
+              className={`text-gray-300 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} w-12 text-center`}
+            >
               {set.rpe}
             </Text>
 
@@ -264,6 +278,23 @@ export const ExerciseSetsDisplay = ({
           </View>
         );
       })}
+
+      {/* PR Summary */}
+      {exerciseSets.some((set) => set.isPR) && (
+        <View className="mt-3 pt-3 border-t border-neutral-600">
+          <View className="flex-row items-center justify-center">
+            <View className="bg-[#FFD700] rounded-full px-3 py-1">
+              <Text className="text-black text-xs font-Poppins_500Medium">
+                {exerciseSets.filter((set) => set.isPR).length} PR
+                {exerciseSets.filter((set) => set.isPR).length !== 1
+                  ? "s"
+                  : ""}{" "}
+                in this workout
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

@@ -1,4 +1,4 @@
-import { WorkoutStatsCard } from "@/components/WorkoutStatsCard";
+import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { api } from "@/convex/_generated/api";
 import {
   activeWorkoutAtom,
@@ -6,21 +6,25 @@ import {
   finishWorkoutAction,
 } from "@/store/activeWorkout";
 import {
+  getSetsByExerciseAtom,
   type WorkoutProgressSnapshot,
   workoutSessionsAtom,
 } from "@/store/exerciseLog";
 import { myRoutinesAtom, publicRoutinesAtom } from "@/store/routines";
 import {
-  individualMuscleProgressAtom,
+  majorGroupProgressAtom,
+  svgIdProgressAtom,
   updateMuscleProgressFromWorkoutAction,
-  weeklyProgressAtom,
 } from "@/store/weeklyProgress";
+import {
+  calculateWorkoutPRs,
+  extractExerciseDetailsForPR,
+} from "@/utils/workoutPRCalculator";
 import {
   calculateMajorGroupProgress,
   calculateXPDistribution,
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
-import { Ionicons } from "@expo/vector-icons";
 import { useConvex } from "convex/react";
 import { router, Stack } from "expo-router";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -44,8 +48,9 @@ const SaveWorkoutPage = () => {
   const [, updateMuscleProgress] = useAtom(
     updateMuscleProgressFromWorkoutAction,
   );
-  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
-  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const [svgIdProgress] = useAtom(svgIdProgressAtom);
+  const [majorGroupProgress] = useAtom(majorGroupProgressAtom);
+  const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
   const workoutSessions = useAtomValue(workoutSessionsAtom);
   const setWorkoutSessions = useSetAtom(workoutSessionsAtom);
 
@@ -54,6 +59,7 @@ const SaveWorkoutPage = () => {
   const [workoutNotes, setWorkoutNotes] = useState("");
   const [workoutDate] = useState(new Date(activeWorkout.startTime));
   const [workoutDuration] = useState(Date.now() - activeWorkout.startTime);
+  const [prCount, setPrCount] = useState<number>(0);
 
   // No debouncing needed for title and notes - they're simple text inputs
 
@@ -78,6 +84,86 @@ const SaveWorkoutPage = () => {
       }
     }
   }, [activeWorkout, myRoutines, publicRoutines]);
+
+  // Calculate PR count for the active workout
+  React.useEffect(() => {
+    const calculatePRs = async () => {
+      try {
+        // Convert active workout sets to LoggedSet format for PR calculation
+        const loggedSets = activeWorkout.exercises.flatMap((exercise) =>
+          exercise.sets
+            .filter((set) => set.isCompleted && set.rpe !== undefined)
+            .map((set) => ({
+              id: set.id,
+              exerciseId: exercise.exerciseId,
+              reps: set.reps,
+              weight: set.weight,
+              duration: set.duration,
+              distance: set.distance,
+              rpe: set.rpe!,
+              timestamp: set.timestamp,
+              date: new Date(activeWorkout.startTime)
+                .toISOString()
+                .split("T")[0],
+              isPR: set.isPR,
+              prValue: set.prValue,
+            })),
+        );
+
+        if (loggedSets.length === 0) {
+          setPrCount(0);
+          return;
+        }
+
+        // Fetch exercise details for PR calculation
+        const uniqueExerciseIds = [
+          ...new Set(loggedSets.map((set) => set.exerciseId)),
+        ];
+        const exerciseDetailsMap: Record<string, any> = {};
+
+        for (const exerciseId of uniqueExerciseIds) {
+          if (
+            exerciseId.startsWith("template:") ||
+            exerciseId.startsWith("fallback:")
+          ) {
+            continue;
+          }
+
+          try {
+            const exerciseDetail = await convex.query(
+              api.exercises.getExerciseDetails,
+              { exerciseId },
+            );
+            if (exerciseDetail) {
+              exerciseDetailsMap[exerciseId] = exerciseDetail;
+            }
+          } catch (error) {
+            console.warn(
+              `Failed to fetch exercise details for ${exerciseId}:`,
+              error,
+            );
+          }
+        }
+
+        // Calculate PRs
+        const exerciseDetailsForPR = extractExerciseDetailsForPR(
+          loggedSets,
+          exerciseDetailsMap,
+        );
+        const workoutPRCount = calculateWorkoutPRs(
+          loggedSets,
+          exerciseDetailsForPR,
+          getSetsByExercise,
+        );
+        setPrCount(workoutPRCount);
+      } catch (error) {
+        console.warn("Failed to calculate PRs:", error);
+        setPrCount(0);
+      }
+    };
+
+    calculatePRs();
+  }, [activeWorkout, convex, getSetsByExercise]);
 
   // Generate smart placeholder for title
   const getPlaceholder = () => {
@@ -170,10 +256,17 @@ const SaveWorkoutPage = () => {
             const xpResult = calculateXPDistribution(
               muscleInvolvements,
               set.rpe,
+              set.isPR,
             );
             xpCalculations.push(xpResult);
           });
         });
+
+        // Calculate total XP for the workout from all sets
+        const totalWorkoutXP = xpCalculations.reduce(
+          (total, xpResult) => total + xpResult.totalXP,
+          0,
+        );
 
         // Capture progress snapshots if we have XP calculations
         let progressSnapshots:
@@ -184,14 +277,12 @@ const SaveWorkoutPage = () => {
           // Capture "before" snapshot
           const beforeSnapshot: WorkoutProgressSnapshot = {
             individualMuscleProgress: Object.fromEntries(
-              Object.entries(individualMuscleProgress).map(
-                ([muscleId, progress]) => [
-                  muscleId,
-                  { xp: progress.xp, percentage: progress.percentage },
-                ],
-              ),
+              Object.entries(svgIdProgress).map(([muscleId, progress]) => [
+                muscleId,
+                { xp: progress.xp, percentage: progress.percentage },
+              ]),
             ),
-            weeklyProgress: weeklyProgress.map((group) => ({
+            weeklyProgress: majorGroupProgress.map((group) => ({
               majorGroup: group.majorGroup,
               xp: group.xp,
               percentage: group.percentage,
@@ -203,7 +294,7 @@ const SaveWorkoutPage = () => {
 
           // We need to manually calculate the "after" state since we can't get it from the action
           // Calculate what the new individual progress would be
-          const updatedIndividualProgress = { ...individualMuscleProgress };
+          const updatedIndividualProgress = { ...svgIdProgress };
 
           // Aggregate all XP distributions
           const totalXPByMuscle: Record<string, number> = {};
@@ -264,7 +355,7 @@ const SaveWorkoutPage = () => {
           };
         }
 
-        // Update the workout session with progress snapshots and navigate
+        // Update the workout session with progress snapshots and total XP, then navigate
         if (progressSnapshots) {
           // Get fresh workoutSessions from atom and find the existing session
           const existingIndex = workoutSessions.findIndex(
@@ -276,6 +367,7 @@ const SaveWorkoutPage = () => {
             const updatedSessions = [...workoutSessions];
             updatedSessions[existingIndex] = {
               ...workoutSession,
+              totalXP: totalWorkoutXP,
               progressSnapshot: progressSnapshots,
             };
             setWorkoutSessions(updatedSessions);
@@ -283,7 +375,11 @@ const SaveWorkoutPage = () => {
             // Session not found, add it with snapshots (fallback case)
             setWorkoutSessions([
               ...workoutSessions,
-              { ...workoutSession, progressSnapshot: progressSnapshots },
+              {
+                ...workoutSession,
+                totalXP: totalWorkoutXP,
+                progressSnapshot: progressSnapshots,
+              },
             ]);
           }
 
@@ -295,7 +391,24 @@ const SaveWorkoutPage = () => {
             );
           });
         } else {
-          // No snapshots, navigate immediately
+          // No snapshots, but still update totalXP if we calculated it
+          if (xpCalculations.length > 0) {
+            // Update the workout session with the calculated total XP
+            const existingIndex = workoutSessions.findIndex(
+              (s) => s.id === workoutSession.id,
+            );
+
+            if (existingIndex >= 0) {
+              const updatedSessions = [...workoutSessions];
+              updatedSessions[existingIndex] = {
+                ...workoutSession,
+                totalXP: totalWorkoutXP,
+              };
+              setWorkoutSessions(updatedSessions);
+            }
+          }
+
+          // Navigate immediately
           router.dismissAll();
           router.push(
             `/(app)/(authenticated)/(modal)/workout/${workoutSession.id}`,
@@ -330,10 +443,6 @@ const SaveWorkoutPage = () => {
         },
       ],
     );
-  };
-
-  const handleBack = () => {
-    router.back();
   };
 
   const formatDate = (date: Date): string => {
@@ -378,21 +487,14 @@ const SaveWorkoutPage = () => {
       <Stack.Screen
         options={{
           title: "Save Workout",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={handleBack}
-              className="p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-          ),
           headerRight: () => (
             <TouchableOpacity
               onPress={handleSave}
-              className="bg-[#6F2DBD] px-4 py-2 rounded-xl"
+              className="bg-[#6F2DBD] px-3 py-1.5 rounded-lg"
             >
-              <Text className="text-white font-Poppins_600SemiBold">Save</Text>
+              <Text className="text-white font-Poppins_500Medium text-sm">
+                Save
+              </Text>
             </TouchableOpacity>
           ),
         }}
@@ -418,12 +520,15 @@ const SaveWorkoutPage = () => {
           {/* Workout Stats */}
           <View className="mb-6">
             <Text className="text-white text-lg font-Poppins_600SemiBold mb-3">
-              Workout Summary
+              Summary
             </Text>
-            <WorkoutStatsCard
+            <WorkoutSummary
               startTime={workoutDate.getTime()}
               duration={workoutDuration}
               totalSets={completedSets}
+              totalPRs={prCount}
+              showDateHeader={false}
+              variant="card"
             />
           </View>
 

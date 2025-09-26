@@ -2,10 +2,11 @@ import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
 import {
   exerciseLogSummariesAtom,
+  loggedSetsAtom,
   workoutSessionsAtom,
   type ExerciseLogSummary,
 } from "@/store/exerciseLog";
-import { formatTime, formatLastLoggedDate } from "@/utils/timeFormatters";
+import { formatLastLoggedDate, formatTime } from "@/utils/timeFormatters";
 import {
   calculateXPDistribution,
   extractMuscleInvolvement,
@@ -65,6 +66,7 @@ const SortButton = ({
 
 const ExerciseRecentItem = ({ summary }: { summary: ExerciseLogSummary }) => {
   const [workoutSessions] = useAtom(workoutSessionsAtom);
+  const [loggedSets] = useAtom(loggedSetsAtom);
 
   const { data: exercise } = useCachedQuery(api.exercises.get, {
     exerciseId: summary.exerciseId,
@@ -91,9 +93,16 @@ const ExerciseRecentItem = ({ summary }: { summary: ExerciseLogSummary }) => {
     const muscleInvolvements = extractMuscleInvolvement(
       exerciseDetails.muscles,
     );
-    const xpResult = calculateXPDistribution(muscleInvolvements, 8); // Default RPE 8
+    const xpResult = calculateXPDistribution(muscleInvolvements, 8, false); // Default RPE 8, no PR
     return xpResult.totalXP * summary.totalSets; // XP per set * number of sets
   }, [exerciseDetails, summary.totalSets]);
+
+  // Calculate PR count for this exercise
+  const prCount = useMemo(() => {
+    return loggedSets
+      .filter((set) => set.exerciseId === summary.exerciseId)
+      .filter((set) => set.isPR).length;
+  }, [loggedSets, summary.exerciseId]);
 
   if (!exercise) {
     return (
@@ -141,6 +150,13 @@ const ExerciseRecentItem = ({ summary }: { summary: ExerciseLogSummary }) => {
             {workoutCount} workout{workoutCount !== 1 ? "s" : ""}
           </Text>
         </View>
+        {prCount > 0 && (
+          <View className="bg-[#FFD700] rounded-full px-3 py-1">
+            <Text className="text-black text-xs font-Poppins_500Medium">
+              {prCount} PR{prCount !== 1 ? "s" : ""}
+            </Text>
+          </View>
+        )}
         {totalXP > 0 && (
           <View className="bg-[#2c2c2e] rounded-full px-3 py-1">
             <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium">

@@ -51,6 +51,7 @@ export interface WorkoutSession {
   totalSets: number;
   totalVolume: number;
   totalXP: number;
+  totalPRs?: number; // Number of personal records achieved in this workout
   date: string; // YYYY-MM-DD
   progressSnapshot?: {
     before: WorkoutProgressSnapshot;

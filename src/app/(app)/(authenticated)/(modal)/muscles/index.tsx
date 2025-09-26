@@ -5,7 +5,10 @@ import {
 } from "@/assets/images/thumbnails";
 import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
-import { getProgressColor, weeklyProgressAtom } from "@/store/weeklyProgress";
+import {
+  getProgressColor,
+  majorGroupProgressAtom,
+} from "@/store/weeklyProgress";
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { Link } from "expo-router";
@@ -54,14 +57,14 @@ const Page = () => {
   // Get all muscle data for all detail levels at once for instant switching
   const { data: allMuscleData } = useCachedQuery(
     api.exercises.getAllMusclesWithCountsByAllDetailLevels,
-    {}
+    {},
   );
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
-  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const [majorGroupProgress] = useAtom(majorGroupProgressAtom);
 
   // Get current detail level data and calculate progress
   const muscleItemsWithProgress = useMemo(() => {
-    if (!allMuscleData || !weeklyProgress) return [];
+    if (!allMuscleData || !majorGroupProgress) return [];
 
     // Select data based on current detail level
     const muscleItems = allMuscleData[detailLevel];
@@ -72,15 +75,15 @@ const Page = () => {
       let percentage = 0;
 
       if (item.type === "majorGroup") {
-        const groupProgress = weeklyProgress.find(
-          (progress) => progress.majorGroup === item.id
+        const groupProgress = majorGroupProgress.find(
+          (progress) => progress.majorGroup === item.id,
         );
         xp = groupProgress?.xp || 0;
         percentage = groupProgress?.percentage || 0;
       } else {
         // For intermediate and advanced, calculate based on majorGroup
-        const groupProgress = weeklyProgress.find(
-          (progress) => progress.majorGroup === item.majorGroup
+        const groupProgress = majorGroupProgress.find(
+          (progress) => progress.majorGroup === item.majorGroup,
         );
         // Scale down XP for more specific groupings
         const scaleFactor = item.type === "group" ? 0.6 : 0.3;
@@ -94,7 +97,7 @@ const Page = () => {
         percentage,
       };
     });
-  }, [allMuscleData, detailLevel, weeklyProgress]);
+  }, [allMuscleData, detailLevel, majorGroupProgress]);
 
   if (!allMuscleData || !muscles) {
     return (
@@ -155,45 +158,44 @@ const Page = () => {
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             style={{ flex: 1 }}
+            extraData={detailLevel}
             renderItem={({ item: muscleItem, index }) => {
               const progressColor = getProgressColor(muscleItem.percentage);
+              const progressColorSuffix = progressColor.replace("#", "-");
 
               // Get thumbnail based on detail level
               const getThumbnail = () => {
                 if (muscleItem.type === "majorGroup") {
-                  return majorGroupThumbnails[muscleItem.id];
+                  return majorGroupThumbnails[
+                    muscleItem.id + progressColorSuffix
+                  ];
                 } else if (muscleItem.type === "group") {
-                  return groupThumbnails[muscleItem.id];
+                  return groupThumbnails[muscleItem.id + progressColorSuffix];
                 } else {
                   // For advanced (individual muscles), use the first muscle's svgId
                   const muscle = muscles?.find(
-                    (m) => m._id === muscleItem.muscleIds[0]
+                    (m) => m._id === muscleItem.muscleIds[0],
                   );
-                  return muscle?.svgId ? svgIdThumbnails[muscle.svgId] : null;
+                  return muscle?.svgId
+                    ? svgIdThumbnails[muscle.svgId + progressColorSuffix]
+                    : null;
                 }
               };
 
-              // Determine link params based on type
-              const getLinkParams = () => {
-                const baseParams = { muscleFunctions: "target" };
+              // Determine link path and params based on type
+              const getLinkHref = () => {
                 if (muscleItem.type === "majorGroup") {
-                  return { ...baseParams, majorGroups: muscleItem.id };
+                  return `/(app)/(authenticated)/(modal)/muscles/basic/${muscleItem.id}`;
                 } else if (muscleItem.type === "group") {
-                  return { ...baseParams, groups: muscleItem.id };
+                  return `/(app)/(authenticated)/(modal)/muscles/intermediate/${muscleItem.id}`;
                 } else {
-                  return { ...baseParams, muscleIds: muscleItem.id };
+                  return `/(app)/(authenticated)/(modal)/muscles/advanced/${muscleItem.id}`;
                 }
               };
 
               return (
                 <View className={index > 0 ? "mt-3" : ""}>
-                  <Link
-                    href={{
-                      pathname: "/(app)/(authenticated)/(modal)/exercises",
-                      params: getLinkParams(),
-                    }}
-                    asChild
-                  >
+                  <Link href={getLinkHref() as any} asChild>
                     <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">
                       <View className="flex-row items-center">
                         {/* Thumbnail Image */}

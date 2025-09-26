@@ -1,8 +1,8 @@
 import { type MuscleId } from "@/components/muscle-body/MuscleBody";
 import { RPE_SCALE } from "@/constants/rpe";
 import {
-  type IndividualMuscleProgress,
-  type WeeklyProgressData,
+  type MajorGroupProgressData,
+  type SvgIdProgressData,
 } from "@/store/weeklyProgress";
 import {
   type MajorMuscleGroup,
@@ -46,6 +46,7 @@ const MULTIPLE_TARGET_FACTOR = 0.7;
 export const calculateXPDistribution = (
   muscleInvolvements: MuscleInvolvement[],
   rpe: number = RPE_SCALE.MAX, // Rate of Perceived Exertion, defaults to max
+  isPR: boolean = false, // Personal Record bonus
 ): XPCalculationResult => {
   // Count target muscles to determine if we need to apply the multiple target factor
   const targetMuscles = muscleInvolvements.filter((m) => m.role === "target");
@@ -53,6 +54,9 @@ export const calculateXPDistribution = (
 
   // Calculate RPE multiplier (1-10 scale where 10 = 1.0x, 1 = 0.1x)
   const rpeMultiplier = Math.max(0.1, Math.min(1.0, rpe / RPE_SCALE.MAX));
+
+  // Calculate PR bonus multiplier (100% bonus = 2x multiplier)
+  const prMultiplier = isPR ? 2.0 : 1.0;
 
   // Calculate XP for each muscle
   const muscleXPDistribution = muscleInvolvements.map((involvement) => {
@@ -64,7 +68,10 @@ export const calculateXPDistribution = (
     }
 
     // Apply RPE multiplier
-    const finalMultiplier = multiplier * rpeMultiplier;
+    const rpeAdjustedMultiplier = multiplier * rpeMultiplier;
+
+    // Apply PR bonus multiplier
+    const finalMultiplier = rpeAdjustedMultiplier * prMultiplier;
     const xpAwarded = Math.round(BASE_XP_PER_SET * finalMultiplier);
 
     return {
@@ -90,9 +97,9 @@ export const calculateXPDistribution = (
  * Update individual muscle progress with XP from a logged set
  */
 export const updateMuscleProgress = (
-  currentProgress: Record<string, IndividualMuscleProgress>,
+  currentProgress: Record<string, SvgIdProgressData>,
   xpDistribution: XPCalculationResult,
-): Record<string, IndividualMuscleProgress> => {
+): Record<string, SvgIdProgressData> => {
   const updatedProgress = { ...currentProgress };
 
   xpDistribution.muscleXPDistribution.forEach((muscle) => {
@@ -122,8 +129,8 @@ export const updateMuscleProgress = (
  * Calculate major muscle group progress from individual muscle progress
  */
 export const calculateMajorGroupProgress = (
-  individualProgress: Record<string, IndividualMuscleProgress>,
-): WeeklyProgressData[] => {
+  svgIdProgress: Record<string, SvgIdProgressData>,
+): MajorGroupProgressData[] => {
   // Group muscles by major muscle group
   const groupedData: Record<
     MajorMuscleGroup,
@@ -142,7 +149,7 @@ export const calculateMajorGroupProgress = (
   };
 
   // Find maximum XP among muscles in each major group
-  Object.entries(individualProgress).forEach(([muscleId, progress]) => {
+  Object.entries(svgIdProgress).forEach(([muscleId, progress]) => {
     const majorGroup = muscleToGroupMapping[muscleId as MuscleId];
     if (majorGroup && progress.hasExercises) {
       groupedData[majorGroup].maxXP = Math.max(
@@ -154,7 +161,7 @@ export const calculateMajorGroupProgress = (
     }
   });
 
-  // Convert to WeeklyProgressData format
+  // Convert to MajorGroupProgressData format
   return Object.entries(groupedData).map(([group, data]) => {
     const majorGroup = group as MajorMuscleGroup;
 
@@ -211,31 +218,31 @@ export const extractMuscleInvolvement = (
  * Complete XP update flow - updates both individual and major group progress
  */
 export const processSetLogging = (
-  currentIndividualProgress: Record<string, IndividualMuscleProgress>,
-  currentMajorGroupProgress: WeeklyProgressData[],
+  currentSvgIdProgress: Record<string, SvgIdProgressData>,
+  currentMajorGroupProgress: MajorGroupProgressData[],
   muscleInvolvements: MuscleInvolvement[],
   rpe: number = RPE_SCALE.MAX,
+  isPR: boolean = false,
 ): {
-  updatedIndividualProgress: Record<string, IndividualMuscleProgress>;
-  updatedMajorGroupProgress: WeeklyProgressData[];
+  updatedSvgIdProgress: Record<string, SvgIdProgressData>;
+  updatedMajorGroupProgress: MajorGroupProgressData[];
   xpCalculation: XPCalculationResult;
 } => {
   // Calculate XP distribution
-  const xpCalculation = calculateXPDistribution(muscleInvolvements, rpe);
+  const xpCalculation = calculateXPDistribution(muscleInvolvements, rpe, isPR);
 
   // Update individual muscle progress
-  const updatedIndividualProgress = updateMuscleProgress(
-    currentIndividualProgress,
+  const updatedSvgIdProgress = updateMuscleProgress(
+    currentSvgIdProgress,
     xpCalculation,
   );
 
   // Recalculate major group progress
-  const updatedMajorGroupProgress = calculateMajorGroupProgress(
-    updatedIndividualProgress,
-  );
+  const updatedMajorGroupProgress =
+    calculateMajorGroupProgress(updatedSvgIdProgress);
 
   return {
-    updatedIndividualProgress,
+    updatedSvgIdProgress,
     updatedMajorGroupProgress,
     xpCalculation,
   };

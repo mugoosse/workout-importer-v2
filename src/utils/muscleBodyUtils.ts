@@ -48,6 +48,18 @@ export const generateMuscleHighlights = (
 };
 
 /**
+ * Format muscle name by converting underscore-separated SVG IDs to readable format
+ * e.g., "biceps_brachii" -> "Biceps Brachii"
+ */
+export const formatMuscleName = (svgId: string): string => {
+  return svgId
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+    .replace(" And ", " and ");
+};
+
+/**
  * Determine the optimal view for MuscleBody based on muscle group
  */
 export const getOptimalViewForMuscleGroup = (

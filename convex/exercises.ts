@@ -1,15 +1,12 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
 import {
-  normalizeMuscleName,
-  parseExerciseType,
-  parseEquipment,
-  parseMuscles,
-  findMuscleByName,
-  findEquipmentByName,
-  type ExerciseType,
-  type MuscleRole,
+    findEquipmentByName,
+    findMuscleByName,
+    normalizeMuscleName,
+    parseExerciseType,
+    type MuscleRole
 } from "./exerciseHelpers";
 
 export const get = query({
@@ -23,36 +20,38 @@ export const getExercisesByIds = query({
   args: { exerciseIds: v.array(v.id("exercises")) },
   handler: async (ctx, args) => {
     const exercises = await Promise.all(
-      args.exerciseIds.map((id) => ctx.db.get(id))
+      args.exerciseIds.map((id) => ctx.db.get(id)),
     );
 
     // Filter out null exercises and get their details
     const validExercises = exercises.filter(
-      (exercise): exercise is NonNullable<typeof exercise> => exercise !== null
+      (exercise): exercise is NonNullable<typeof exercise> => exercise !== null,
     );
 
     const exercisesWithDetails = await Promise.all(
       validExercises.map(async (exercise) => {
-        const [muscleRelationships, equipmentRelationships] = await Promise.all([
-          ctx.db
-            .query("exerciseMuscles")
-            .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
-            .collect(),
-          ctx.db
-            .query("exerciseEquipment")
-            .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
-            .collect(),
-        ]);
+        const [muscleRelationships, equipmentRelationships] = await Promise.all(
+          [
+            ctx.db
+              .query("exerciseMuscles")
+              .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
+              .collect(),
+            ctx.db
+              .query("exerciseEquipment")
+              .withIndex("by_exercise", (q) => q.eq("exerciseId", exercise._id))
+              .collect(),
+          ],
+        );
 
         const [muscles, equipment] = await Promise.all([
           Promise.all(
             muscleRelationships.map(async (rel) => ({
               muscle: await ctx.db.get(rel.muscleId),
               role: rel.role,
-            }))
+            })),
           ),
           Promise.all(
-            equipmentRelationships.map((rel) => ctx.db.get(rel.equipmentId))
+            equipmentRelationships.map((rel) => ctx.db.get(rel.equipmentId)),
           ),
         ]);
 
@@ -61,7 +60,7 @@ export const getExercisesByIds = query({
           muscles: muscles.filter((m) => m.muscle),
           equipment: equipment.filter(Boolean),
         };
-      })
+      }),
     );
 
     return exercisesWithDetails;
@@ -70,19 +69,21 @@ export const getExercisesByIds = query({
 
 export const previewExerciseImport = query({
   args: {
-    exercises: v.array(v.object({
-      title: v.string(),
-      url: v.optional(v.string()),
-      description: v.optional(v.string()),
-      exerciseType: v.string(),
-      equipmentNames: v.array(v.string()),
-      muscles: v.object({
-        target: v.array(v.string()),
-        lengthening: v.array(v.string()),
-        synergist: v.array(v.string()),
-        stabilizer: v.array(v.string()),
+    exercises: v.array(
+      v.object({
+        title: v.string(),
+        url: v.optional(v.string()),
+        description: v.optional(v.string()),
+        exerciseType: v.string(),
+        equipmentNames: v.array(v.string()),
+        muscles: v.object({
+          target: v.array(v.string()),
+          lengthening: v.array(v.string()),
+          synergist: v.array(v.string()),
+          stabilizer: v.array(v.string()),
+        }),
       }),
-    })),
+    ),
   },
   handler: async (ctx, args) => {
     // Load all reference data ONCE
@@ -93,9 +94,9 @@ export const previewExerciseImport = query({
     ]);
 
     // Create lookup maps
-    const muscleMap = new Map(allMuscles.map(m => [m.name, m._id]));
-    const equipmentMap = new Map(allEquipment.map(e => [e.name, e._id]));
-    const exerciseMap = new Map(existingExercises.map(e => [e.title, e]));
+    const muscleMap = new Map(allMuscles.map((m) => [m.name, m._id]));
+    const equipmentMap = new Map(allEquipment.map((e) => [e.name, e._id]));
+    const exerciseMap = new Map(existingExercises.map((e) => [e.title, e]));
 
     // Analyze import data
     const stats = {
@@ -130,7 +131,7 @@ export const previewExerciseImport = query({
         ...exercise.muscles.lengthening,
         ...exercise.muscles.synergist,
         ...exercise.muscles.stabilizer,
-      ].filter(name => name && name.trim());
+      ].filter((name) => name && name.trim());
 
       for (const muscleName of allMuscleNames) {
         const normalized = normalizeMuscleName(muscleName);
@@ -229,23 +230,31 @@ export const importExercise = mutation({
 
 export const importExercisesBulk = mutation({
   args: {
-    exercises: v.array(v.object({
-      title: v.string(),
-      url: v.optional(v.string()),
-      description: v.optional(v.string()),
-      exerciseType: v.string(),
-      equipmentNames: v.array(v.string()),
-      muscles: v.object({
-        target: v.array(v.string()),
-        lengthening: v.array(v.string()),
-        synergist: v.array(v.string()),
-        stabilizer: v.array(v.string()),
+    exercises: v.array(
+      v.object({
+        title: v.string(),
+        url: v.optional(v.string()),
+        description: v.optional(v.string()),
+        exerciseType: v.string(),
+        equipmentNames: v.array(v.string()),
+        muscles: v.object({
+          target: v.array(v.string()),
+          lengthening: v.array(v.string()),
+          synergist: v.array(v.string()),
+          stabilizer: v.array(v.string()),
+        }),
       }),
-    })),
+    ),
   },
   handler: async (ctx, args) => {
     // Load all reference data ONCE
-    const [allMuscles, allEquipment, existingExercises, existingMuscleRels, existingEquipRels] = await Promise.all([
+    const [
+      allMuscles,
+      allEquipment,
+      existingExercises,
+      existingMuscleRels,
+      existingEquipRels,
+    ] = await Promise.all([
       ctx.db.query("muscles").collect(),
       ctx.db.query("equipment").collect(),
       ctx.db.query("exercises").collect(),
@@ -254,16 +263,16 @@ export const importExercisesBulk = mutation({
     ]);
 
     // Create lookup maps
-    const muscleMap = new Map(allMuscles.map(m => [m.name, m._id]));
-    const equipmentMap = new Map(allEquipment.map(e => [e.name, e._id]));
-    const exerciseMap = new Map(existingExercises.map(e => [e.title, e._id]));
+    const muscleMap = new Map(allMuscles.map((m) => [m.name, m._id]));
+    const equipmentMap = new Map(allEquipment.map((e) => [e.name, e._id]));
+    const exerciseMap = new Map(existingExercises.map((e) => [e.title, e._id]));
 
     // Create relationship lookup sets for duplicate prevention
     const muscleRelKeys = new Set(
-      existingMuscleRels.map(r => `${r.exerciseId}:${r.muscleId}:${r.role}`)
+      existingMuscleRels.map((r) => `${r.exerciseId}:${r.muscleId}:${r.role}`),
     );
     const equipRelKeys = new Set(
-      existingEquipRels.map(r => `${r.exerciseId}:${r.equipmentId}`)
+      existingEquipRels.map((r) => `${r.exerciseId}:${r.equipmentId}`),
     );
 
     const results = {
@@ -313,7 +322,9 @@ export const importExercisesBulk = mutation({
               results.equipmentRelationsCreated++;
             }
           } else {
-            results.errors.push(`Equipment not found: ${equipName} (exercise: ${exercise.title})`);
+            results.errors.push(
+              `Equipment not found: ${equipName} (exercise: ${exercise.title})`,
+            );
           }
         }
 
@@ -337,12 +348,16 @@ export const importExercisesBulk = mutation({
                 results.muscleRelationsCreated++;
               }
             } else {
-              results.errors.push(`Muscle not found: ${muscleName} (role: ${role}, exercise: ${exercise.title})`);
+              results.errors.push(
+                `Muscle not found: ${muscleName} (role: ${role}, exercise: ${exercise.title})`,
+              );
             }
           }
         }
       } catch (error) {
-        results.errors.push(`Failed to process exercise "${exercise.title}": ${error instanceof Error ? error.message : String(error)}`);
+        results.errors.push(
+          `Failed to process exercise "${exercise.title}": ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -378,7 +393,6 @@ export const getExercisesByMuscle = query({
     return exercises.filter(Boolean);
   },
 });
-
 
 export const getExercisesByType = query({
   args: {
@@ -485,20 +499,27 @@ export const getAllEquipment = query({
 export const getAllEquipmentWithCounts = query({
   args: {},
   handler: async (ctx) => {
-    const [equipment, exerciseEquipmentRelationships, exercises] = await Promise.all([
-      ctx.db.query("equipment").collect(),
-      ctx.db.query("exerciseEquipment").collect(),
-      ctx.db.query("exercises").collect(),
-    ]);
+    const [equipment, exerciseEquipmentRelationships, exercises] =
+      await Promise.all([
+        ctx.db.query("equipment").collect(),
+        ctx.db.query("exerciseEquipment").collect(),
+        ctx.db.query("exercises").collect(),
+      ]);
 
     // Create exercise ID to exercise map for quick lookup
-    const exerciseMap = new Map(exercises.map(ex => [ex._id, ex]));
+    const exerciseMap = new Map(exercises.map((ex) => [ex._id, ex]));
 
     // Count exercises and collect exercise types for each equipment
-    const equipmentData = new Map<string, { count: number; exerciseTypes: Set<string> }>();
+    const equipmentData = new Map<
+      string,
+      { count: number; exerciseTypes: Set<string> }
+    >();
 
     exerciseEquipmentRelationships.forEach((rel) => {
-      const existing = equipmentData.get(rel.equipmentId) || { count: 0, exerciseTypes: new Set() };
+      const existing = equipmentData.get(rel.equipmentId) || {
+        count: 0,
+        exerciseTypes: new Set(),
+      };
       existing.count += 1;
 
       // Get exercise type from the exercise
@@ -512,7 +533,10 @@ export const getAllEquipmentWithCounts = query({
 
     // Combine equipment with their exercise counts and types
     const equipmentWithCounts = equipment.map((equip) => {
-      const data = equipmentData.get(equip._id) || { count: 0, exerciseTypes: new Set() };
+      const data = equipmentData.get(equip._id) || {
+        count: 0,
+        exerciseTypes: new Set(),
+      };
       return {
         ...equip,
         exerciseCount: data.count,
@@ -538,14 +562,14 @@ export const getMuscleGroupsWithCounts = query({
     const muscleGroupsWithCounts = majorGroups.map((majorGroup) => {
       // Get all muscle IDs for this major group
       const muscleIds = muscles
-        .filter(muscle => muscle.majorGroup === majorGroup)
-        .map(muscle => muscle._id);
+        .filter((muscle) => muscle.majorGroup === majorGroup)
+        .map((muscle) => muscle._id);
 
       // Get unique exercise IDs that use any muscle from this group
       const uniqueExerciseIds = new Set(
         exerciseMuscleRelationships
-          .filter(rel => muscleIds.includes(rel.muscleId))
-          .map(rel => rel.exerciseId)
+          .filter((rel) => muscleIds.includes(rel.muscleId))
+          .map((rel) => rel.exerciseId),
       );
 
       return {
@@ -576,18 +600,20 @@ export const getExerciseTypesWithCounts = query({
       "Reps Only": "Bodyweight exercises counted by repetitions",
       "Weighted Bodyweight": "Bodyweight exercises with added weight",
       "Assisted Bodyweight": "Bodyweight exercises with assistance",
-      "Duration": "Time-based exercises like planks or holds",
+      Duration: "Time-based exercises like planks or holds",
       "Weight & Duration": "Weighted exercises held for time",
       "Distance & Duration": "Cardio exercises tracking distance and time",
       "Weight & Distance": "Weighted exercises over distance",
     };
 
     // Create exercise types with counts
-    const exerciseTypesWithCounts = Array.from(typeCounts.entries()).map(([exerciseType, count]) => ({
-      exerciseType,
-      description: typeDescriptions[exerciseType] || "Exercise type",
-      exerciseCount: count,
-    }));
+    const exerciseTypesWithCounts = Array.from(typeCounts.entries()).map(
+      ([exerciseType, count]) => ({
+        exerciseType,
+        description: typeDescriptions[exerciseType] || "Exercise type",
+        exerciseCount: count,
+      }),
+    );
 
     // Sort by count descending
     exerciseTypesWithCounts.sort((a, b) => b.exerciseCount - a.exerciseCount);
@@ -605,19 +631,21 @@ export const getAllMusclesWithCountsByAllDetailLevels = query({
     ]);
 
     // Pre-filter only target relationships for better performance
-    const targetRelationships = exerciseMuscleRelationships.filter(rel => rel.role === "target");
+    const targetRelationships = exerciseMuscleRelationships.filter(
+      (rel) => rel.role === "target",
+    );
 
     // Basic: Group by majorGroup (6 items)
     const majorGroups = ["chest", "back", "legs", "shoulders", "arms", "core"];
     const basicItems = majorGroups.map((majorGroup) => {
       const muscleIds = muscles
-        .filter(muscle => muscle.majorGroup === majorGroup)
-        .map(muscle => muscle._id);
+        .filter((muscle) => muscle.majorGroup === majorGroup)
+        .map((muscle) => muscle._id);
 
       const uniqueExerciseIds = new Set(
         targetRelationships
-          .filter(rel => muscleIds.includes(rel.muscleId))
-          .map(rel => rel.exerciseId)
+          .filter((rel) => muscleIds.includes(rel.muscleId))
+          .map((rel) => rel.exerciseId),
       );
 
       return {
@@ -630,38 +658,45 @@ export const getAllMusclesWithCountsByAllDetailLevels = query({
     });
 
     // Intermediate: Group by group (16 items)
-    const groups = [...new Set(muscles.map(m => m.group))].filter(Boolean);
-    const intermediateItems = groups.map((group) => {
-      const musclesInGroup = muscles.filter(muscle => muscle.group === group);
-      const muscleIds = musclesInGroup.map(muscle => muscle._id);
+    const groups = [...new Set(muscles.map((m) => m.group))].filter(Boolean);
+    const intermediateItems = groups
+      .map((group) => {
+        const musclesInGroup = muscles.filter(
+          (muscle) => muscle.group === group,
+        );
+        const muscleIds = musclesInGroup.map((muscle) => muscle._id);
 
-      const uniqueExerciseIds = new Set(
-        targetRelationships
-          .filter(rel => muscleIds.includes(rel.muscleId))
-          .map(rel => rel.exerciseId)
-      );
+        const uniqueExerciseIds = new Set(
+          targetRelationships
+            .filter((rel) => muscleIds.includes(rel.muscleId))
+            .map((rel) => rel.exerciseId),
+        );
 
-      return {
-        id: group,
-        name: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
-        type: "group" as const,
-        exerciseCount: uniqueExerciseIds.size,
-        muscleIds,
-        majorGroup: musclesInGroup[0]?.majorGroup,
-      };
-    }).sort((a, b) => b.exerciseCount - a.exerciseCount);
+        return {
+          id: group,
+          name:
+            group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, " "),
+          type: "group" as const,
+          exerciseCount: uniqueExerciseIds.size,
+          muscleIds,
+          majorGroup: musclesInGroup[0]?.majorGroup,
+        };
+      })
+      .sort((a, b) => b.exerciseCount - a.exerciseCount);
 
     // Advanced: Individual muscles
     const advancedItems = muscles
-      .filter(muscle => {
+      .filter((muscle) => {
         // Only include muscles that have target exercises
-        const targetExerciseCount = targetRelationships
-          .filter(rel => rel.muscleId === muscle._id).length;
+        const targetExerciseCount = targetRelationships.filter(
+          (rel) => rel.muscleId === muscle._id,
+        ).length;
         return targetExerciseCount > 0;
       })
       .map((muscle) => {
-        const exerciseCount = targetRelationships
-          .filter(rel => rel.muscleId === muscle._id).length;
+        const exerciseCount = targetRelationships.filter(
+          (rel) => rel.muscleId === muscle._id,
+        ).length;
 
         return {
           id: muscle._id,
@@ -685,7 +720,13 @@ export const getAllMusclesWithCountsByAllDetailLevels = query({
 });
 
 export const getMusclesWithCountsByDetailLevel = query({
-  args: { detailLevel: v.union(v.literal("basic"), v.literal("intermediate"), v.literal("advanced")) },
+  args: {
+    detailLevel: v.union(
+      v.literal("basic"),
+      v.literal("intermediate"),
+      v.literal("advanced"),
+    ),
+  },
   handler: async (ctx, args) => {
     const [muscles, exerciseMuscleRelationships] = await Promise.all([
       ctx.db.query("muscles").collect(),
@@ -694,17 +735,27 @@ export const getMusclesWithCountsByDetailLevel = query({
 
     if (args.detailLevel === "basic") {
       // Basic: Group by majorGroup (6 items) - filter by target function only
-      const majorGroups = ["chest", "back", "legs", "shoulders", "arms", "core"];
+      const majorGroups = [
+        "chest",
+        "back",
+        "legs",
+        "shoulders",
+        "arms",
+        "core",
+      ];
 
       return majorGroups.map((majorGroup) => {
         const muscleIds = muscles
-          .filter(muscle => muscle.majorGroup === majorGroup)
-          .map(muscle => muscle._id);
+          .filter((muscle) => muscle.majorGroup === majorGroup)
+          .map((muscle) => muscle._id);
 
         const uniqueExerciseIds = new Set(
           exerciseMuscleRelationships
-            .filter(rel => muscleIds.includes(rel.muscleId) && rel.role === "target")
-            .map(rel => rel.exerciseId)
+            .filter(
+              (rel) =>
+                muscleIds.includes(rel.muscleId) && rel.role === "target",
+            )
+            .map((rel) => rel.exerciseId),
         );
 
         return {
@@ -717,39 +768,49 @@ export const getMusclesWithCountsByDetailLevel = query({
       });
     } else if (args.detailLevel === "intermediate") {
       // Intermediate: Group by group (16 items) - filter by target function only
-      const groups = [...new Set(muscles.map(m => m.group))].filter(Boolean);
+      const groups = [...new Set(muscles.map((m) => m.group))].filter(Boolean);
 
-      return groups.map((group) => {
-        const musclesInGroup = muscles.filter(muscle => muscle.group === group);
-        const muscleIds = musclesInGroup.map(muscle => muscle._id);
+      return groups
+        .map((group) => {
+          const musclesInGroup = muscles.filter(
+            (muscle) => muscle.group === group,
+          );
+          const muscleIds = musclesInGroup.map((muscle) => muscle._id);
 
-        const uniqueExerciseIds = new Set(
-          exerciseMuscleRelationships
-            .filter(rel => muscleIds.includes(rel.muscleId) && rel.role === "target")
-            .map(rel => rel.exerciseId)
-        );
+          const uniqueExerciseIds = new Set(
+            exerciseMuscleRelationships
+              .filter(
+                (rel) =>
+                  muscleIds.includes(rel.muscleId) && rel.role === "target",
+              )
+              .map((rel) => rel.exerciseId),
+          );
 
-        return {
-          id: group,
-          name: group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, ' '),
-          type: "group" as const,
-          exerciseCount: uniqueExerciseIds.size,
-          muscleIds,
-          majorGroup: musclesInGroup[0]?.majorGroup,
-        };
-      }).sort((a, b) => b.exerciseCount - a.exerciseCount);
+          return {
+            id: group,
+            name:
+              group.charAt(0).toUpperCase() + group.slice(1).replace(/_/g, " "),
+            type: "group" as const,
+            exerciseCount: uniqueExerciseIds.size,
+            muscleIds,
+            majorGroup: musclesInGroup[0]?.majorGroup,
+          };
+        })
+        .sort((a, b) => b.exerciseCount - a.exerciseCount);
     } else {
       // Advanced: Individual muscles (36+ items) - filter by target function only
       return muscles
-        .filter(muscle => {
+        .filter((muscle) => {
           // Only include muscles that have target exercises
-          const targetExerciseCount = exerciseMuscleRelationships
-            .filter(rel => rel.muscleId === muscle._id && rel.role === "target").length;
+          const targetExerciseCount = exerciseMuscleRelationships.filter(
+            (rel) => rel.muscleId === muscle._id && rel.role === "target",
+          ).length;
           return targetExerciseCount > 0;
         })
         .map((muscle) => {
-          const exerciseCount = exerciseMuscleRelationships
-            .filter(rel => rel.muscleId === muscle._id && rel.role === "target").length;
+          const exerciseCount = exerciseMuscleRelationships.filter(
+            (rel) => rel.muscleId === muscle._id && rel.role === "target",
+          ).length;
 
           return {
             id: muscle._id,
@@ -1051,15 +1112,16 @@ export const getFilteredExercises = query({
 
       for (const majorGroup of args.majorGroups) {
         const muscleIds = allMuscles
-          .filter(m => m.majorGroup === majorGroup)
-          .map(m => m._id);
+          .filter((m) => m.majorGroup === majorGroup)
+          .map((m) => m._id);
 
         const majorGroupExerciseIds = allMuscleRelationships
           .filter((rel) => {
             const matchesMuscle = muscleIds.includes(rel.muscleId);
-            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
-              ? args.muscleFunctions.includes(rel.role as any)
-              : true;
+            const matchesFunction =
+              args.muscleFunctions && args.muscleFunctions.length > 0
+                ? args.muscleFunctions.includes(rel.role as any)
+                : true;
             return matchesMuscle && matchesFunction;
           })
           .map((rel) => rel.exerciseId);
@@ -1093,15 +1155,16 @@ export const getFilteredExercises = query({
 
       for (const group of args.groups) {
         const muscleIds = allMuscles
-          .filter(m => m.group === group)
-          .map(m => m._id);
+          .filter((m) => m.group === group)
+          .map((m) => m._id);
 
         const groupExerciseIds = allMuscleRelationships
           .filter((rel) => {
             const matchesMuscle = muscleIds.includes(rel.muscleId);
-            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
-              ? args.muscleFunctions.includes(rel.role as any)
-              : true;
+            const matchesFunction =
+              args.muscleFunctions && args.muscleFunctions.length > 0
+                ? args.muscleFunctions.includes(rel.role as any)
+                : true;
             return matchesMuscle && matchesFunction;
           })
           .map((rel) => rel.exerciseId);
@@ -1127,16 +1190,19 @@ export const getFilteredExercises = query({
 
       // Batch fetch muscle relationships if not already fetched
       if (!allMuscleRelationships) {
-        allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
+        allMuscleRelationships = await ctx.db
+          .query("exerciseMuscles")
+          .collect();
       }
 
       for (const muscleId of args.muscleIds) {
         const muscleExerciseIds = allMuscleRelationships
           .filter((rel) => {
             const matchesMuscle = rel.muscleId === muscleId;
-            const matchesFunction = args.muscleFunctions && args.muscleFunctions.length > 0
-              ? args.muscleFunctions.includes(rel.role as any)
-              : true;
+            const matchesFunction =
+              args.muscleFunctions && args.muscleFunctions.length > 0
+                ? args.muscleFunctions.includes(rel.role as any)
+                : true;
             return matchesMuscle && matchesFunction;
           })
           .map((rel) => rel.exerciseId);
@@ -1184,7 +1250,9 @@ export const getFilteredExercises = query({
 
       // Reuse muscle relationships if already fetched, otherwise fetch once
       if (!allMuscleRelationships) {
-        allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
+        allMuscleRelationships = await ctx.db
+          .query("exerciseMuscles")
+          .collect();
       }
 
       for (const role of args.muscleFunctions) {
@@ -1192,7 +1260,9 @@ export const getFilteredExercises = query({
           .filter((rel) => rel.role === role)
           .map((rel) => rel.exerciseId);
 
-        functionExerciseIds.forEach((id) => allMuscleFunctionExerciseIds.add(id));
+        functionExerciseIds.forEach((id) =>
+          allMuscleFunctionExerciseIds.add(id),
+        );
       }
 
       if (firstFilter) {
@@ -1213,7 +1283,9 @@ export const getFilteredExercises = query({
 
       // Reuse equipment relationships if already fetched, otherwise fetch once
       if (!allEquipmentRelationships) {
-        allEquipmentRelationships = await ctx.db.query("exerciseEquipment").collect();
+        allEquipmentRelationships = await ctx.db
+          .query("exerciseEquipment")
+          .collect();
       }
 
       for (const equipmentId of args.equipmentIds) {
@@ -1265,7 +1337,7 @@ export const getFilteredExercises = query({
     }
 
     // Get exercise details with muscles and equipment efficiently
-    const finalExerciseIds = exercises.map(ex => ex._id);
+    const finalExerciseIds = exercises.map((ex) => ex._id);
     const exerciseIdSet = new Set(finalExerciseIds);
 
     // Batch fetch all relationships for these exercises (reuse if already fetched)
@@ -1273,7 +1345,9 @@ export const getFilteredExercises = query({
       allMuscleRelationships = await ctx.db.query("exerciseMuscles").collect();
     }
     if (!allEquipmentRelationships) {
-      allEquipmentRelationships = await ctx.db.query("exerciseEquipment").collect();
+      allEquipmentRelationships = await ctx.db
+        .query("exerciseEquipment")
+        .collect();
     }
     if (!allMuscles) {
       allMuscles = await ctx.db.query("muscles").collect();
@@ -1281,23 +1355,26 @@ export const getFilteredExercises = query({
     const allEquipment = await ctx.db.query("equipment").collect();
 
     // Create lookup maps
-    const muscleMap = new Map(allMuscles.map(m => [m._id, m]));
-    const equipmentMap = new Map(allEquipment.map(e => [e._id, e]));
+    const muscleMap = new Map(allMuscles.map((m) => [m._id, m]));
+    const equipmentMap = new Map(allEquipment.map((e) => [e._id, e]));
 
     // Group relationships by exercise ID
-    const musclesByExercise = new Map<Id<"exercises">, Array<{muscle: any, role: string}>>();
+    const musclesByExercise = new Map<
+      Id<"exercises">,
+      Array<{ muscle: any; role: string }>
+    >();
     const equipmentByExercise = new Map<Id<"exercises">, any[]>();
 
     // Initialize maps for all exercises
-    finalExerciseIds.forEach(id => {
+    finalExerciseIds.forEach((id) => {
       musclesByExercise.set(id, []);
       equipmentByExercise.set(id, []);
     });
 
     // Populate muscle relationships
     allMuscleRelationships
-      .filter(rel => exerciseIdSet.has(rel.exerciseId))
-      .forEach(rel => {
+      .filter((rel) => exerciseIdSet.has(rel.exerciseId))
+      .forEach((rel) => {
         const muscle = muscleMap.get(rel.muscleId);
         if (muscle) {
           musclesByExercise.get(rel.exerciseId)?.push({
@@ -1309,8 +1386,8 @@ export const getFilteredExercises = query({
 
     // Populate equipment relationships
     allEquipmentRelationships
-      .filter(rel => exerciseIdSet.has(rel.exerciseId))
-      .forEach(rel => {
+      .filter((rel) => exerciseIdSet.has(rel.exerciseId))
+      .forEach((rel) => {
         const equipment = equipmentMap.get(rel.equipmentId);
         if (equipment) {
           equipmentByExercise.get(rel.exerciseId)?.push(equipment);
@@ -1318,12 +1395,129 @@ export const getFilteredExercises = query({
       });
 
     // Combine exercises with their relationships
-    const exercisesWithDetails = exercises.map(exercise => ({
+    const exercisesWithDetails = exercises.map((exercise) => ({
       ...exercise,
       muscles: musclesByExercise.get(exercise._id) || [],
       equipment: equipmentByExercise.get(exercise._id) || [],
     }));
 
     return exercisesWithDetails;
+  },
+});
+
+export const getMuscleRoleForExercise = query({
+  args: { 
+    exerciseId: v.id("exercises"),
+    muscleId: v.id("muscles")
+  },
+  handler: async (ctx, args) => {
+    const relationship = await ctx.db
+      .query("exerciseMuscles")
+      .withIndex("by_exercise_and_muscle", (q) =>
+        q.eq("exerciseId", args.exerciseId).eq("muscleId", args.muscleId)
+      )
+      .first();
+
+    return relationship?.role || null;
+  },
+});
+
+export const getMuscleRolesForExercises = query({
+  args: { 
+    exerciseIds: v.array(v.id("exercises")),
+    muscleId: v.id("muscles")
+  },
+  handler: async (ctx, args) => {
+    const relationships = await ctx.db
+      .query("exerciseMuscles")
+      .withIndex("by_muscle", (q) => q.eq("muscleId", args.muscleId))
+      .filter((q) => q.or(...args.exerciseIds.map(id => q.eq(q.field("exerciseId"), id))))
+      .collect();
+
+    // Create a map of exerciseId -> role
+    const roleMap: Record<string, string> = {};
+    relationships.forEach(rel => {
+      roleMap[rel.exerciseId] = rel.role;
+    });
+
+    return roleMap;
+  },
+});
+
+export const getMajorGroupExerciseCounts = query({
+  args: { majorGroup: v.string() },
+  handler: async (ctx, args) => {
+    const [muscles, exerciseMuscleRelationships] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+    ]);
+
+    // Get muscles in the specified major group
+    const musclesInGroup = muscles.filter(
+      (muscle) => muscle.majorGroup === args.majorGroup,
+    );
+    const muscleIds = musclesInGroup.map((muscle) => muscle._id);
+
+    // Calculate unique exercise counts for each role
+    const exerciseCountsByRole = {
+      target: new Set<string>(),
+      synergist: new Set<string>(),
+      stabilizer: new Set<string>(),
+      lengthening: new Set<string>(),
+    };
+
+    exerciseMuscleRelationships.forEach((rel) => {
+      if (muscleIds.includes(rel.muscleId)) {
+        exerciseCountsByRole[
+          rel.role as keyof typeof exerciseCountsByRole
+        ]?.add(rel.exerciseId);
+      }
+    });
+
+    return {
+      target: exerciseCountsByRole.target.size,
+      synergist: exerciseCountsByRole.synergist.size,
+      stabilizer: exerciseCountsByRole.stabilizer.size,
+      lengthening: exerciseCountsByRole.lengthening.size,
+    };
+  },
+});
+
+export const getGroupExerciseCounts = query({
+  args: { group: v.string() },
+  handler: async (ctx, args) => {
+    const [muscles, exerciseMuscleRelationships] = await Promise.all([
+      ctx.db.query("muscles").collect(),
+      ctx.db.query("exerciseMuscles").collect(),
+    ]);
+
+    // Get muscles in the specified group
+    const musclesInGroup = muscles.filter(
+      (muscle) => muscle.group === args.group,
+    );
+    const muscleIds = musclesInGroup.map((muscle) => muscle._id);
+
+    // Calculate unique exercise counts for each role
+    const exerciseCountsByRole = {
+      target: new Set<string>(),
+      synergist: new Set<string>(),
+      stabilizer: new Set<string>(),
+      lengthening: new Set<string>(),
+    };
+
+    exerciseMuscleRelationships.forEach((rel) => {
+      if (muscleIds.includes(rel.muscleId)) {
+        exerciseCountsByRole[
+          rel.role as keyof typeof exerciseCountsByRole
+        ]?.add(rel.exerciseId);
+      }
+    });
+
+    return {
+      target: exerciseCountsByRole.target.size,
+      synergist: exerciseCountsByRole.synergist.size,
+      stabilizer: exerciseCountsByRole.stabilizer.size,
+      lengthening: exerciseCountsByRole.lengthening.size,
+    };
   },
 });

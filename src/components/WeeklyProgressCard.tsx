@@ -4,16 +4,16 @@ import {
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
 import { api } from "@/convex/_generated/api";
+import { useCachedQuery } from "@/hooks/cache";
 import {
-  getGroupProgressForMuscle,
+  getMuscleProgress,
   getProgressColor,
-  weeklyProgressAtom,
+  svgIdProgressAtom,
 } from "@/store/weeklyProgress";
 import {
-  getMajorGroupFromMuscle,
-  muscleToGroupMapping,
+  getGroupFromMuscle,
+  muscleToIntermediateGroupMapping,
 } from "@/utils/muscleMapping";
-import { useCachedQuery } from "@/hooks/cache";
 import { router, usePathname, useSegments } from "expo-router";
 import { useAtom } from "jotai";
 import { Text, View } from "react-native";
@@ -71,30 +71,43 @@ const getCurrentWeekRange = () => {
 
 export const WeeklyProgressCard = () => {
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
-  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const [svgIdProgress] = useAtom(svgIdProgressAtom);
   const segments = useSegments();
   const pathname = usePathname();
 
-  // Check if we're currently viewing a muscle group modal
-  const muscleGroupIndex = (segments as string[]).findIndex(
-    (segment) => segment === "muscle-group",
+  // Check if we're currently viewing a muscle modal
+  const muscleIndex = (segments as string[]).findIndex(
+    (segment) => segment === "muscles",
   );
-  const isInMuscleGroupModal = muscleGroupIndex !== -1;
+  const isInMuscleModal = muscleIndex !== -1;
 
-  // Extract muscle group from pathname
+  // Extract muscle group from pathname (support both basic and intermediate)
   let activeMuscleGroup: string | null = null;
-  if (isInMuscleGroupModal && pathname) {
-    const match = pathname.match(/\/muscle-group\/([^\/]+)/);
-    activeMuscleGroup = match ? match[1] : null;
+  if (isInMuscleModal && pathname) {
+    const basicMatch = pathname.match(/\/muscles\/basic\/([^\/]+)/);
+    const intermediateMatch = pathname.match(
+      /\/muscles\/intermediate\/([^\/]+)/,
+    );
+    activeMuscleGroup = basicMatch
+      ? basicMatch[1]
+      : intermediateMatch
+        ? intermediateMatch[1]
+        : null;
   }
 
   if (!muscles) {
     return null;
   }
 
-  // Filter muscles by major group if modal is open, similar to muscles.tsx
+  // Filter muscles by group if modal is open
   const filteredMuscles = activeMuscleGroup
-    ? muscles.filter((muscle) => muscle.majorGroup === activeMuscleGroup)
+    ? muscles.filter((muscle) => {
+        // Check if it's a major group (basic) or intermediate group
+        const isMajorGroup = muscle.majorGroup === activeMuscleGroup;
+        const isIntermediateGroup =
+          muscleToIntermediateGroupMapping[muscle.svgId] === activeMuscleGroup;
+        return isMajorGroup || isIntermediateGroup;
+      })
     : muscles;
 
   const highlightedMuscles: MuscleColorPair[] = [];
@@ -106,13 +119,9 @@ export const WeeklyProgressCard = () => {
     }
     seenMuscleIds.add(muscle.svgId);
 
-    // Use group progress percentage instead of individual muscle progress
-    const groupProgress = getGroupProgressForMuscle(
-      muscle.svgId,
-      weeklyProgress,
-      muscleToGroupMapping,
-    );
-    const color = getProgressColor(groupProgress, true);
+    // Use individual muscle progress for consistent colors across all pages
+    const muscleProgress = getMuscleProgress(muscle.svgId, svgIdProgress, true);
+    const color = getProgressColor(muscleProgress.percentage, true);
 
     highlightedMuscles.push({
       muscleId: muscle.svgId as MuscleId,
@@ -121,8 +130,10 @@ export const WeeklyProgressCard = () => {
   });
 
   const handleMusclePress = (muscleId: MuscleId) => {
-    const majorGroup = getMajorGroupFromMuscle(muscleId);
-    router.push(`/(app)/(authenticated)/(modal)/muscle-group/${majorGroup}`);
+    const intermediateGroup = getGroupFromMuscle(muscleId);
+    router.push(
+      `/(app)/(authenticated)/(modal)/muscles/intermediate/${intermediateGroup}`,
+    );
   };
 
   return (

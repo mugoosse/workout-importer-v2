@@ -64,3 +64,58 @@ export const getMajorGroupFromMuscle = (
 ): MajorMuscleGroup => {
   return muscleToGroupMapping[muscleId];
 };
+
+// Map individual muscle svgIds to their groups (intermediate level)
+export const muscleToIntermediateGroupMapping: Record<MuscleId, string> = {
+  // Chest
+  pectoralis_major: "chest",
+  serratus_anterior: "chest",
+
+  // Back
+  latissimus_dorsi: "lats",
+  lower_trapezius: "traps",
+  rhomboid_muscles: "upper_back",
+  trapezius: "traps",
+  teres_major: "upper_back",
+  erector_spinae: "lower_back",
+  infraspinatus: "upper_back",
+
+  // Legs
+  rectus_femoris: "quadriceps",
+  vastus_lateralis: "quadriceps",
+  vastus_medialis: "quadriceps",
+  biceps_femoris: "hamstrings",
+  semitendinosus: "hamstrings",
+  gastrocnemius: "calves",
+  soleus: "calves",
+  gluteus_maximus: "glutes",
+  gluteus_medius: "glutes",
+  adductor_longus_and_pectineus: "adductors",
+  adductor_magnus: "adductors",
+  gracilis: "adductors",
+  sartorius: "quadriceps",
+  tensor_fasciae_latae: "abductors",
+  peroneus_longus: "calves",
+
+  // Shoulders
+  deltoids: "shoulders",
+
+  // Arms
+  biceps_brachii: "biceps",
+  triceps_brachii: "triceps",
+  brachialis: "biceps",
+  brachioradialis: "forearms",
+  extensor_carpi_radialis: "forearms",
+  flexor_carpi_radialis: "forearms",
+  flexor_carpi_ulnaris: "forearms",
+
+  // Core
+  rectus_abdominis: "abdominals",
+  external_obliques: "abdominals",
+  omohyoid: "neck",
+  sternocleidomastoid: "neck",
+};
+
+export const getGroupFromMuscle = (muscleId: MuscleId): string => {
+  return muscleToIntermediateGroupMapping[muscleId];
+};

@@ -4,32 +4,35 @@ import {
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
+import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
 import {
   exerciseLogsAtom,
+  getSetsByExerciseAtom,
   getSetsByWorkoutSessionAtom,
   getWorkoutSessionByIdAtom,
+  workoutSessionsAtom,
 } from "@/store/exerciseLog";
 import {
   getGroupProgressForMuscle,
   getGroupProgressWithAdditionalXP,
   getProgressColor,
-  individualMuscleProgressAtom,
-  weeklyProgressAtom,
+  majorGroupProgressAtom,
+  svgIdProgressAtom,
 } from "@/store/weeklyProgress";
 import { muscleToGroupMapping } from "@/utils/muscleMapping";
+import {
+  calculateWorkoutPRs,
+  extractExerciseDetailsForPR,
+} from "@/utils/workoutPRCalculator";
 import {
   calculateXPDistribution,
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
+import { Ionicons } from "@expo/vector-icons";
 import { useConvex } from "convex/react";
-import {
-  router,
-  Stack,
-  useLocalSearchParams,
-  useNavigation,
-} from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useAtom } from "jotai";
 import {
   useCallback,
@@ -46,21 +49,6 @@ import {
   View,
 } from "react-native";
 
-const formatDuration = (milliseconds: number): string => {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}min`;
-  } else if (minutes > 0) {
-    return `${minutes}min ${seconds}s`;
-  } else {
-    return `${seconds}s`;
-  }
-};
-
 const Page = () => {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const navigation = useNavigation();
@@ -68,14 +56,17 @@ const Page = () => {
 
   const [getWorkoutSessionById] = useAtom(getWorkoutSessionByIdAtom);
   const [getSetsByWorkoutSession] = useAtom(getSetsByWorkoutSessionAtom);
+  const [getSetsByExercise] = useAtom(getSetsByExerciseAtom);
   const [exerciseLogs] = useAtom(exerciseLogsAtom);
-  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
-  const [weeklyProgress] = useAtom(weeklyProgressAtom);
+  const [svgIdProgress] = useAtom(svgIdProgressAtom);
+  const [majorGroupProgress] = useAtom(majorGroupProgressAtom);
+  const [workoutSessions, setWorkoutSessions] = useAtom(workoutSessionsAtom);
 
   const [exerciseDetails, setExerciseDetails] = useState<
     Record<Id<"exercises">, any>
   >({});
   const [loading, setLoading] = useState(true);
+  const [prCount, setPrCount] = useState<number>(0);
   const [beforeMuscleColors, setBeforeMuscleColors] = useState<
     MuscleColorPair[]
   >([]);
@@ -95,7 +86,15 @@ const Page = () => {
   useLayoutEffect(() => {
     if (workoutSession?.name) {
       navigation.setOptions({
-        title: workoutSession.name || "Workout Details",
+        title: workoutSession.name,
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginRight: 8 }}
+          >
+            <Ionicons name="close" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        ),
       });
     }
   }, [navigation, workoutSession?.name]);
@@ -111,6 +110,7 @@ const Page = () => {
 
       // Calculate total XP distribution for the workout
       const workoutXPByMuscle: Record<string, number> = {};
+      let calculatedTotalXP = 0;
 
       // Group sets by exercise
       const setsByExercise = sessionSets.reduce(
@@ -134,7 +134,12 @@ const Page = () => {
         );
 
         sets.forEach((set) => {
-          const xpResult = calculateXPDistribution(muscleInvolvements, set.rpe);
+          const xpResult = calculateXPDistribution(
+            muscleInvolvements,
+            set.rpe,
+            set.isPR,
+          );
+          calculatedTotalXP += xpResult.totalXP;
           xpResult.muscleXPDistribution.forEach((muscle) => {
             const muscleId = muscle.muscleId;
             workoutXPByMuscle[muscleId] =
@@ -142,6 +147,24 @@ const Page = () => {
           });
         });
       });
+
+      // Update workout session totalXP if it's currently 0 but we calculated a positive value
+      // This fixes existing workouts that were saved before the totalXP bug was fixed
+      if (workoutSession.totalXP === 0 && calculatedTotalXP > 0) {
+        // Find and update this workout session in the atom
+        const currentSessions = workoutSessions;
+        const sessionIndex = currentSessions.findIndex(
+          (s) => s.id === workoutSession.id,
+        );
+        if (sessionIndex >= 0) {
+          const updatedSessions = [...currentSessions];
+          updatedSessions[sessionIndex] = {
+            ...workoutSession,
+            totalXP: calculatedTotalXP,
+          };
+          setWorkoutSessions(updatedSessions);
+        }
+      }
 
       // Check if we have stored progress snapshots
       if (workoutSession.progressSnapshot) {
@@ -206,13 +229,13 @@ const Page = () => {
       const afterColors: MuscleColorPair[] = [];
 
       Object.entries(workoutXPByMuscle).forEach(([muscleId, workoutXP]) => {
-        const currentProgress = individualMuscleProgress[muscleId];
+        const currentProgress = svgIdProgress[muscleId];
         if (!currentProgress) return;
 
         // Before: current group progress
         const beforePercentage = getGroupProgressForMuscle(
           muscleId,
-          weeklyProgress,
+          majorGroupProgress,
           muscleToGroupMapping,
         );
         beforeColors.push({
@@ -224,7 +247,7 @@ const Page = () => {
         const afterPercentage = getGroupProgressWithAdditionalXP(
           muscleId,
           workoutXP,
-          individualMuscleProgress,
+          svgIdProgress,
           muscleToGroupMapping,
         );
         afterColors.push({
@@ -236,7 +259,14 @@ const Page = () => {
       setBeforeMuscleColors(beforeColors);
       setAfterMuscleColors(afterColors);
     },
-    [workoutSession, sessionSets, individualMuscleProgress, weeklyProgress],
+    [
+      workoutSession,
+      sessionSets,
+      svgIdProgress,
+      majorGroupProgress,
+      workoutSessions,
+      setWorkoutSessions,
+    ],
   );
 
   useEffect(() => {
@@ -268,6 +298,20 @@ const Page = () => {
         }
         setExerciseDetails(details);
 
+        // Calculate PRs for this workout
+        if (sessionSets.length > 0) {
+          const exerciseDetailsForPR = extractExerciseDetailsForPR(
+            sessionSets,
+            details,
+          );
+          const workoutPRCount = calculateWorkoutPRs(
+            sessionSets,
+            exerciseDetailsForPR,
+            getSetsByExercise,
+          );
+          setPrCount(workoutSession?.totalPRs ?? workoutPRCount);
+        }
+
         // Calculate before/after muscle visualization
         calculateMuscleVisualization(details);
       } catch (error) {
@@ -278,7 +322,13 @@ const Page = () => {
     };
 
     loadExerciseDetails();
-  }, [workoutSession, convex, calculateMuscleVisualization]);
+  }, [
+    workoutSession,
+    convex,
+    calculateMuscleVisualization,
+    getSetsByExercise,
+    sessionSets,
+  ]);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -300,6 +350,15 @@ const Page = () => {
     });
   };
 
+  if (loading) {
+    return (
+      <View className="flex-1 bg-dark justify-center items-center">
+        <ActivityIndicator size="large" color="#6F2DBD" />
+        <Text className="text-white mt-4">Loading workout details...</Text>
+      </View>
+    );
+  }
+
   if (!sessionId || !workoutSession) {
     return (
       <View className="flex-1 bg-dark justify-center items-center">
@@ -310,15 +369,6 @@ const Page = () => {
         >
           <Text className="text-white font-Poppins_500Medium">Go Back</Text>
         </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (loading) {
-    return (
-      <View className="flex-1 bg-dark justify-center items-center">
-        <ActivityIndicator size="large" color="#6F2DBD" />
-        <Text className="text-white mt-4">Loading workout details...</Text>
       </View>
     );
   }
@@ -339,61 +389,33 @@ const Page = () => {
 
   return (
     <View className="flex-1 bg-dark">
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <Text className="text-gray-400 text-lg font-Poppins_400Regular">
-              {formatDate(workoutSession.startTime)}
-            </Text>
-          ),
-        }}
-      />
-
       <ScrollView className="flex-1">
-        {/* Workout Header */}
+        {/* Overview */}
         <View className="px-4 py-6 border-b border-neutral-700">
-          {/* Workout Stats */}
-          <View className="flex-row justify-around bg-[#1c1c1e] rounded-xl p-4">
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                Start Time
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {formatTime(workoutSession.startTime)}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                Duration
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {formatDuration(duration)}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                Total Sets
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {workoutSession.totalSets}
-              </Text>
-            </View>
-            <View className="items-center">
-              <Text className="text-[#6F2DBD] text-sm font-Poppins_500Medium">
-                XP Earned
-              </Text>
-              <Text className="text-white text-lg font-Poppins_600SemiBold">
-                {workoutSession.totalXP}
-              </Text>
-            </View>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-white text-xl font-Poppins_600SemiBold">
+              Overview
+            </Text>
+            <Text className="text-gray-400 text-sm font-Poppins_400Regular">
+              {formatDate(workoutSession.startTime)} •{" "}
+              {formatTime(workoutSession.startTime)}
+            </Text>
           </View>
+          <WorkoutSummary
+            startTime={workoutSession.startTime}
+            duration={duration}
+            totalSets={workoutSession.totalSets}
+            totalPRs={prCount}
+            totalXP={workoutSession.totalXP}
+            showDateHeader={false}
+          />
         </View>
 
         {/* Before/After Muscle Visualization */}
         {(beforeMuscleColors.length > 0 || afterMuscleColors.length > 0) && (
           <View className="px-4 py-6 border-b border-neutral-700">
             <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-              Muscle Progress Impact
+              Muscle Progress
             </Text>
             <View className="flex-row justify-around">
               <View className="items-center">
@@ -470,7 +492,9 @@ const Page = () => {
                             <Text className="text-gray-500 text-sm font-Poppins_400Regular w-8">
                               {index + 1}
                             </Text>
-                            <Text className="text-white text-sm font-Poppins_400Regular flex-1">
+                            <Text
+                              className={`text-white text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_400Regular"} flex-1`}
+                            >
                               {set.reps && `${set.reps} reps`}
                               {set.weight && ` @ ${set.weight}kg`}
                               {set.duration &&
@@ -478,7 +502,9 @@ const Page = () => {
                               {set.distance &&
                                 ` ${(set.distance / 1000).toFixed(1)}km`}
                             </Text>
-                            <Text className="text-yellow-400 text-sm font-Poppins_500Medium">
+                            <Text
+                              className={`text-yellow-400 text-sm ${set.isPR ? "font-Poppins_600SemiBold" : "font-Poppins_500Medium"}`}
+                            >
                               RPE {set.rpe}
                             </Text>
                           </View>

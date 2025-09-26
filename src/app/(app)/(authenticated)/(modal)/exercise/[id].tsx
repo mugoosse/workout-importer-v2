@@ -7,6 +7,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/convex/_generated/api";
 import { type Id } from "@/convex/_generated/dataModel";
+import { useCachedQuery } from "@/hooks/cache";
 import {
   activeWorkoutAtom,
   addExercisesToWorkoutAction,
@@ -19,9 +20,10 @@ import {
 import {
   getProgressColor,
   getStreakEmoji,
-  individualMuscleProgressAtom,
+  svgIdProgressAtom,
 } from "@/store/weeklyProgress";
 import { cleanExerciseTitle } from "@/utils/exerciseUtils";
+import { formatMuscleName } from "@/utils/muscleBodyUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Doc } from "convex/_generated/dataModel";
 import {
@@ -31,7 +33,6 @@ import {
   useLocalSearchParams,
   useNavigation,
 } from "expo-router";
-import { useCachedQuery } from "@/hooks/cache";
 import { useAtom } from "jotai";
 import { useLayoutEffect, useState } from "react";
 import {
@@ -60,14 +61,6 @@ const MUSCLE_ROLE_EXPLANATIONS: Record<MuscleRole, string> = {
   lengthening: "Muscles that are stretched or lengthened during the exercise",
 };
 
-const formatMuscleName = (svgId: string): string => {
-  return svgId
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ")
-    .replace(" And ", " and ");
-};
-
 const formatRoleName = (role: MuscleRole): string => {
   return role.charAt(0).toUpperCase() + role.slice(1);
 };
@@ -92,7 +85,7 @@ const Page = () => {
       });
     }
   }, [navigation, exerciseDetails?.title]);
-  const [individualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [svgIdProgress] = useAtom(svgIdProgressAtom);
   const [getWorkoutSessionsByExercise] = useAtom(
     getWorkoutSessionsByExerciseAtom,
   );
@@ -388,6 +381,9 @@ const Page = () => {
                   const duration = session.endTime - session.startTime;
                   const durationMins = Math.round(duration / 60000);
 
+                  // Calculate PR count for this session
+                  const prCount = sessionSets.filter((set) => set.isPR).length;
+
                   return (
                     <TouchableOpacity
                       key={session.id}
@@ -405,11 +401,20 @@ const Page = () => {
                             {session.name ||
                               formatWorkoutDate(session.startTime)}
                           </Text>
-                          <Text className="text-gray-400 text-xs">
-                            {formatWorkoutDate(session.startTime)} •{" "}
-                            {formatTimeDisplay(session.startTime)} •{" "}
-                            {durationMins}min
-                          </Text>
+                          <View className="flex-row items-center gap-2">
+                            <Text className="text-gray-400 text-xs">
+                              {formatWorkoutDate(session.startTime)} •{" "}
+                              {formatTimeDisplay(session.startTime)} •{" "}
+                              {durationMins}min
+                            </Text>
+                            {prCount > 0 && (
+                              <View className="bg-[#FFD700] rounded-full px-2 py-1">
+                                <Text className="text-black text-xs font-Poppins_500Medium">
+                                  {prCount} PR{prCount !== 1 ? "s" : ""}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
                         </View>
                         <View className="bg-[#2c2c2e] w-8 h-8 rounded-lg items-center justify-center">
                           <Ionicons
@@ -533,9 +538,7 @@ const Page = () => {
                 {!isCollapsed && (
                   <View>
                     {displayMuscles.map((muscle, index) => {
-                      const muscleProgress = individualMuscleProgress[
-                        muscle.svgId
-                      ] || {
+                      const muscleProgress = svgIdProgress[muscle.svgId] || {
                         xp: 0,
                         goal: 500,
                         percentage: 0,
@@ -553,7 +556,7 @@ const Page = () => {
                           className={index > 0 ? "mt-4" : ""}
                         >
                           <Link
-                            href={`/(app)/(authenticated)/(modal)/muscle/${muscle._id}`}
+                            href={`/(app)/(authenticated)/(modal)/muscles/advanced/${muscle._id}`}
                             asChild
                           >
                             <TouchableOpacity className="bg-[#1c1c1e] rounded-2xl p-4">

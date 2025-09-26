@@ -1,33 +1,35 @@
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
-import { useRouter } from "expo-router";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
-import { useAtom } from "jotai";
-import {
-  weeklyProgressAtom,
-  individualMuscleProgressAtom,
-} from "@/store/weeklyProgress";
+import { discardWorkoutAction } from "@/store/activeWorkout";
 import {
   clearAllLogsAction,
   exerciseLogsAtom,
   workoutSessionsAtom,
 } from "@/store/exerciseLog";
-import { discardWorkoutAction } from "@/store/activeWorkout";
 import {
-  weightUnitAtom,
   distanceUnitAtom,
-  setWeightUnitAction,
   setDistanceUnitAction,
+  setWeightUnitAction,
+  weightUnitAtom,
 } from "@/store/units";
+import {
+  groupProgressAtom,
+  majorGroupProgressAtom,
+  svgIdProgressAtom,
+} from "@/store/weeklyProgress";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
+import { useAtom } from "jotai";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 
 const Page = () => {
   const { signOut } = useAuthActions();
   const router = useRouter();
   const user = useQuery(api.users.viewer);
-  const [, setWeeklyProgress] = useAtom(weeklyProgressAtom);
-  const [, setIndividualMuscleProgress] = useAtom(individualMuscleProgressAtom);
+  const [, setMajorGroupProgress] = useAtom(majorGroupProgressAtom);
+  const [, setSvgIdProgress] = useAtom(svgIdProgressAtom);
+  const [, setGroupProgress] = useAtom(groupProgressAtom);
   const [, clearAllLogs] = useAtom(clearAllLogsAction);
   const [, setExerciseLogs] = useAtom(exerciseLogsAtom);
   const [, setWorkoutSessions] = useAtom(workoutSessionsAtom);
@@ -66,7 +68,7 @@ const Page = () => {
             discardWorkout();
 
             // Reset weekly progress
-            setWeeklyProgress([
+            setMajorGroupProgress([
               {
                 majorGroup: "chest",
                 level: 1,
@@ -118,7 +120,7 @@ const Page = () => {
             ]);
 
             // Reset individual muscle progress
-            setIndividualMuscleProgress((current) => {
+            setSvgIdProgress((current) => {
               const reset = { ...current };
               Object.keys(reset).forEach((muscleId) => {
                 reset[muscleId] = {
@@ -131,6 +133,9 @@ const Page = () => {
               });
               return reset;
             });
+
+            // Reset group progress
+            setGroupProgress([]);
 
             Alert.alert("Success", "Progress has been reset successfully.");
           },

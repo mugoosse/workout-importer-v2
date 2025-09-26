@@ -1,11 +1,15 @@
-import { type MajorMuscleGroup } from "@/utils/muscleMapping";
+import {
+  type MajorMuscleGroup,
+  muscleToGroupMapping,
+  muscleToIntermediateGroupMapping,
+} from "@/utils/muscleMapping";
 import {
   calculateMajorGroupProgress,
   type XPCalculationResult,
 } from "@/utils/xpCalculator";
 import { atom } from "jotai";
 
-export interface WeeklyProgressData {
+export interface MajorGroupProgressData {
   majorGroup: MajorMuscleGroup;
   level: number;
   xp: number;
@@ -14,7 +18,17 @@ export interface WeeklyProgressData {
   streak: number;
 }
 
-export interface IndividualMuscleProgress {
+export interface GroupProgressData {
+  group: string;
+  majorGroup: MajorMuscleGroup;
+  level: number;
+  xp: number;
+  nextLevel: number;
+  percentage: number;
+  streak: number;
+}
+
+export interface SvgIdProgressData {
   xp: number;
   goal: number;
   percentage: number;
@@ -24,7 +38,7 @@ export interface IndividualMuscleProgress {
 }
 
 // Major muscle group progress data - starting from 0 for client-side tracking
-export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
+export const majorGroupProgressAtom = atom<MajorGroupProgressData[]>([
   {
     majorGroup: "chest" as MajorMuscleGroup,
     level: 1,
@@ -75,13 +89,14 @@ export const weeklyProgressAtom = atom<WeeklyProgressData[]>([
   },
 ]);
 
+// Group progress data - starting from 0 for client-side tracking
+export const groupProgressAtom = atom<GroupProgressData[]>([]);
+
 // Note: Exercise count data is now dynamically loaded from the database
 // This store maintains progress data, while exercise availability is determined in real-time
 
 // Individual muscle progress data - starting from 0 for client-side tracking
-export const individualMuscleProgressAtom = atom<
-  Record<string, IndividualMuscleProgress>
->({
+export const svgIdProgressAtom = atom<Record<string, SvgIdProgressData>>({
   // Legs
   rectus_femoris: {
     xp: 0,
@@ -476,9 +491,9 @@ export const getStreakEmoji = (streak: number): string => {
 // Helper function to get muscle progress with fallback for muscles without exercises
 export const getMuscleProgress = (
   svgId: string,
-  progressAtom: Record<string, IndividualMuscleProgress>,
+  progressAtom: Record<string, SvgIdProgressData>,
   hasExercises?: boolean,
-): IndividualMuscleProgress => {
+): SvgIdProgressData => {
   const existingProgress = progressAtom[svgId];
 
   if (existingProgress) {
@@ -502,7 +517,7 @@ export const getMuscleProgress = (
 // Helper function to get group progress percentage for a muscle based on its major muscle group
 export const getGroupProgressForMuscle = (
   muscleId: string,
-  weeklyProgress: WeeklyProgressData[],
+  majorGroupProgress: MajorGroupProgressData[],
   muscleToGroupMapping: Record<
     string,
     import("@/utils/muscleMapping").MajorMuscleGroup
@@ -511,8 +526,23 @@ export const getGroupProgressForMuscle = (
   const majorGroup = muscleToGroupMapping[muscleId];
   if (!majorGroup) return 0;
 
-  const groupData = weeklyProgress.find(
+  const groupData = majorGroupProgress.find(
     (group) => group.majorGroup === majorGroup,
+  );
+  return groupData?.percentage || 0;
+};
+
+// Helper function to get intermediate group progress percentage for a muscle
+export const getIntermediateGroupProgressForMuscle = (
+  muscleId: string,
+  groupProgress: GroupProgressData[],
+  muscleToIntermediateGroupMapping: Record<string, string>,
+): number => {
+  const intermediateGroup = muscleToIntermediateGroupMapping[muscleId];
+  if (!intermediateGroup) return 0;
+
+  const groupData = groupProgress.find(
+    (group) => group.group === intermediateGroup,
   );
   return groupData?.percentage || 0;
 };
@@ -521,7 +551,7 @@ export const getGroupProgressForMuscle = (
 export const getGroupProgressWithAdditionalXP = (
   muscleId: string,
   additionalXP: number,
-  individualProgress: Record<string, IndividualMuscleProgress>,
+  svgIdProgress: Record<string, SvgIdProgressData>,
   muscleToGroupMapping: Record<
     string,
     import("@/utils/muscleMapping").MajorMuscleGroup
@@ -532,7 +562,7 @@ export const getGroupProgressWithAdditionalXP = (
 
   // Calculate what the group max XP would be with the additional XP
   let maxGroupXP = 0;
-  Object.entries(individualProgress).forEach(([muscleSvgId, progress]) => {
+  Object.entries(svgIdProgress).forEach(([muscleSvgId, progress]) => {
     const muscleMajorGroup = muscleToGroupMapping[muscleSvgId];
     if (muscleMajorGroup === majorGroup && progress.hasExercises) {
       const xpToAdd = muscleSvgId === muscleId ? additionalXP : 0;
@@ -550,7 +580,7 @@ export const getGroupProgressWithAdditionalXP = (
 export const updateMuscleProgressFromWorkoutAction = atom(
   null,
   (get, set, xpDistributions: XPCalculationResult[]) => {
-    const currentIndividualProgress = get(individualMuscleProgressAtom);
+    const currentSvgIdProgress = get(svgIdProgressAtom);
 
     // Aggregate all XP distributions and count sets per muscle from the workout
     const totalXPByMuscle: Record<string, number> = {};
@@ -566,9 +596,9 @@ export const updateMuscleProgressFromWorkoutAction = atom(
     });
 
     // Update individual muscle progress
-    let updatedIndividualProgress = { ...currentIndividualProgress };
+    let updatedSvgIdProgress = { ...currentSvgIdProgress };
     Object.entries(totalXPByMuscle).forEach(([muscleId, totalXP]) => {
-      const currentMuscleProgress = updatedIndividualProgress[muscleId];
+      const currentMuscleProgress = updatedSvgIdProgress[muscleId];
       if (currentMuscleProgress) {
         const newXP = currentMuscleProgress.xp + totalXP;
         const newSets =
@@ -578,7 +608,7 @@ export const updateMuscleProgressFromWorkoutAction = atom(
             ? Math.round((newXP / currentMuscleProgress.goal) * 100)
             : 0;
 
-        updatedIndividualProgress[muscleId] = {
+        updatedSvgIdProgress[muscleId] = {
           ...currentMuscleProgress,
           xp: newXP,
           sets: newSets,
@@ -588,18 +618,92 @@ export const updateMuscleProgressFromWorkoutAction = atom(
     });
 
     // Recalculate major group progress
-    const updatedWeeklyProgress = calculateMajorGroupProgress(
-      updatedIndividualProgress,
-    );
+    const updatedMajorGroupProgress =
+      calculateMajorGroupProgress(updatedSvgIdProgress);
 
-    // Update both atoms
-    set(individualMuscleProgressAtom, updatedIndividualProgress);
-    set(weeklyProgressAtom, updatedWeeklyProgress);
+    // Recalculate group progress
+    const updatedGroupProgress = calculateGroupProgress(updatedSvgIdProgress);
+
+    // Update all atoms
+    set(svgIdProgressAtom, updatedSvgIdProgress);
+    set(majorGroupProgressAtom, updatedMajorGroupProgress);
+    set(groupProgressAtom, updatedGroupProgress);
 
     // Return the updated progress for snapshot capture
     return {
-      updatedIndividualProgress,
-      updatedWeeklyProgress,
+      updatedSvgIdProgress,
+      updatedMajorGroupProgress,
+      updatedGroupProgress,
     };
   },
 );
+
+/**
+ * Calculate group progress from individual muscle progress
+ */
+export const calculateGroupProgress = (
+  svgIdProgress: Record<string, SvgIdProgressData>,
+): GroupProgressData[] => {
+  // Group muscles by intermediate group
+  const groupedData: Record<
+    string,
+    {
+      maxXP: number;
+      totalSets: number;
+      muscles: string[];
+      majorGroup: MajorMuscleGroup;
+    }
+  > = {};
+
+  // Find maximum XP among muscles in each group
+  Object.entries(svgIdProgress).forEach(([muscleId, progress]) => {
+    const group =
+      muscleToIntermediateGroupMapping[
+        muscleId as import("@/components/muscle-body/MuscleBody").MuscleId
+      ];
+    if (group && progress.hasExercises) {
+      if (!groupedData[group]) {
+        // Get the major group for this muscle
+        const actualMajorGroup =
+          muscleToGroupMapping[
+            muscleId as import("@/components/muscle-body/MuscleBody").MuscleId
+          ];
+
+        groupedData[group] = {
+          maxXP: 0,
+          totalSets: 0,
+          muscles: [],
+          majorGroup: actualMajorGroup,
+        };
+      }
+
+      groupedData[group].maxXP = Math.max(
+        groupedData[group].maxXP,
+        progress.xp,
+      );
+      groupedData[group].totalSets += progress.sets;
+      groupedData[group].muscles.push(muscleId);
+    }
+  });
+
+  // Convert to GroupProgressData format
+  return Object.entries(groupedData).map(([group, data]) => {
+    // Fixed target of 100 XP for all groups
+    const fixedTarget = 100;
+    const percentage = Math.round((data.maxXP / fixedTarget) * 100);
+
+    // Simple level calculation based on max XP
+    const level = Math.max(1, Math.floor(data.maxXP / fixedTarget) + 1);
+    const nextLevel = fixedTarget; // Always 100 XP target
+
+    return {
+      group,
+      majorGroup: data.majorGroup,
+      level,
+      xp: data.maxXP,
+      nextLevel,
+      percentage,
+      streak: 0, // TODO: Implement streak calculation based on consecutive days
+    };
+  });
+};

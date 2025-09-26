@@ -31,20 +31,6 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
-          name="(modal)/muscle-group/[group]"
-          options={{
-            presentation: "formSheet",
-            animation: "slide_from_bottom",
-            sheetAllowedDetents: "fitToContents",
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 20,
-            headerShown: false,
-            contentStyle: {
-              backgroundColor: (twFullConfig.theme.colors as any).dark,
-            },
-          }}
-        />
-        <Stack.Screen
           name="(modal)/exercise/menu"
           options={{
             presentation: "formSheet",
@@ -169,20 +155,9 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
-          name="(modal)/muscle/[id]"
+          name="(modal)/workout/active-workout"
           options={{
-            title: "Muscle Details",
-            headerShown: true,
-            presentation: "modal",
-            headerStyle: { backgroundColor: "#000000" },
-            headerTintColor: "#ffffff",
-            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
-          }}
-        />
-        <Stack.Screen
-          name="(modal)/muscle-group/[group]/muscles"
-          options={{
-            title: "Muscle Details",
+            title: "Active Workout",
             headerShown: true,
             presentation: "modal",
             headerStyle: { backgroundColor: "#000000" },
@@ -191,25 +166,6 @@ const Layout = () => {
               fontFamily: "Poppins_600SemiBold",
               fontSize: 18,
             },
-            headerLeft: () => (
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ marginLeft: 8 }}
-              >
-                <Ionicons name="chevron-back" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-        <Stack.Screen
-          name="(modal)/workout/active-workout"
-          options={{
-            title: "Active Workout",
-            headerShown: true,
-            presentation: "modal",
-            headerStyle: { backgroundColor: "#000000" },
-            headerTintColor: "#ffffff",
-            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
           }}
         />
         <Stack.Screen
@@ -220,7 +176,10 @@ const Layout = () => {
             presentation: "modal",
             headerStyle: { backgroundColor: "#000000" },
             headerTintColor: "#ffffff",
-            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
           }}
         />
         <Stack.Screen
@@ -246,6 +205,8 @@ const Layout = () => {
             headerStyle: { backgroundColor: "#000000" },
             headerTintColor: "#ffffff",
             headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
+            headerLeft: () => null,
+            headerBackVisible: false,
           }}
         />
         <Stack.Screen
@@ -260,7 +221,7 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
-          name="(modal)/muscle-groups/index"
+          name="(modal)/muscles/index"
           options={{
             title: "Muscles",
             headerShown: true,
@@ -279,6 +240,61 @@ const Layout = () => {
                 <Ionicons name="chevron-back" size={24} color="#ffffff" />
               </TouchableOpacity>
             ),
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/muscles/basic/[majorGroup]"
+          options={{
+            title: "Muscle Group",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/muscles/intermediate/[group]"
+          options={{
+            title: "Muscle Group",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="(modal)/muscles/advanced/[id]"
+          options={{
+            title: "Muscle Details",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: { fontFamily: "Poppins_600SemiBold" },
           }}
         />
         <Stack.Screen

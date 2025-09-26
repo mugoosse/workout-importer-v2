@@ -4,19 +4,20 @@ import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
 import {
   exerciseLogSummariesAtom,
+  loggedSetsAtom,
   workoutSessionsAtom,
   type ExerciseLogSummary,
   type WorkoutSession,
 } from "@/store/exerciseLog";
 import {
+  formatDuration,
+  formatLastLoggedDate,
+  formatTime,
+} from "@/utils/timeFormatters";
+import {
   calculateXPDistribution,
   extractMuscleInvolvement,
 } from "@/utils/xpCalculator";
-import {
-  formatTime,
-  formatDuration,
-  formatLastLoggedDate,
-} from "@/utils/timeFormatters";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAtom } from "jotai";
@@ -24,6 +25,8 @@ import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 // Component to display individual exercise log item with exercise name
 const ExerciseLogItem = ({ summary }: { summary: ExerciseLogSummary }) => {
+  const [loggedSets] = useAtom(loggedSetsAtom);
+
   const { data: exercise } = useCachedQuery(api.exercises.get, {
     exerciseId: summary.exerciseId,
   });
@@ -47,9 +50,14 @@ const ExerciseLogItem = ({ summary }: { summary: ExerciseLogSummary }) => {
     const muscleInvolvements = extractMuscleInvolvement(
       exerciseDetails.muscles,
     );
-    const xpResult = calculateXPDistribution(muscleInvolvements, 8); // Default RPE 8
+    const xpResult = calculateXPDistribution(muscleInvolvements, 8, false); // Default RPE 8, no PR
     return xpResult.totalXP * summary.totalSets; // XP per set * number of sets
   };
+
+  // Calculate PR count for this exercise
+  const prCount = loggedSets
+    .filter((set) => set.exerciseId === summary.exerciseId)
+    .filter((set) => set.isPR).length;
 
   return (
     <TouchableOpacity
@@ -73,6 +81,13 @@ const ExerciseLogItem = ({ summary }: { summary: ExerciseLogSummary }) => {
                 {summary.totalSets} sets
               </Text>
             </View>
+            {prCount > 0 && (
+              <View className="bg-[#FFD700] rounded-full px-2 py-1">
+                <Text className="text-black text-xs font-Poppins_500Medium">
+                  {prCount} PR{prCount !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
             <View className="bg-[#1c1c1e] rounded-full px-2 py-1">
               <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium">
                 +{calculateTotalXP()} XP
@@ -100,7 +115,13 @@ const ExerciseLogItem = ({ summary }: { summary: ExerciseLogSummary }) => {
 
 // Component to display workout session card
 const WorkoutSessionCard = ({ session }: { session: WorkoutSession }) => {
+  const [loggedSets] = useAtom(loggedSetsAtom);
   const duration = session.endTime - session.startTime;
+
+  // Calculate PR count for this workout session
+  const prCount = loggedSets
+    .filter((set) => set.workoutSessionId === session.id)
+    .filter((set) => set.isPR).length;
 
   return (
     <TouchableOpacity
@@ -139,6 +160,13 @@ const WorkoutSessionCard = ({ session }: { session: WorkoutSession }) => {
             {session.exercises.length !== 1 ? "s" : ""}
           </Text>
         </View>
+        {prCount > 0 && (
+          <View className="bg-[#FFD700] rounded-full px-3 py-1">
+            <Text className="text-black text-xs font-Poppins_500Medium">
+              {prCount} PR{prCount !== 1 ? "s" : ""}
+            </Text>
+          </View>
+        )}
         {session.totalXP > 0 && (
           <View className="bg-[#2c2c2e] rounded-full px-3 py-1">
             <Text className="text-[#6F2DBD] text-xs font-Poppins_500Medium">
@@ -228,7 +256,7 @@ const Page = () => {
           {/* By Target Muscle */}
           <TouchableOpacity
             onPress={() =>
-              router.push("/(app)/(authenticated)/(modal)/muscle-groups")
+              router.push("/(app)/(authenticated)/(modal)/muscles")
             }
             className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
           >
