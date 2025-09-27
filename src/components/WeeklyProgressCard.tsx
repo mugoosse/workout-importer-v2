@@ -3,8 +3,10 @@ import {
   type MuscleColorPair,
   type MuscleId,
 } from "@/components/muscle-body/MuscleBody";
+import { WeekProgress } from "@/components/WeekProgress";
 import { api } from "@/convex/_generated/api";
 import { useCachedQuery } from "@/hooks/cache";
+import { workoutSessionsAtom } from "@/store/exerciseLog";
 import {
   getMuscleProgress,
   getProgressColor,
@@ -69,9 +71,36 @@ const getCurrentWeekRange = () => {
   return `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
 };
 
+const getWorkoutDaysForCurrentWeek = (workoutSessions: any[]) => {
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  const dayOfWeek = today.getDay();
+
+  // Calculate Sunday of current week
+  startOfWeek.setDate(today.getDate() - dayOfWeek);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // Calculate Saturday of current week
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // Filter workouts for current week and extract days
+  const workoutDays = workoutSessions
+    .filter((session) => {
+      const sessionDate = new Date(session.date);
+      return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    })
+    .map((session) => new Date(session.date).getDay())
+    .filter((day, index, array) => array.indexOf(day) === index); // Remove duplicates
+
+  return workoutDays;
+};
+
 export const WeeklyProgressCard = () => {
   const { data: muscles } = useCachedQuery(api.muscles.list, {});
   const [svgIdProgress] = useAtom(svgIdProgressAtom);
+  const [workoutSessions] = useAtom(workoutSessionsAtom);
   const segments = useSegments();
   const pathname = usePathname();
 
@@ -136,17 +165,50 @@ export const WeeklyProgressCard = () => {
     );
   };
 
+  const handleDayPress = (dayInfo: {
+    dayIndex: number;
+    dayLabel: string;
+    hasWorkout: boolean;
+    isToday: boolean;
+    isPast: boolean;
+  }) => {
+    console.log("Day pressed:", dayInfo);
+
+    if (!dayInfo.hasWorkout && !dayInfo.isPast) {
+      // Allow planning future workouts
+      router.push("/(app)/(authenticated)/(modal)/create-workout-modal");
+    } else if (dayInfo.isPast) {
+      // For past days, always navigate to workouts page with date filter for that specific date
+      const today = new Date();
+      const dayOffset = dayInfo.dayIndex - today.getDay();
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + dayOffset);
+
+      const dateString = targetDate.toISOString().split("T")[0];
+
+      // Always filter to the specific date, whether there are workouts or not
+      router.push(
+        `/(app)/(authenticated)/(modal)/workouts?startDate=${dateString}&endDate=${dateString}`,
+      );
+    }
+  };
+
+  // Get workout days for current week
+  const workoutDays = getWorkoutDaysForCurrentWeek(workoutSessions);
+
   return (
-    <View className="mx-4 mb-6">
+    <View className="mx-4 pt-6">
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-white text-xl font-Poppins_600SemiBold">
+          Weekly Progress
+        </Text>
+        <Text className="text-gray-400 text-sm font-Poppins_500Medium">
+          {getCurrentWeekRange()}
+        </Text>
+      </View>
+
       <View className="bg-[#1c1c1e] rounded-2xl p-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-white text-xl font-Poppins_600SemiBold">
-            Weekly Progress
-          </Text>
-          <Text className="text-gray-400 text-sm font-Poppins_500Medium">
-            {getCurrentWeekRange()}
-          </Text>
-        </View>
+        <WeekProgress workoutDays={workoutDays} onDayPress={handleDayPress} />
 
         <View className="items-center">
           <MuscleBody

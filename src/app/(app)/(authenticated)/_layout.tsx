@@ -133,6 +133,28 @@ const Layout = () => {
           }}
         />
         <Stack.Screen
+          name="(modal)/workouts/index"
+          options={{
+            title: "Workouts",
+            headerShown: true,
+            presentation: "modal",
+            headerStyle: { backgroundColor: "#000000" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: {
+              fontFamily: "Poppins_600SemiBold",
+              fontSize: 18,
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ marginLeft: 8 }}
+              >
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+        <Stack.Screen
           name="(modal)/equipment/index"
           options={{
             title: "Equipment",

@@ -221,37 +221,24 @@ const Page = () => {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}
       >
-        <View className="pt-6">
-          <WeeklyProgressCard />
-        </View>
+        <WeeklyProgressCard />
 
         {/* Exercises Section */}
         <View className="mx-4 mt-6">
-          <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-            Exercises
-          </Text>
-
-          {/* All Exercises */}
-          <TouchableOpacity
-            onPress={() =>
-              router.push("/(app)/(authenticated)/(modal)/exercises")
-            }
-            className="bg-[#1c1c1e] rounded-xl p-4 mb-4"
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <Text className="text-white text-lg font-Poppins_600SemiBold">
-                  All Exercises
-                </Text>
-                <Text className="text-gray-400 text-sm font-Poppins_400Regular mt-1">
-                  Browse the complete exercise database
-                </Text>
-              </View>
-              <View className="bg-[#2c2c2e] w-10 h-10 rounded-xl items-center justify-center ml-3">
-                <Ionicons name="fitness-outline" size={20} color="#6F2DBD" />
-              </View>
-            </View>
-          </TouchableOpacity>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-white text-xl font-Poppins_600SemiBold">
+              Exercises
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/(app)/(authenticated)/(modal)/exercises")
+              }
+            >
+              <Text className="text-[#6F2DBD] font-Poppins_500Medium">
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* By Target Muscle */}
           <TouchableOpacity
@@ -369,9 +356,20 @@ const Page = () => {
 
         {/* Recent Workouts Section - Always Show */}
         <View className="mx-4 mb-6 mt-8">
-          <Text className="text-white text-xl font-Poppins_600SemiBold mb-4">
-            Recent Workouts
-          </Text>
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-white text-xl font-Poppins_600SemiBold">
+              Recent Workouts
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.push("/(app)/(authenticated)/(modal)/workouts")
+              }
+            >
+              <Text className="text-[#6F2DBD] font-Poppins_500Medium">
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Content */}
           {workoutSessions.length > 0 ? (
